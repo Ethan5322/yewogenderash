@@ -1,0 +1,152 @@
+@import "tailwindcss";
+
+/* Enable class-based dark mode: `.dark` on any ancestor */
+@custom-variant dark (&:is(.dark *));
+
+/*
+  Yewogen Derash — corporate trust palette.
+  Deep confident green (growth / donation / Ethiopia) + restrained gold for
+  verified/premium signals. Light-first, clean, high-contrast, no clutter.
+*/
+:root {
+  --background: #f7faf8;
+  --foreground: #0b1620;
+
+  --card: #ffffff;
+  --card-foreground: #0b1620;
+
+  --popover: #ffffff;
+  --popover-foreground: #0b1620;
+
+  --primary: #0f7a4d;
+  --primary-foreground: #ffffff;
+
+  --secondary: #eef3f0;
+  --secondary-foreground: #133a29;
+
+  --muted: #eef2f1;
+  --muted-foreground: #5b6b66;
+
+  --accent: #e6f2ec;
+  --accent-foreground: #0f5a3a;
+
+  /* Premium / verified seal accent */
+  --gold: #b9820f;
+  --gold-foreground: #ffffff;
+
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+
+  --success: #16a34a;
+  --success-foreground: #ffffff;
+  --warning: #b45309;
+  --warning-foreground: #ffffff;
+
+  --border: #e1e8e4;
+  --input: #dbe3de;
+  --ring: #0f7a4d;
+
+  --radius: 0.625rem;
+}
+
+.dark {
+  --background: #0a0f0d;
+  --foreground: #e7ece9;
+
+  --card: #111814;
+  --card-foreground: #e7ece9;
+
+  --popover: #111814;
+  --popover-foreground: #e7ece9;
+
+  --primary: #22a56b;
+  --primary-foreground: #04140c;
+
+  --secondary: #172019;
+  --secondary-foreground: #dbe7e0;
+
+  --muted: #172019;
+  --muted-foreground: #9aa8a2;
+
+  --accent: #16241c;
+  --accent-foreground: #7fe3ac;
+
+  --gold: #e0b45a;
+  --gold-foreground: #1a1204;
+
+  --destructive: #f04444;
+  --destructive-foreground: #140404;
+
+  --success: #34d17f;
+  --success-foreground: #04140c;
+  --warning: #f0a53a;
+  --warning-foreground: #1a1204;
+
+  --border: #1f2b24;
+  --input: #26332c;
+  --ring: #22a56b;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-gold: var(--gold);
+  --color-gold-foreground: var(--gold-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+    outline-color: color-mix(in oklab, var(--ring) 50%, transparent);
+  }
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  h1, h2, h3, h4 {
+    font-family: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: -0.01em;
+  }
+}
+
+/* Thin, unobtrusive scrollbar */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: color-mix(in oklab, var(--muted-foreground) 35%, transparent);
+  border-radius: 999px;
+  border: 3px solid var(--background);
+}
+::selection { background: color-mix(in oklab, var(--primary) 22%, transparent); }

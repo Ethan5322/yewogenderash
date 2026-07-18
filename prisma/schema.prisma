@@ -1,0 +1,351 @@
+// Yewogen Derash — data model.
+// Core invariants encoded here:
+//   * One campaign = one querycode (unique) = one ledger (donations relation).
+//   * Donations belong to exactly one campaign (required FK).
+//   * Payouts are per-campaign, admin-approved, and reference the approving admin.
+//   * Money is Decimal(12,2) — never floats.
+//   * Every webhook event is stored (idempotency + audit).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Prisma 7: connection URLs live in prisma.config.ts (CLI) and the
+// driver adapter in lib/db.ts (runtime) — never here.
+datasource db {
+  provider = "postgresql"
+}
+
+// ── Enums ────────────────────────────────────────────────────────
+
+enum Role {
+  DONOR
+  OWNER
+  ADMIN
+}
+
+enum VerificationStatus {
+  UNVERIFIED
+  PENDING
+  VERIFIED
+  REJECTED
+  RESUBMIT
+}
+
+enum BiometricStatus {
+  NOT_CAPTURED
+  PENDING
+  VERIFIED
+  REJECTED
+  RESUBMIT
+}
+
+enum CampaignStatus {
+  DRAFT
+  PENDING_REVIEW
+  ACTIVE
+  SUSPENDED
+  COMPLETED
+  ARCHIVED
+  REJECTED
+}
+
+enum CampaignCategory {
+  MEDICAL
+  EDUCATION
+  COMMUNITY
+  BUSINESS
+  EMERGENCY
+  OTHER
+}
+
+enum DonationStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  CANCELLED
+  REFUNDED
+  DISPUTED
+}
+
+enum PayoutStatus {
+  REQUESTED
+  APPROVED
+  PAID
+  REJECTED
+  CANCELLED
+}
+
+enum DocumentType {
+  NATIONAL_ID
+  PASSPORT
+  SELFIE
+  PROOF_OF_ADDRESS
+  MEDICAL_LETTER
+  EDUCATION_LETTER
+  COMMUNITY_LETTER
+  BUSINESS_REGISTRATION
+  OTHER_SUPPORTING
+}
+
+enum DocumentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  RESUBMIT
+}
+
+enum NotificationChannel {
+  WHATSAPP
+  EMAIL
+  SMS
+}
+
+enum NotificationStatus {
+  QUEUED
+  SENT
+  FAILED
+}
+
+enum OtpPurpose {
+  EMAIL_VERIFY
+  PHONE_VERIFY
+  PASSWORD_RESET
+}
+
+// ── Identity ─────────────────────────────────────────────────────
+
+model User {
+  id                 String             @id @default(cuid())
+  name               String
+  email              String             @unique
+  emailVerifiedAt    DateTime?
+  phone              String?            @unique
+  phoneVerifiedAt    DateTime?
+  passwordHash       String
+  role               Role               @default(DONOR)
+  verificationStatus VerificationStatus @default(UNVERIFIED)
+  isBanned           Boolean            @default(false)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  ownerProfile CampaignOwner?
+  donations    Donation[]
+  otpCodes     OtpCode[]
+  auditLogs    AuditLog[]     @relation("AuditActor")
+}
+
+model OtpCode {
+  id        String     @id @default(cuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purpose   OtpPurpose
+  codeHash  String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime   @default(now())
+
+  @@index([userId, purpose])
+}
+
+// ── Campaign owners (KYC) ────────────────────────────────────────
+
+model CampaignOwner {
+  id              String          @id @default(cuid())
+  userId          String          @unique
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  idNumber        String?
+  biometricStatus BiometricStatus @default(NOT_CAPTURED)
+  /// Public verification code shown on the author profile (e.g. YWD-A1B2C3)
+  authorCode      String?         @unique
+  /// Platform trust seal — set only by admin approval, never user-editable
+  mulesooVerified Boolean         @default(false)
+  verifiedAt      DateTime?
+  /// Payout account details (bank/telebirr), JSON kept admin-readable only
+  payoutAccount   Json?
+  /// Owner preference: WhatsApp alert on each successful donation
+  whatsappAlerts  Boolean         @default(true)
+  whatsappPhone   String?
+  callmebotApiKey String?
+  termsAcceptedAt DateTime?
+  feesAcceptedAt  DateTime?
+  biometricConsentAt DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  campaigns Campaign[]
+  documents VerificationDocument[]
+  payouts   Payout[]
+  notifications Notification[]
+}
+
+model VerificationDocument {
+  id           String         @id @default(cuid())
+  ownerId      String
+  owner        CampaignOwner  @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  documentType DocumentType
+  /// Path in the private Supabase Storage bucket — never a public URL
+  fileUrl      String
+  status       DocumentStatus @default(PENDING)
+  adminNote    String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@index([ownerId, status])
+}
+
+// ── Campaigns ────────────────────────────────────────────────────
+
+model Campaign {
+  id            String           @id @default(cuid())
+  ownerId       String
+  owner         CampaignOwner    @relation(fields: [ownerId], references: [id])
+  title         String
+  slug          String           @unique
+  description   String
+  story         String?
+  category      CampaignCategory
+  targetAmount  Decimal          @db.Decimal(12, 2)
+  /// Denormalised sum of SUCCESS donations — updated only inside the same
+  /// transaction that marks a donation SUCCESS/REFUNDED.
+  currentAmount Decimal          @default(0) @db.Decimal(12, 2)
+  currency      String           @default("ETB")
+  status        CampaignStatus   @default(DRAFT)
+  /// One campaign, one querycode. QR encodes /q/[queryCode].
+  queryCode     String           @unique
+  qrCodeUrl     String?
+  heroImageUrl  String?
+  location      String?
+  endDate       DateTime?
+  isFeatured    Boolean          @default(false)
+  reviewedAt    DateTime?
+  reviewNote    String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  donations Donation[]
+  payouts   Payout[]
+  updates   CampaignUpdate[]
+  notifications Notification[]
+
+  @@index([status, category])
+  @@index([ownerId])
+}
+
+model CampaignUpdate {
+  id         String   @id @default(cuid())
+  campaignId String
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  title      String
+  body       String
+  createdAt  DateTime @default(now())
+
+  @@index([campaignId])
+}
+
+// ── Money ────────────────────────────────────────────────────────
+
+model Donation {
+  id                   String         @id @default(cuid())
+  campaignId           String
+  campaign             Campaign       @relation(fields: [campaignId], references: [id])
+  /// Optional — anonymous donations are allowed
+  donorId              String?
+  donor                User?          @relation(fields: [donorId], references: [id])
+  donorName            String?
+  amount               Decimal        @db.Decimal(12, 2)
+  currency             String         @default("ETB")
+  paymentMethod        String?
+  /// Our transaction reference sent to Chapa (tx_ref) — unique for idempotency
+  txRef                String         @unique
+  gatewayTransactionId String?
+  status               DonationStatus @default(PENDING)
+  webhookPayload       Json?
+  paidAt               DateTime?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+
+  @@index([campaignId, status])
+  @@index([donorId])
+}
+
+model Payout {
+  id                String        @id @default(cuid())
+  campaignId        String
+  campaign          Campaign      @relation(fields: [campaignId], references: [id])
+  ownerId           String
+  owner             CampaignOwner @relation(fields: [ownerId], references: [id])
+  amount            Decimal       @db.Decimal(12, 2)
+  currency          String        @default("ETB")
+  status            PayoutStatus  @default(REQUESTED)
+  payoutReference   String?
+  approvedByAdminId String?
+  approvedAt        DateTime?
+  paidAt            DateTime?
+  note              String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@index([campaignId])
+  @@index([ownerId, status])
+}
+
+/// Raw gateway webhook events — stored before processing for idempotency,
+/// replay protection, and audit. Never delete.
+model WebhookEvent {
+  id          String   @id @default(cuid())
+  provider    String   @default("chapa")
+  /// Provider event id or tx_ref — unique so duplicates are ignored
+  externalRef String   @unique
+  payload     Json
+  signatureOk Boolean
+  processedAt DateTime?
+  outcome     String?
+  createdAt   DateTime @default(now())
+}
+
+// ── Notifications ────────────────────────────────────────────────
+
+model Notification {
+  id         String              @id @default(cuid())
+  ownerId    String?
+  owner      CampaignOwner?      @relation(fields: [ownerId], references: [id])
+  campaignId String?
+  campaign   Campaign?           @relation(fields: [campaignId], references: [id])
+  channel    NotificationChannel
+  message    String
+  status     NotificationStatus  @default(QUEUED)
+  error      String?
+  sentAt     DateTime?
+  createdAt  DateTime            @default(now())
+
+  @@index([ownerId])
+  @@index([campaignId])
+}
+
+// ── Governance ───────────────────────────────────────────────────
+
+/// Append-only log of every admin action (and security-relevant user events).
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actor      User?    @relation("AuditActor", fields: [actorId], references: [id])
+  action     String
+  entityType String?
+  entityId   String?
+  detail     Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  @@index([actorId])
+  @@index([entityType, entityId])
+}
+
+/// Admin-managed site content (home copy, FAQ, fees, banners, contact...)
+model SiteContent {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     Json
+  updatedBy String?
+  updatedAt DateTime @updatedAt
+}
