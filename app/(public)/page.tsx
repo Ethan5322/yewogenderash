@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ShieldCheck, QrCode, Landmark, BellRing } from "lucide-react";
+import { ShieldCheck, QrCode, Landmark, BellRing, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -9,6 +9,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { CampaignCard } from "@/components/campaigns/campaign-card";
+import { listFeaturedCampaigns } from "@/lib/campaigns";
 
 const TRUST_PILLARS = [
   {
@@ -37,7 +39,13 @@ const TRUST_PILLARS = [
   },
 ] as const;
 
-export default function HomePage() {
+// Campaign data is live — render per-request instead of requiring a database
+// connection at build time. (Can move to ISR once a deploy-time DB exists.)
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const featured = await listFeaturedCampaigns(3);
+
   return (
     <div>
       {/* Hero */}
@@ -93,6 +101,55 @@ export default function HomePage() {
               </CardContent>
             </Card>
           ))}
+        </div>
+      </section>
+
+      {/* Featured campaigns */}
+      {featured.length > 0 ? (
+        <section className="border-t bg-card">
+          <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <h2 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">
+                  Campaigns making a difference
+                </h2>
+                <p className="mt-2 text-muted-foreground">
+                  Verified causes raising funds right now.
+                </p>
+              </div>
+              <Button asChild variant="outline">
+                <Link href="/campaigns">
+                  View all <ArrowRight className="h-4 w-4" aria-hidden />
+                </Link>
+              </Button>
+            </div>
+            <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {featured.map((c) => (
+                <CampaignCard key={c.id} campaign={c} />
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {/* Closing CTA */}
+      <section className="border-t">
+        <div className="mx-auto max-w-4xl px-4 py-20 text-center sm:px-6">
+          <h2 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">
+            Have a cause worth funding?
+          </h2>
+          <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
+            Become a verified owner and raise funds people can trust — with your
+            own querycode, separated ledger, and audited payouts.
+          </p>
+          <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+            <Button asChild size="lg">
+              <Link href="/start">Start a campaign</Link>
+            </Button>
+            <Button asChild size="lg" variant="outline">
+              <Link href="/campaigns">Browse campaigns</Link>
+            </Button>
+          </div>
         </div>
       </section>
     </div>
