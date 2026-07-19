@@ -65,3 +65,22 @@ export async function signedKycUrl(
 export async function removeKycFile(path: string): Promise<void> {
   await supabaseAdmin().storage.from(KYC_BUCKET).remove([path]);
 }
+
+export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
+
+/**
+ * Upload campaign media (hero images) to the PUBLIC bucket and return the
+ * public URL. Images only — documents never go through this path.
+ */
+export async function uploadMediaFile(
+  path: string,
+  body: ArrayBuffer | Uint8Array,
+  contentType: string
+): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  const { error } = await supabaseAdmin()
+    .storage.from(MEDIA_BUCKET)
+    .upload(path, body, { contentType, upsert: true });
+  if (error) return { ok: false, error: error.message };
+  const { data } = supabaseAdmin().storage.from(MEDIA_BUCKET).getPublicUrl(path);
+  return { ok: true, url: data.publicUrl };
+}

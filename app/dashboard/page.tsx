@@ -41,15 +41,18 @@ export default async function DashboardPage() {
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Start a campaign</CardTitle>
+              <CardTitle className="text-base">My campaigns</CardTitle>
               <CardDescription>
                 Verified owners can create campaigns with their own QR code and
                 separated ledger.
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex gap-2">
               <Button asChild size="sm">
-                <Link href="/start">Begin verification</Link>
+                <Link href="/dashboard/campaigns">Open my campaigns</Link>
+              </Button>
+              <Button asChild size="sm" variant="outline">
+                <Link href="/start">Owner verification</Link>
               </Button>
             </CardContent>
           </Card>
