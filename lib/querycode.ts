@@ -34,6 +34,24 @@ export async function generateUniqueQueryCode(): Promise<string> {
   throw new Error("Could not generate a unique querycode after 5 attempts");
 }
 
+/**
+ * Public owner verification code, e.g. YWD-A1B2C3 — printed on the author
+ * profile as a trust signal. Unique across all owners.
+ */
+export async function generateUniqueAuthorCode(): Promise<string> {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    let tail = "";
+    for (let i = 0; i < 6; i++) tail += CODE_CHARS[randomInt(CODE_CHARS.length)];
+    const code = `YWD-${tail}`;
+    const clash = await db.campaignOwner.findUnique({
+      where: { authorCode: code },
+      select: { id: true },
+    });
+    if (!clash) return code;
+  }
+  throw new Error("Could not generate a unique author code after 5 attempts");
+}
+
 /** URL-safe slug from a title, deduplicated with a short random suffix. */
 export async function generateUniqueSlug(title: string): Promise<string> {
   const base =

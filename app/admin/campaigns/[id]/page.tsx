@@ -38,6 +38,31 @@ export default async function AdminCampaignDetailPage({
         },
       },
       _count: { select: { donations: { where: { status: "SUCCESS" } } } },
+      donations: {
+        orderBy: { createdAt: "desc" },
+        take: 20,
+        select: {
+          id: true,
+          amount: true,
+          currency: true,
+          status: true,
+          donorName: true,
+          txRef: true,
+          paidAt: true,
+          createdAt: true,
+        },
+      },
+      payouts: {
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          amount: true,
+          currency: true,
+          status: true,
+          payoutReference: true,
+          createdAt: true,
+        },
+      },
     },
   });
   if (!campaign) notFound();
@@ -170,6 +195,70 @@ export default async function AdminCampaignDetailPage({
                     ) : (
                       <span className="text-xs text-muted-foreground">unavailable</span>
                     )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+          {/* Donation ledger (per-campaign, §12.4) */}
+          <section className="rounded-xl border bg-card p-6 shadow-sm">
+            <h2 className="font-display text-base font-semibold">
+              Donation ledger (latest 20)
+            </h2>
+            {campaign.donations.length === 0 ? (
+              <p className="mt-3 text-sm text-muted-foreground">No donations yet.</p>
+            ) : (
+              <div className="mt-4 overflow-x-auto">
+                <table className="w-full min-w-[560px] text-sm">
+                  <thead>
+                    <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
+                      <th className="py-2 pr-3 font-medium">Date</th>
+                      <th className="py-2 pr-3 font-medium">Donor</th>
+                      <th className="py-2 pr-3 font-medium">Amount</th>
+                      <th className="py-2 pr-3 font-medium">Status</th>
+                      <th className="py-2 font-medium">Reference</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {campaign.donations.map((d) => (
+                      <tr key={d.id} className="border-b last:border-0">
+                        <td className="py-2 pr-3 whitespace-nowrap text-muted-foreground">
+                          {formatDate(d.paidAt ?? d.createdAt)}
+                        </td>
+                        <td className="py-2 pr-3">{d.donorName ?? "Anonymous"}</td>
+                        <td className="py-2 pr-3 whitespace-nowrap font-medium">
+                          {formatETB(Number(d.amount), d.currency)}
+                        </td>
+                        <td className="py-2 pr-3 text-xs font-semibold">{d.status}</td>
+                        <td className="py-2 font-mono text-xs text-muted-foreground">
+                          {d.txRef}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <h3 className="mt-6 border-t pt-4 text-sm font-medium">
+              Payout summary
+            </h3>
+            {campaign.payouts.length === 0 ? (
+              <p className="mt-2 text-sm text-muted-foreground">No payouts recorded.</p>
+            ) : (
+              <ul className="mt-2 space-y-1.5 text-sm">
+                {campaign.payouts.map((p) => (
+                  <li key={p.id} className="flex justify-between gap-3">
+                    <span className="text-muted-foreground">
+                      {formatDate(p.createdAt)}
+                      {p.payoutReference ? ` · ${p.payoutReference}` : ""}
+                    </span>
+                    <span>
+                      <span className="font-medium">
+                        {formatETB(Number(p.amount), p.currency)}
+                      </span>{" "}
+                      <span className="text-xs font-semibold">{p.status}</span>
+                    </span>
                   </li>
                 ))}
               </ul>

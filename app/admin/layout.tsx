@@ -1,6 +1,14 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { Logo } from "@/components/site/logo";
+
+const ADMIN_NAV = [
+  { href: "/admin", label: "Overview" },
+  { href: "/admin/campaigns", label: "Campaigns" },
+  { href: "/admin/owners", label: "Owners (KYC)" },
+  { href: "/admin/payouts", label: "Payouts" },
+] as const;
 
 export const metadata = { title: "Admin" };
 
@@ -25,10 +33,36 @@ export default async function AdminLayout({
               ADMIN
             </span>
           </div>
+          <nav className="hidden items-center gap-5 md:flex" aria-label="Admin">
+            {ADMIN_NAV.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
           <span className="text-xs text-muted-foreground">
             {session.user.email}
           </span>
         </div>
+        {/* Mobile nav */}
+        <nav
+          className="flex gap-4 overflow-x-auto border-t px-4 py-2 md:hidden"
+          aria-label="Admin mobile"
+        >
+          {ADMIN_NAV.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="whitespace-nowrap text-sm font-medium text-muted-foreground hover:text-foreground"
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
       </header>
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6">
         {children}

@@ -79,6 +79,195 @@ export async function decideCampaignAction(
   return { ok: true };
 }
 
+// ── Owner KYC decisions ──────────────────────────────────────────
+
+import { generateUniqueAuthorCode } from "@/lib/querycode";
+import { z } from "zod";
+
+const ownerDecisionSchema = z.object({
+  ownerId: z.string().min(1),
+  note: z.string().trim().max(1_000).optional().or(z.literal("")),
+});
+
+/**
+ * Decide an owner's KYC application (user.verificationStatus must be PENDING).
+ *
+ * approve  → user VERIFIED; owner gets the Mulesoo seal, a public author code,
+ *            verifiedAt, biometric VERIFIED; pending documents APPROVED.
+ * reject   → user REJECTED; pending documents REJECTED.
+ * resubmit → user RESUBMIT (the wizard reopens); pending documents RESUBMIT.
+ */
+export async function decideOwnerAction(
+  decision: "approve" | "reject" | "resubmit",
+  _prev: ActionResult | null,
+  formData: FormData
+): Promise<ActionResult> {
+  const adminId = await requireAdmin();
+
+  const parsed = ownerDecisionSchema.safeParse({
+    ownerId: formData.get("ownerId"),
+    note: formData.get("note") ?? "",
+  });
+  if (!parsed.success) return { ok: false, error: "Invalid input" };
+  const note = parsed.data.note || null;
+
+  if (decision !== "approve" && !note) {
+    return {
+      ok: false,
+      error: "A note is required — the owner needs to know what to fix.",
+    };
+  }
+
+  const owner = await db.campaignOwner.findUnique({
+    where: { id: parsed.data.ownerId },
+    select: {
+      id: true,
+      userId: true,
+      authorCode: true,
+      user: { select: { verificationStatus: true } },
+    },
+  });
+  if (!owner) return { ok: false, error: "Owner not found" };
+  if (owner.user.verificationStatus !== "PENDING") {
+    return { ok: false, error: "This application is not awaiting review." };
+  }
+
+  if (decision === "approve") {
+    const authorCode = owner.authorCode ?? (await generateUniqueAuthorCode());
+    await db.$transaction([
+      db.user.update({
+        where: { id: owner.userId },
+        data: { verificationStatus: "VERIFIED" },
+      }),
+      db.campaignOwner.update({
+        where: { id: owner.id },
+        data: {
+          mulesooVerified: true,
+          authorCode,
+          verifiedAt: new Date(),
+          biometricStatus: "VERIFIED",
+        },
+      }),
+      db.verificationDocument.updateMany({
+        where: { ownerId: owner.id, status: "PENDING" },
+        data: { status: "APPROVED", ...(note ? { adminNote: note } : {}) },
+      }),
+    ]);
+  } else {
+    const userStatus = decision === "reject" ? "REJECTED" : "RESUBMIT";
+    const docStatus = decision === "reject" ? "REJECTED" : "RESUBMIT";
+    await db.$transaction([
+      db.user.update({
+        where: { id: owner.userId },
+        data: { verificationStatus: userStatus },
+      }),
+      db.campaignOwner.update({
+        where: { id: owner.id },
+        data: { biometricStatus: docStatus },
+      }),
+      db.verificationDocument.updateMany({
+        where: { ownerId: owner.id, status: "PENDING" },
+        data: { status: docStatus, adminNote: note },
+      }),
+    ]);
+  }
+
+  await writeAudit({
+    actorId: adminId,
+    action: `OWNER_KYC_${decision.toUpperCase()}`,
+    entityType: "CampaignOwner",
+    entityId: owner.id,
+    detail: note ? { note } : undefined,
+  });
+
+  revalidatePath("/admin/owners");
+  revalidatePath(`/admin/owners/${owner.id}`);
+  return { ok: true };
+}
+
+// ── Payout decisions ─────────────────────────────────────────────
+
+const payoutDecisionSchema = z.object({
+  payoutId: z.string().min(1),
+  note: z.string().trim().max(1_000).optional().or(z.literal("")),
+  payoutReference: z.string().trim().max(120).optional().or(z.literal("")),
+});
+
+/**
+ * Payout lifecycle (admin side): REQUESTED → APPROVED → PAID, or
+ * REQUESTED → REJECTED. Marking PAID demands the external payment reference
+ * so every released birr traces to a real transfer.
+ */
+export async function decidePayoutAction(
+  decision: "approve" | "reject" | "paid",
+  _prev: ActionResult | null,
+  formData: FormData
+): Promise<ActionResult> {
+  const adminId = await requireAdmin();
+
+  const parsed = payoutDecisionSchema.safeParse({
+    payoutId: formData.get("payoutId"),
+    note: formData.get("note") ?? "",
+    payoutReference: formData.get("payoutReference") ?? "",
+  });
+  if (!parsed.success) return { ok: false, error: "Invalid input" };
+  const note = parsed.data.note || null;
+
+  if (decision === "reject" && !note) {
+    return { ok: false, error: "A note is required when rejecting a payout." };
+  }
+  if (decision === "paid" && !parsed.data.payoutReference) {
+    return {
+      ok: false,
+      error: "Enter the transfer reference before marking a payout paid.",
+    };
+  }
+
+  const where =
+    decision === "paid"
+      ? { id: parsed.data.payoutId, status: "APPROVED" as const }
+      : { id: parsed.data.payoutId, status: "REQUESTED" as const };
+
+  const data =
+    decision === "approve"
+      ? {
+          status: "APPROVED" as const,
+          approvedByAdminId: adminId,
+          approvedAt: new Date(),
+          ...(note ? { note } : {}),
+        }
+      : decision === "reject"
+        ? { status: "REJECTED" as const, note }
+        : {
+            status: "PAID" as const,
+            paidAt: new Date(),
+            payoutReference: parsed.data.payoutReference,
+            ...(note ? { note } : {}),
+          };
+
+  const updated = await db.payout.updateMany({ where, data });
+  if (updated.count === 0) {
+    return {
+      ok: false,
+      error: "Payout not found or not in a state that allows this decision.",
+    };
+  }
+
+  await writeAudit({
+    actorId: adminId,
+    action: `PAYOUT_${decision.toUpperCase()}`,
+    entityType: "Payout",
+    entityId: parsed.data.payoutId,
+    detail: {
+      ...(note ? { note } : {}),
+      ...(parsed.data.payoutReference ? { payoutReference: parsed.data.payoutReference } : {}),
+    },
+  });
+
+  revalidatePath("/admin/payouts");
+  return { ok: true };
+}
+
 /** Toggle the home-page "featured" flag. ACTIVE campaigns only. */
 export async function toggleFeaturedAction(campaignId: string): Promise<ActionResult> {
   const adminId = await requireAdmin();

@@ -55,6 +55,9 @@ export default async function DashboardPage() {
                 <Link href="/start">Owner verification</Link>
               </Button>
               <Button asChild size="sm" variant="outline">
+                <Link href="/dashboard/payouts">Payouts</Link>
+              </Button>
+              <Button asChild size="sm" variant="outline">
                 <Link href="/dashboard/settings">Settings</Link>
               </Button>
             </CardContent>
