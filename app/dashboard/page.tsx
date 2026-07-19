@@ -47,12 +47,15 @@ export default async function DashboardPage() {
                 separated ledger.
               </CardDescription>
             </CardHeader>
-            <CardContent className="flex gap-2">
+            <CardContent className="flex flex-wrap gap-2">
               <Button asChild size="sm">
                 <Link href="/dashboard/campaigns">Open my campaigns</Link>
               </Button>
               <Button asChild size="sm" variant="outline">
                 <Link href="/start">Owner verification</Link>
+              </Button>
+              <Button asChild size="sm" variant="outline">
+                <Link href="/dashboard/settings">Settings</Link>
               </Button>
             </CardContent>
           </Card>

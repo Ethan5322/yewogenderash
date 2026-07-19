@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { CheckCircle2, Clock, XCircle, ArrowRight } from "lucide-react";
 import { db } from "@/lib/db";
 import { settleDonation } from "@/lib/donations";
+import { deliverQueuedNotifications } from "@/lib/notifications";
 import { Button } from "@/components/ui/button";
 import { formatETB, formatDate } from "@/lib/format";
 
@@ -30,7 +31,10 @@ export default async function DonationThanksPage({
   if (!donation) notFound();
 
   if (donation.status === "PENDING") {
-    await settleDonation(txRef).catch(() => {});
+    const settled = await settleDonation(txRef).catch(() => null);
+    if (settled?.outcome === "success") {
+      await deliverQueuedNotifications().catch(() => {});
+    }
     donation = await db.donation.findUnique({
       where: { txRef },
       include: { campaign: { select: { title: true, slug: true } } },

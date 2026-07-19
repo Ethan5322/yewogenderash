@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { verifyChapaWebhookSignature } from "@/lib/chapa";
 import { settleDonation } from "@/lib/donations";
+import { deliverQueuedNotifications } from "@/lib/notifications";
 
 /**
  * Chapa webhook receiver. Rules (brief §10.2):
@@ -79,6 +80,11 @@ export async function POST(req: Request) {
   }
 
   const result = await settleDonation(txRef);
+
+  // Drain the owner-alert queue; a delivery failure must never fail the webhook.
+  if (result.outcome === "success") {
+    await deliverQueuedNotifications().catch(() => {});
+  }
 
   await db.webhookEvent.update({
     where: { id: event.id },
