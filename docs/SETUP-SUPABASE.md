@@ -2,8 +2,14 @@
 
 The app needs one Supabase project. It provides two things:
 
-1. **PostgreSQL database** — all app data (users, campaigns, donations, payouts…), kept in its own schema `yewogen`
-2. **Storage** — two buckets: `yewogen-kyc` (private, ID documents & selfies) and `yewogen-media` (public, campaign hero images)
+1. **PostgreSQL database** — all app data (users, campaigns, donations, payouts…)
+2. **Storage** — two buckets: `yd-kyc` (private, ID documents & selfies) and `yd-media` (public, campaign hero images)
+
+> **Shared project note.** This Supabase project is shared with the user's other
+> apps. Everything Yewogen Derash creates is prefixed **`yd_`** (tables) / **`yd-`**
+> (buckets) and lives in the default `public` schema. Nothing here ever touches
+> objects that don't start with `yd`. That's why the connection strings below
+> have **no `schema=` parameter**.
 
 Follow the steps in order. You only do this once.
 
@@ -31,15 +37,14 @@ Follow the steps in order. You only do this once.
    | **Session pooler** | `5432` | `DIRECT_URL` |
 
 4. In both strings, replace `[YOUR-PASSWORD]` with the database password from Step 1
-5. **Append the schema parameter** — this is critical:
-   - `DATABASE_URL` must end with: `?pgbouncer=true&schema=yewogen`
-   - `DIRECT_URL` must end with: `?schema=yewogen`
+5. Keep `?pgbouncer=true` on the pooler URL. **Do not add a `schema=` parameter** —
+   our tables use the default `public` schema (isolation is via the `yd_` prefix).
 
    Final shape (example):
 
    ```
-   DATABASE_URL=postgresql://postgres.abcdefghijk:MyPassw0rd@aws-0-eu-central-1.pooler.supabase.com:6543/postgres?pgbouncer=true&schema=yewogen
-   DIRECT_URL=postgresql://postgres.abcdefghijk:MyPassw0rd@aws-0-eu-central-1.pooler.supabase.com:5432/postgres?schema=yewogen
+   DATABASE_URL=postgresql://postgres.abcdefghijk:MyPassw0rd@aws-0-eu-central-1.pooler.supabase.com:6543/postgres?pgbouncer=true
+   DIRECT_URL=postgresql://postgres.abcdefghijk:MyPassw0rd@aws-0-eu-central-1.pooler.supabase.com:5432/postgres
    ```
 
    > If your password contains `@ # % &` or other special characters, URL-encode
@@ -80,13 +85,17 @@ SUPABASE_SERVICE_ROLE_KEY=…       (Step 3)
 These are run from the project root (Claude can run them for you):
 
 ```bash
-# 1. Create all tables in the `yewogen` schema
+# 0. Safety check — lists existing tables, confirms no yd_ collision and that
+#    no other project's tables will be touched (shared-DB rule)
+node scripts/db-preflight.mjs .env
+
+# 1. Create the 12 yd_ tables in the public schema
 npx prisma db push
 
 # 2. Seed the admin account + demo campaigns
 npx prisma db seed
 
-# 3. Create the two storage buckets
+# 3. Create the two storage buckets (yd-kyc private, yd-media public)
 node scripts/setup-storage.mjs .env
 
 # 4. Start the app

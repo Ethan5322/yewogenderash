@@ -2,9 +2,10 @@ import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 // Prisma 7 runtime: the driver adapter lives here (the CLI reads
-// prisma.config.ts instead). The DATABASE_URL carries `?schema=yewogen`
-// (shared Supabase project) — pg ignores that param, so extract it and pass
-// it to the adapter explicitly to keep queries inside our schema.
+// prisma.config.ts instead). This app shares one Supabase database with the
+// user's other projects; every table is yd_-prefixed and lives in the default
+// `public` schema, so no custom search-path is needed. A `schema` URL param,
+// if present, is still honoured for flexibility.
 function makeClient(): PrismaClient {
   const url = process.env.DATABASE_URL;
   if (!url) {

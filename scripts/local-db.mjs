@@ -37,12 +37,15 @@ async function main() {
 
   const client = pg.getPgClient("yewogen");
   await client.connect();
-  const ddl = readFileSync(join(root, "prisma", "sql", "0001_init.sql"), "utf8");
+  const ddl = readFileSync(
+    join(root, "supabase", "migrations", "0001_yd_create_core.sql"),
+    "utf8"
+  );
   await client.query(ddl);
   await client.end();
 
-  const url = `postgresql://postgres:localdev@127.0.0.1:${PORT}/yewogen?schema=yewogen`;
-  console.log(`[local-db] ready — schema 'yewogen' created with full DDL`);
+  const url = `postgresql://postgres:localdev@127.0.0.1:${PORT}/yewogen`;
+  console.log(`[local-db] ready — yd_ tables created in public schema`);
   console.log(`[local-db] DATABASE_URL=${url}`);
   console.log(`[local-db] press Ctrl+C to stop (data is discarded)`);
 

@@ -21,8 +21,8 @@ const supabase = createClient(
 );
 
 const wanted = [
-  { name: "yewogen-kyc", public: false },
-  { name: "yewogen-media", public: true },
+  { name: "yd-kyc", public: false },
+  { name: "yd-media", public: true },
 ];
 
 const { data: existing, error: listErr } = await supabase.storage.listBuckets();

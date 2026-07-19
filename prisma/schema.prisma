@@ -1,4 +1,11 @@
 // Yewogen Derash — data model.
+//
+// SHARED SUPABASE PROJECT: this database is shared with the user's other
+// apps. EVERY table/enum here maps to a yd_-prefixed Postgres name via
+// @@map (yd_users, yd_role, ...). Never create unprefixed objects, and
+// never touch tables that don't start with yd_ — they belong to other
+// projects. Storage buckets follow the same rule: yd-kyc, yd-media.
+//
 // Core invariants encoded here:
 //   * One campaign = one querycode (unique) = one ledger (donations relation).
 //   * Donations belong to exactly one campaign (required FK).
@@ -22,6 +29,8 @@ enum Role {
   DONOR
   OWNER
   ADMIN
+
+  @@map("yd_role")
 }
 
 enum VerificationStatus {
@@ -30,6 +39,8 @@ enum VerificationStatus {
   VERIFIED
   REJECTED
   RESUBMIT
+
+  @@map("yd_verification_status")
 }
 
 enum BiometricStatus {
@@ -38,6 +49,8 @@ enum BiometricStatus {
   VERIFIED
   REJECTED
   RESUBMIT
+
+  @@map("yd_biometric_status")
 }
 
 enum CampaignStatus {
@@ -48,6 +61,8 @@ enum CampaignStatus {
   COMPLETED
   ARCHIVED
   REJECTED
+
+  @@map("yd_campaign_status")
 }
 
 enum CampaignCategory {
@@ -57,6 +72,8 @@ enum CampaignCategory {
   BUSINESS
   EMERGENCY
   OTHER
+
+  @@map("yd_campaign_category")
 }
 
 enum DonationStatus {
@@ -66,6 +83,8 @@ enum DonationStatus {
   CANCELLED
   REFUNDED
   DISPUTED
+
+  @@map("yd_donation_status")
 }
 
 enum PayoutStatus {
@@ -74,6 +93,8 @@ enum PayoutStatus {
   PAID
   REJECTED
   CANCELLED
+
+  @@map("yd_payout_status")
 }
 
 enum DocumentType {
@@ -86,6 +107,8 @@ enum DocumentType {
   COMMUNITY_LETTER
   BUSINESS_REGISTRATION
   OTHER_SUPPORTING
+
+  @@map("yd_document_type")
 }
 
 enum DocumentStatus {
@@ -93,24 +116,32 @@ enum DocumentStatus {
   APPROVED
   REJECTED
   RESUBMIT
+
+  @@map("yd_document_status")
 }
 
 enum NotificationChannel {
   WHATSAPP
   EMAIL
   SMS
+
+  @@map("yd_notification_channel")
 }
 
 enum NotificationStatus {
   QUEUED
   SENT
   FAILED
+
+  @@map("yd_notification_status")
 }
 
 enum OtpPurpose {
   EMAIL_VERIFY
   PHONE_VERIFY
   PASSWORD_RESET
+
+  @@map("yd_otp_purpose")
 }
 
 // ── Identity ─────────────────────────────────────────────────────
@@ -133,6 +164,8 @@ model User {
   donations    Donation[]
   otpCodes     OtpCode[]
   auditLogs    AuditLog[]     @relation("AuditActor")
+
+  @@map("yd_users")
 }
 
 model OtpCode {
@@ -146,37 +179,40 @@ model OtpCode {
   createdAt DateTime   @default(now())
 
   @@index([userId, purpose])
+  @@map("yd_otp_codes")
 }
 
 // ── Campaign owners (KYC) ────────────────────────────────────────
 
 model CampaignOwner {
-  id              String          @id @default(cuid())
-  userId          String          @unique
-  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  idNumber        String?
-  biometricStatus BiometricStatus @default(NOT_CAPTURED)
+  id                 String          @id @default(cuid())
+  userId             String          @unique
+  user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  idNumber           String?
+  biometricStatus    BiometricStatus @default(NOT_CAPTURED)
   /// Public verification code shown on the author profile (e.g. YWD-A1B2C3)
-  authorCode      String?         @unique
+  authorCode         String?         @unique
   /// Platform trust seal — set only by admin approval, never user-editable
-  mulesooVerified Boolean         @default(false)
-  verifiedAt      DateTime?
+  mulesooVerified    Boolean         @default(false)
+  verifiedAt         DateTime?
   /// Payout account details (bank/telebirr), JSON kept admin-readable only
-  payoutAccount   Json?
+  payoutAccount      Json?
   /// Owner preference: WhatsApp alert on each successful donation
-  whatsappAlerts  Boolean         @default(true)
-  whatsappPhone   String?
-  callmebotApiKey String?
-  termsAcceptedAt DateTime?
-  feesAcceptedAt  DateTime?
+  whatsappAlerts     Boolean         @default(true)
+  whatsappPhone      String?
+  callmebotApiKey    String?
+  termsAcceptedAt    DateTime?
+  feesAcceptedAt     DateTime?
   biometricConsentAt DateTime?
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
 
-  campaigns Campaign[]
-  documents VerificationDocument[]
-  payouts   Payout[]
+  campaigns     Campaign[]
+  documents     VerificationDocument[]
+  payouts       Payout[]
   notifications Notification[]
+
+  @@map("yd_campaign_owners")
 }
 
 model VerificationDocument {
@@ -192,6 +228,7 @@ model VerificationDocument {
   updatedAt    DateTime       @updatedAt
 
   @@index([ownerId, status])
+  @@map("yd_verification_documents")
 }
 
 // ── Campaigns ────────────────────────────────────────────────────
@@ -223,13 +260,14 @@ model Campaign {
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
 
-  donations Donation[]
-  payouts   Payout[]
-  updates   CampaignUpdate[]
+  donations     Donation[]
+  payouts       Payout[]
+  updates       CampaignUpdate[]
   notifications Notification[]
 
   @@index([status, category])
   @@index([ownerId])
+  @@map("yd_campaigns")
 }
 
 model CampaignUpdate {
@@ -241,6 +279,7 @@ model CampaignUpdate {
   createdAt  DateTime @default(now())
 
   @@index([campaignId])
+  @@map("yd_campaign_updates")
 }
 
 // ── Money ────────────────────────────────────────────────────────
@@ -267,6 +306,7 @@ model Donation {
 
   @@index([campaignId, status])
   @@index([donorId])
+  @@map("yd_donations")
 }
 
 model Payout {
@@ -288,20 +328,23 @@ model Payout {
 
   @@index([campaignId])
   @@index([ownerId, status])
+  @@map("yd_payouts")
 }
 
 /// Raw gateway webhook events — stored before processing for idempotency,
 /// replay protection, and audit. Never delete.
 model WebhookEvent {
-  id          String   @id @default(cuid())
-  provider    String   @default("chapa")
+  id          String    @id @default(cuid())
+  provider    String    @default("chapa")
   /// Provider event id or tx_ref — unique so duplicates are ignored
-  externalRef String   @unique
+  externalRef String    @unique
   payload     Json
   signatureOk Boolean
   processedAt DateTime?
   outcome     String?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
+
+  @@map("yd_webhook_events")
 }
 
 // ── Notifications ────────────────────────────────────────────────
@@ -321,6 +364,7 @@ model Notification {
 
   @@index([ownerId])
   @@index([campaignId])
+  @@map("yd_notifications")
 }
 
 // ── Governance ───────────────────────────────────────────────────
@@ -339,6 +383,7 @@ model AuditLog {
 
   @@index([actorId])
   @@index([entityType, entityId])
+  @@map("yd_audit_logs")
 }
 
 /// Admin-managed site content (home copy, FAQ, fees, banners, contact...)
@@ -348,4 +393,6 @@ model SiteContent {
   value     Json
   updatedBy String?
   updatedAt DateTime @updatedAt
+
+  @@map("yd_site_content")
 }
