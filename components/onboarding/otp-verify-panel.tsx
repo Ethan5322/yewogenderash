@@ -1,0 +1,196 @@
+"use client";
+
+import * as React from "react";
+import { useRouter } from "next/navigation";
+import { useActionState } from "react";
+import { CheckCircle2, Loader2, Mail, Phone } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { updatePhoneAction, type ActionResult } from "@/app/(public)/start/(wizard)/actions";
+
+type Purpose = "EMAIL_VERIFY" | "PHONE_VERIFY";
+
+function ChannelVerify({
+  purpose,
+  target,
+  verified,
+  icon,
+  onVerified,
+}: {
+  purpose: Purpose;
+  target: string;
+  verified: boolean;
+  icon: React.ReactNode;
+  onVerified: () => void;
+}) {
+  const [code, setCode] = React.useState("");
+  const [sent, setSent] = React.useState(false);
+  const [busy, setBusy] = React.useState(false);
+  const [msg, setMsg] = React.useState<string | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
+
+  async function send() {
+    setBusy(true);
+    setError(null);
+    setMsg(null);
+    try {
+      const res = await fetch("/api/otp/request", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ purpose }),
+      });
+      if (res.ok) {
+        setSent(true);
+        setMsg("Code sent. In development it's printed to the server console.");
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error ?? "Could not send a code. Try again.");
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function verify() {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/otp/verify", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ purpose, code }),
+      });
+      if (res.ok) {
+        onVerified();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error ?? "Wrong or expired code.");
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="rounded-lg border p-4">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-sm">
+          <span className="text-muted-foreground">{icon}</span>
+          <span className="font-medium">{target}</span>
+        </div>
+        {verified ? (
+          <span className="inline-flex items-center gap-1 text-sm font-medium text-success">
+            <CheckCircle2 className="h-4 w-4" aria-hidden />
+            Verified
+          </span>
+        ) : null}
+      </div>
+
+      {!verified ? (
+        <div className="mt-3 space-y-3">
+          {!sent ? (
+            <Button type="button" size="sm" variant="outline" onClick={send} disabled={busy}>
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Send code
+            </Button>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              <Input
+                inputMode="numeric"
+                maxLength={6}
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                placeholder="6-digit code"
+                className="w-36"
+              />
+              <Button type="button" size="sm" onClick={verify} disabled={busy || code.length !== 6}>
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                Verify
+              </Button>
+              <Button type="button" size="sm" variant="ghost" onClick={send} disabled={busy}>
+                Resend
+              </Button>
+            </div>
+          )}
+          {msg ? <p className="text-xs text-muted-foreground">{msg}</p> : null}
+          {error ? <p className="text-sm text-destructive">{error}</p> : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function PhoneForm({ initialPhone }: { initialPhone: string }) {
+  const [state, action, pending] = useActionState<ActionResult | null, FormData>(
+    updatePhoneAction,
+    null
+  );
+  const router = useRouter();
+
+  React.useEffect(() => {
+    if (state?.ok) router.refresh();
+  }, [state, router]);
+
+  return (
+    <form action={action} className="rounded-lg border p-4">
+      <label htmlFor="phone" className="text-sm font-medium">
+        Add a phone number to verify
+      </label>
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <Input
+          id="phone"
+          name="phone"
+          defaultValue={initialPhone}
+          placeholder="+2519..."
+          className="w-52"
+        />
+        <Button type="submit" size="sm" disabled={pending}>
+          {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          Save number
+        </Button>
+      </div>
+      {state && !state.ok ? (
+        <p className="mt-2 text-sm text-destructive">{state.error}</p>
+      ) : null}
+    </form>
+  );
+}
+
+export function OtpVerifyPanel({
+  email,
+  phone,
+  emailVerified,
+  phoneVerified,
+}: {
+  email: string;
+  phone: string | null;
+  emailVerified: boolean;
+  phoneVerified: boolean;
+}) {
+  const router = useRouter();
+  const refresh = () => router.refresh();
+
+  return (
+    <div className="space-y-4">
+      <ChannelVerify
+        purpose="EMAIL_VERIFY"
+        target={email}
+        verified={emailVerified}
+        icon={<Mail className="h-4 w-4" aria-hidden />}
+        onVerified={refresh}
+      />
+
+      {phone ? (
+        <ChannelVerify
+          purpose="PHONE_VERIFY"
+          target={phone}
+          verified={phoneVerified}
+          icon={<Phone className="h-4 w-4" aria-hidden />}
+          onVerified={refresh}
+        />
+      ) : (
+        <PhoneForm initialPhone="" />
+      )}
+    </div>
+  );
+}
