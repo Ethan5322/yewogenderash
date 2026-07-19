@@ -1,45 +1,81 @@
 "use client";
 
 import * as React from "react";
-import { Info } from "lucide-react";
+import { Loader2, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { formatETB } from "@/lib/format";
 
 const PRESETS = [100, 250, 500, 1000, 2500] as const;
+const MIN_AMOUNT = 10;
+
+const inputClass =
+  "h-11 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 /**
- * Donation amount + donor details capture. Payment gateway wiring (Chapa,
- * phase 10) is not connected yet, so submit surfaces a clear pending state
- * rather than pretending a charge succeeded.
+ * Donation form. Creates a PENDING donation via /api/donate, then hands the
+ * donor to Chapa's hosted checkout. Confirmation happens only through the
+ * webhook/verify path — never in this component.
  */
 export function DonationForm({
+  queryCode,
   campaignTitle,
   currency,
   compact = false,
 }: {
+  queryCode: string;
   campaignTitle: string;
   currency: string;
   compact?: boolean;
 }) {
   const [amount, setAmount] = React.useState<number | "">(compact ? 250 : "");
   const [custom, setCustom] = React.useState("");
+  const [email, setEmail] = React.useState("");
   const [anonymous, setAnonymous] = React.useState(false);
   const [name, setName] = React.useState("");
-  const [submitted, setSubmitted] = React.useState(false);
+  const [busy, setBusy] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
 
   const effectiveAmount =
     custom.trim() !== "" ? Number(custom) : amount === "" ? 0 : amount;
-  const valid = effectiveAmount >= 10;
+  const valid =
+    Number.isInteger(effectiveAmount) &&
+    effectiveAmount >= MIN_AMOUNT &&
+    /\S+@\S+\.\S+/.test(email);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!valid || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/donate", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          queryCode,
+          amount: effectiveAmount,
+          email,
+          donorName: anonymous ? "" : name,
+          anonymous,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.checkoutUrl) {
+        // Hand off to the gateway's hosted checkout.
+        window.location.href = data.checkoutUrl;
+        return;
+      }
+      setError(data.error ?? "Could not start the payment. Please try again.");
+      setBusy(false);
+    } catch {
+      setError("Network problem — please try again.");
+      setBusy(false);
+    }
+  }
 
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        if (valid) setSubmitted(true);
-      }}
-      className="space-y-5"
-    >
+    <form onSubmit={submit} className="space-y-5">
       <div>
         <label className="text-sm font-medium">Choose an amount</label>
         <div
@@ -82,13 +118,28 @@ export function DonationForm({
             inputMode="numeric"
             value={custom}
             onChange={(e) => {
-              setCustom(e.target.value.replace(/[^0-9.]/g, ""));
+              setCustom(e.target.value.replace(/[^0-9]/g, ""));
               setAmount("");
             }}
             placeholder="0"
-            className="h-11 w-full rounded-md border border-input bg-background pl-12 pr-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className={cn(inputClass, "pl-12")}
           />
         </div>
+      </div>
+
+      <div>
+        <label htmlFor="donor-email" className="text-sm font-medium">
+          Email <span className="font-normal text-muted-foreground">(for your receipt)</span>
+        </label>
+        <input
+          id="donor-email"
+          type="email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@example.com"
+          className={cn(inputClass, "mt-2")}
+        />
       </div>
 
       <div className="space-y-3">
@@ -112,35 +163,30 @@ export function DonationForm({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Shown on the campaign as a supporter"
-              className="mt-2 h-11 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className={cn(inputClass, "mt-2")}
             />
           </div>
         ) : null}
       </div>
 
-      <Button type="submit" size="lg" className="w-full" disabled={!valid}>
-        {valid
-          ? `Donate ${formatETB(effectiveAmount, currency)}`
-          : "Enter an amount to continue"}
+      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+
+      <Button type="submit" size="lg" className="w-full" disabled={!valid || busy}>
+        {busy ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" /> Opening secure checkout…
+          </>
+        ) : valid ? (
+          `Donate ${formatETB(effectiveAmount, currency)}`
+        ) : (
+          "Enter amount and email to continue"
+        )}
       </Button>
 
-      {submitted ? (
-        <div className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/10 p-3 text-sm">
-          <Info className="mt-0.5 h-4 w-4 shrink-0 text-warning" aria-hidden />
-          <p>
-            You&apos;re set to give{" "}
-            <strong>{formatETB(effectiveAmount, currency)}</strong> to{" "}
-            <strong>{campaignTitle}</strong>. Secure checkout via Chapa is being
-            connected — no payment has been taken. You&apos;ll be able to complete
-            this donation shortly.
-          </p>
-        </div>
-      ) : (
-        <p className="text-center text-xs text-muted-foreground">
-          Payments are processed securely. Funds go only to this campaign&apos;s
-          separated ledger.
-        </p>
-      )}
+      <p className="flex items-center justify-center gap-1.5 text-center text-xs text-muted-foreground">
+        <Lock className="h-3.5 w-3.5" aria-hidden />
+        Secure payment via Chapa — funds go only to “{campaignTitle}”.
+      </p>
     </form>
   );
 }

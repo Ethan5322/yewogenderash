@@ -78,11 +78,19 @@ export default async function QuickDonatePage({ params }: Params) {
             </div>
 
             <div className="mt-6 border-t pt-6">
-              <DonationForm
-                campaignTitle={campaign.title}
-                currency={campaign.currency}
-                compact
-              />
+              {campaign.status === "ACTIVE" ? (
+                <DonationForm
+                  queryCode={campaign.queryCode}
+                  campaignTitle={campaign.title}
+                  currency={campaign.currency}
+                  compact
+                />
+              ) : (
+                <p className="text-center text-sm text-muted-foreground">
+                  This campaign is fully funded and no longer accepting
+                  donations. Thank you to everyone who contributed!
+                </p>
+              )}
             </div>
           </div>
         </div>

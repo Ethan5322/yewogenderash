@@ -87,10 +87,18 @@ export default async function DonatePage({ params }: Params) {
             Your gift is isolated to this campaign — funds are never pooled.
           </p>
           <div className="mt-6 rounded-xl border bg-card p-6 shadow-sm">
-            <DonationForm
-              campaignTitle={campaign.title}
-              currency={campaign.currency}
-            />
+            {campaign.status === "ACTIVE" ? (
+              <DonationForm
+                queryCode={campaign.queryCode}
+                campaignTitle={campaign.title}
+                currency={campaign.currency}
+              />
+            ) : (
+              <p className="text-center text-sm text-muted-foreground">
+                This campaign is fully funded and no longer accepting donations.
+                Thank you to everyone who contributed!
+              </p>
+            )}
           </div>
         </div>
       </div>
