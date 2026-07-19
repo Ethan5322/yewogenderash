@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Plus, ExternalLink, QrCode, Megaphone } from "lucide-react";
+import { Plus, ExternalLink, QrCode, Megaphone, Download } from "lucide-react";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { SiteHeader } from "@/components/site/site-header";
@@ -147,15 +147,36 @@ export default async function MyCampaignsPage() {
                     </p>
                   ) : null}
 
-                  <div className="mt-4">
-                    <ProgressBar value={pct} label={`${pct}% funded`} />
-                    <div className="mt-2 flex items-baseline justify-between text-sm">
-                      <span className="font-semibold">
-                        {formatETB(Number(c.currentAmount), c.currency)}
-                      </span>
-                      <span className="text-muted-foreground">
-                        of {formatETB(Number(c.targetAmount), c.currency)} · {pct}%
-                      </span>
+                  <div className="mt-4 flex flex-wrap items-end gap-6">
+                    <div className="min-w-0 flex-1">
+                      <ProgressBar value={pct} label={`${pct}% funded`} />
+                      <div className="mt-2 flex items-baseline justify-between text-sm">
+                        <span className="font-semibold">
+                          {formatETB(Number(c.currentAmount), c.currency)}
+                        </span>
+                        <span className="text-muted-foreground">
+                          of {formatETB(Number(c.targetAmount), c.currency)} · {pct}%
+                        </span>
+                      </div>
+                    </div>
+                    {/* Campaign QR — fixed at creation, exportable for posters */}
+                    <div className="flex items-center gap-3 rounded-lg border p-2">
+                      {/* eslint-disable-next-line @next/next/no-img-element -- dynamic PNG route */}
+                      <img
+                        src={`/q/${c.queryCode}/qr`}
+                        alt={`QR code for querycode ${c.queryCode}`}
+                        width={72}
+                        height={72}
+                        className="h-18 w-18 rounded"
+                      />
+                      <a
+                        href={`/q/${c.queryCode}/qr`}
+                        download={`yewogen-${c.queryCode}.png`}
+                        className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                      >
+                        <Download className="h-3.5 w-3.5" aria-hidden />
+                        Download QR
+                      </a>
                     </div>
                   </div>
                 </li>

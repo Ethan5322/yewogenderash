@@ -197,13 +197,25 @@ export default async function CampaignDetailPage({ params }: Params) {
                 <QrCode className="h-4 w-4" aria-hidden />
                 Campaign querycode
               </div>
-              <p className="mt-2 font-mono text-lg font-semibold tracking-wider">
-                {campaign.queryCode}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Scan or enter this code to donate to this exact campaign — it
-                never points anywhere else.
-              </p>
+              <div className="mt-3 flex items-center gap-4">
+                {/* eslint-disable-next-line @next/next/no-img-element -- dynamic PNG route */}
+                <img
+                  src={`/q/${campaign.queryCode}/qr`}
+                  alt={`QR code for querycode ${campaign.queryCode}`}
+                  width={96}
+                  height={96}
+                  className="h-24 w-24 rounded-md border"
+                />
+                <div>
+                  <p className="font-mono text-lg font-semibold tracking-wider">
+                    {campaign.queryCode}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Scan or enter this code to donate to this exact campaign —
+                    it never points anywhere else.
+                  </p>
+                </div>
+              </div>
               <Button asChild variant="outline" size="sm" className="mt-4 w-full">
                 <Link href={`/q/${campaign.queryCode}`}>Quick donate</Link>
               </Button>
