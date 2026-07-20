@@ -1,28 +1,33 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { auth } from "@/auth";
 import { Logo } from "@/components/site/logo";
+import {
+  currentAdmin,
+  hasPermission,
+  type AdminPermission,
+} from "@/lib/admin/permissions";
 
-const ADMIN_NAV = [
+const ADMIN_NAV: { href: string; label: string; perm?: AdminPermission }[] = [
   { href: "/admin", label: "Overview" },
-  { href: "/admin/campaigns", label: "Campaigns" },
-  { href: "/admin/owners", label: "Owners (KYC)" },
-  { href: "/admin/payouts", label: "Payouts" },
-  { href: "/admin/content", label: "Content" },
-] as const;
+  { href: "/admin/campaigns", label: "Campaigns", perm: "campaigns" },
+  { href: "/admin/owners", label: "Owners (KYC)", perm: "kyc" },
+  { href: "/admin/payouts", label: "Payouts", perm: "payouts" },
+  { href: "/admin/content", label: "Content", perm: "content" },
+  { href: "/admin/team", label: "Team", perm: "admins" },
+];
 
 export const metadata = { title: "Admin" };
 
 /**
- * Admin shell. Role is re-verified SERVER-SIDE here on every request —
- * middleware alone is never trusted for the financial control room.
+ * Admin shell. The role and per-capability permissions are re-verified
+ * SERVER-SIDE here on every request (currentAdmin loads fresh from the DB) —
+ * middleware/JWT alone is never trusted for the financial control room. The nav
+ * shows only the sections this admin is allowed to use.
  */
 export default async function AdminLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const session = await auth();
-  if (!session?.user) redirect("/login?callbackUrl=/admin");
-  if (session.user.role !== "ADMIN") redirect("/");
+  const me = await currentAdmin();
+  const nav = ADMIN_NAV.filter((item) => !item.perm || hasPermission(me, item.perm));
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -31,11 +36,11 @@ export default async function AdminLayout({
           <div className="flex items-center gap-3">
             <Logo />
             <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-semibold text-secondary-foreground">
-              ADMIN
+              {me.isSuperAdmin ? "MAIN ADMIN" : "ADMIN"}
             </span>
           </div>
           <nav className="hidden items-center gap-5 md:flex" aria-label="Admin">
-            {ADMIN_NAV.map((item) => (
+            {nav.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
@@ -45,16 +50,14 @@ export default async function AdminLayout({
               </Link>
             ))}
           </nav>
-          <span className="text-xs text-muted-foreground">
-            {session.user.email}
-          </span>
+          <span className="text-xs text-muted-foreground">{me.email}</span>
         </div>
         {/* Mobile nav */}
         <nav
           className="flex gap-4 overflow-x-auto border-t px-4 py-2 md:hidden"
           aria-label="Admin mobile"
         >
-          {ADMIN_NAV.map((item) => (
+          {nav.map((item) => (
             <Link
               key={item.href}
               href={item.href}

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { CONTENT_REGISTRY, getRawContent, isContentKey } from "@/lib/content";
+import { requirePermission } from "@/lib/admin/permissions";
 import { ContentEditorForm } from "@/components/admin/content-editor-form";
 
 export const metadata = { title: "Edit content" };
@@ -11,6 +12,7 @@ export default async function EditContentPage({
 }: {
   params: Promise<{ key: string }>;
 }) {
+  await requirePermission("content");
   const { key } = await params;
   if (!isContentKey(key)) notFound();
 

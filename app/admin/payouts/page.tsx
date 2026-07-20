@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { PayoutStatus } from "@prisma/client";
 import { db } from "@/lib/db";
+import { requirePermission } from "@/lib/admin/permissions";
 import { PayoutDecisionPanel } from "@/components/admin/payout-decision-panel";
 import { formatETB, formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -22,6 +23,7 @@ export default async function AdminPayoutsPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  await requirePermission("payouts");
   const sp = await searchParams;
   const raw = typeof sp.status === "string" ? sp.status : "REQUESTED";
   const status = (VALID.has(raw as PayoutStatus | "ALL") ? raw : "REQUESTED") as

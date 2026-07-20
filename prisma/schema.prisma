@@ -157,6 +157,12 @@ model User {
   role               Role               @default(DONOR)
   verificationStatus VerificationStatus @default(UNVERIFIED)
   isBanned           Boolean            @default(false)
+  // Delegated administration. A super admin ("main admin") implicitly holds
+  // every permission and can manage other admins; sub-admins (role ADMIN,
+  // isSuperAdmin false) hold only the capabilities toggled on in
+  // adminPermissions, e.g. { "kyc": true, "payouts": false }.
+  isSuperAdmin       Boolean            @default(false)
+  adminPermissions   Json               @default("{}")
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 

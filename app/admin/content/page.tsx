@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { contentMeta } from "@/lib/content";
+import { requirePermission } from "@/lib/admin/permissions";
 
 export const metadata = { title: "Site content" };
 
-export default function AdminContentPage() {
+export default async function AdminContentPage() {
+  await requirePermission("content");
   const blocks = contentMeta();
 
   return (

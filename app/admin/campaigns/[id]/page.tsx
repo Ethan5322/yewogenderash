@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ExternalLink, FileText, ShieldCheck, Star } from "lucide-react";
 import { db } from "@/lib/db";
+import { requirePermission } from "@/lib/admin/permissions";
 import { signedKycUrl } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/campaigns/status-badge";
@@ -16,6 +17,7 @@ export default async function AdminCampaignDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requirePermission("campaigns");
   const { id } = await params;
 
   const campaign = await db.campaign.findUnique({

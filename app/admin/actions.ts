@@ -1,22 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import type { CampaignStatus } from "@prisma/client";
-import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { writeAudit } from "@/lib/audit";
 import { reviewDecisionSchema } from "@/lib/validators/campaign";
+import { requirePermission } from "@/lib/admin/permissions";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
-
-/** Every admin action re-verifies the role server-side. Never trust the UI. */
-async function requireAdmin() {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login?callbackUrl=/admin");
-  if (session.user.role !== "ADMIN") redirect("/");
-  return session.user.id;
-}
 
 /**
  * Allowed campaign status transitions for admin decisions. Encoded once so a
@@ -35,7 +26,7 @@ export async function decideCampaignAction(
   _prev: ActionResult | null,
   formData: FormData
 ): Promise<ActionResult> {
-  const adminId = await requireAdmin();
+  const { id: adminId } = await requirePermission("campaigns");
 
   const parsed = reviewDecisionSchema.safeParse({
     campaignId: formData.get("campaignId"),
@@ -102,7 +93,7 @@ export async function decideOwnerAction(
   _prev: ActionResult | null,
   formData: FormData
 ): Promise<ActionResult> {
-  const adminId = await requireAdmin();
+  const { id: adminId } = await requirePermission("kyc");
 
   const parsed = ownerDecisionSchema.safeParse({
     ownerId: formData.get("ownerId"),
@@ -208,7 +199,7 @@ export async function decidePayoutAction(
   _prev: ActionResult | null,
   formData: FormData
 ): Promise<ActionResult> {
-  const adminId = await requireAdmin();
+  const { id: adminId } = await requirePermission("payouts");
 
   const parsed = payoutDecisionSchema.safeParse({
     payoutId: formData.get("payoutId"),
@@ -275,7 +266,7 @@ export async function decidePayoutAction(
 
 /** Toggle the home-page "featured" flag. ACTIVE campaigns only. */
 export async function toggleFeaturedAction(campaignId: string): Promise<ActionResult> {
-  const adminId = await requireAdmin();
+  const { id: adminId } = await requirePermission("campaigns");
 
   const campaign = await db.campaign.findUnique({
     where: { id: campaignId },

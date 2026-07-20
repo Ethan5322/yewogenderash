@@ -49,6 +49,8 @@ CREATE TABLE "yd_users" (
     "role" "yd_role" NOT NULL DEFAULT 'DONOR',
     "verificationStatus" "yd_verification_status" NOT NULL DEFAULT 'UNVERIFIED',
     "isBanned" BOOLEAN NOT NULL DEFAULT false,
+    "isSuperAdmin" BOOLEAN NOT NULL DEFAULT false,
+    "adminPermissions" JSONB NOT NULL DEFAULT '{}',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 

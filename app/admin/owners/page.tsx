@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { VerificationStatus } from "@prisma/client";
 import { ShieldCheck } from "lucide-react";
 import { db } from "@/lib/db";
+import { requirePermission } from "@/lib/admin/permissions";
 import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +22,7 @@ export default async function AdminOwnersPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  await requirePermission("kyc");
   const sp = await searchParams;
   const raw = typeof sp.status === "string" ? sp.status : "PENDING";
   const status = (VALID.has(raw as VerificationStatus | "ALL") ? raw : "PENDING") as

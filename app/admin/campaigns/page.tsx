@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { CampaignStatus } from "@prisma/client";
 import { Star } from "lucide-react";
 import { db } from "@/lib/db";
+import { requirePermission } from "@/lib/admin/permissions";
 import { StatusBadge } from "@/components/campaigns/status-badge";
 import { CATEGORY_LABELS } from "@/lib/campaign-types";
 import { formatETB, formatDate } from "@/lib/format";
@@ -27,6 +28,7 @@ export default async function AdminCampaignsPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  await requirePermission("campaigns");
   const sp = await searchParams;
   const raw = typeof sp.status === "string" ? sp.status : "ALL";
   const status = (VALID_STATUSES.has(raw as CampaignStatus | "ALL") ? raw : "ALL") as

@@ -1,20 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { writeAudit } from "@/lib/audit";
 import { CONTENT_REGISTRY, isContentKey } from "@/lib/content";
+import { requirePermission } from "@/lib/admin/permissions";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
-
-async function requireAdmin() {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login?callbackUrl=/admin/content");
-  if (session.user.role !== "ADMIN") redirect("/");
-  return session.user.id;
-}
 
 /**
  * Save an admin-edited content block. The submitted JSON is parsed and then
@@ -25,7 +17,7 @@ export async function saveContentAction(
   _prev: ActionResult | null,
   formData: FormData
 ): Promise<ActionResult> {
-  const adminId = await requireAdmin();
+  const { id: adminId } = await requirePermission("content");
 
   const key = String(formData.get("key") ?? "");
   if (!isContentKey(key)) return { ok: false, error: "Unknown content key." };

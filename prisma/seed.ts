@@ -21,7 +21,7 @@ async function main() {
 
   const admin = await db.user.upsert({
     where: { email: adminEmail },
-    update: {},
+    update: { isSuperAdmin: true },
     create: {
       name: "Platform Admin",
       email: adminEmail,
@@ -29,6 +29,7 @@ async function main() {
       passwordHash: await bcrypt.hash(adminPassword, 12),
       role: "ADMIN",
       verificationStatus: "VERIFIED",
+      isSuperAdmin: true,
     },
   });
   console.log(`Admin ready: ${admin.email}`);

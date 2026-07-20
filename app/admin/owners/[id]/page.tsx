@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ExternalLink, FileText, ShieldCheck } from "lucide-react";
 import { db } from "@/lib/db";
+import { requirePermission } from "@/lib/admin/permissions";
 import { signedKycUrl } from "@/lib/supabase/server";
 import { OwnerDecisionPanel } from "@/components/admin/owner-decision-panel";
 import { StatusBadge } from "@/components/campaigns/status-badge";
@@ -14,6 +15,7 @@ export default async function AdminOwnerDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requirePermission("kyc");
   const { id } = await params;
 
   const owner = await db.campaignOwner.findUnique({
