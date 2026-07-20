@@ -22,12 +22,14 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  // node_modules is a junction to C:\Users\mule\AppData\Local\yewogen-stage
-  // (outside OneDrive — see docs/dev notes). Turbopack refuses symlinks that
-  // escape its filesystem root, so widen the root to the common ancestor.
-  turbopack: {
-    root: "C:\\Users\\mule",
-  },
+  // LOCAL ONLY (Windows dev): node_modules is a junction to
+  // C:\Users\mule\AppData\Local\yewogen-stage (outside OneDrive). Turbopack
+  // refuses symlinks that escape its FS root, so widen the root to the common
+  // ancestor. On Vercel (Linux) node_modules is a normal dir and this absolute
+  // Windows path is invalid — so only set it on win32.
+  ...(process.platform === "win32"
+    ? { turbopack: { root: "C:\\Users\\mule" } }
+    : {}),
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
