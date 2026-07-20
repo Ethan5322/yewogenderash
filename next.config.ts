@@ -21,15 +21,19 @@ const securityHeaders = [
   },
 ];
 
+// Turbopack workspace root:
+// - Local Windows dev: node_modules is a junction escaping the project, so the
+//   root must be the common ancestor (C:\Users\mule).
+// - Everywhere else (incl. Vercel/Linux): pin explicitly to the project dir.
+//   Leaving it unset let Turbopack mis-detect a root outside the project on
+//   Vercel ("Invalid distDirRoot: .next … navigate out of the projectPath").
+const turbopackRoot =
+  process.platform === "win32" && !process.env.VERCEL
+    ? "C:\\Users\\mule"
+    : process.cwd();
+
 const nextConfig: NextConfig = {
-  // LOCAL ONLY (Windows dev): node_modules is a junction to
-  // C:\Users\mule\AppData\Local\yewogen-stage (outside OneDrive). Turbopack
-  // refuses symlinks that escape its FS root, so widen the root to the common
-  // ancestor. On Vercel (Linux) node_modules is a normal dir and this absolute
-  // Windows path is invalid — so only set it on win32.
-  ...(process.platform === "win32" && !process.env.VERCEL
-    ? { turbopack: { root: "C:\\Users\\mule" } }
-    : {}),
+  turbopack: { root: turbopackRoot },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
