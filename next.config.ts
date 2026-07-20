@@ -27,7 +27,7 @@ const nextConfig: NextConfig = {
   // refuses symlinks that escape its FS root, so widen the root to the common
   // ancestor. On Vercel (Linux) node_modules is a normal dir and this absolute
   // Windows path is invalid — so only set it on win32.
-  ...(process.platform === "win32"
+  ...(process.platform === "win32" && !process.env.VERCEL
     ? { turbopack: { root: "C:\\Users\\mule" } }
     : {}),
   async headers() {
