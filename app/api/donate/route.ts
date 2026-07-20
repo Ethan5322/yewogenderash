@@ -83,7 +83,7 @@ export async function POST(req: Request) {
     });
     // Turn the gateway's most common rejection into a donor-friendly message.
     const friendly = /email/i.test(init.error)
-      ? "The payment provider rejected this email address. Please check it and try again."
+      ? "The payment provider couldn't verify this email. Please use a real address like Gmail, Yahoo, or Outlook."
       : `Payment could not be started: ${init.error}`;
     return NextResponse.json({ error: friendly }, { status: 502 });
   }

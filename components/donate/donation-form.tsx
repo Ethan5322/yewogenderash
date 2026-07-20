@@ -55,7 +55,7 @@ export function DonationForm({
         body: JSON.stringify({
           queryCode,
           amount: effectiveAmount,
-          email,
+          email: email.trim(),
           donorName: anonymous ? "" : name,
           anonymous,
         }),
@@ -137,9 +137,13 @@ export function DonationForm({
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="you@example.com"
+          placeholder="you@gmail.com"
           className={cn(inputClass, "mt-2")}
         />
+        <p className="mt-1 text-xs text-muted-foreground">
+          Use a real email (Gmail, Yahoo, Outlook…) — the payment provider
+          verifies it.
+        </p>
       </div>
 
       <div className="space-y-3">

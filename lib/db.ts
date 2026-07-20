@@ -15,7 +15,19 @@ function makeClient(): PrismaClient {
     );
   }
   const schema = new URL(url).searchParams.get("schema") ?? undefined;
-  const adapter = new PrismaPg({ connectionString: url }, { schema });
+  // Keep a connection WARM. Establishing a fresh TLS connection to the Supabase
+  // pooler costs several seconds; without this, spaced-out requests reconnect
+  // every time (pages took 10-18s). keepAlive + a longer idle timeout means only
+  // the first request pays that cost; the rest reuse the open connection.
+  const adapter = new PrismaPg(
+    {
+      connectionString: url,
+      keepAlive: true,
+      idleTimeoutMillis: 60_000,
+      max: 5,
+    },
+    { schema }
+  );
   return new PrismaClient({
     adapter,
     log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
