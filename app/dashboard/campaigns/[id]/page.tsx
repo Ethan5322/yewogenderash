@@ -167,12 +167,22 @@ export default async function OwnerCampaignDetailPage({
 
         {/* Donation ledger */}
         <section className="mt-8 rounded-xl border bg-card p-6 shadow-sm">
-          <h2 className="font-display text-base font-semibold">
-            Donations{" "}
-            <span className="text-sm font-normal text-muted-foreground">
-              (latest {Math.min(100, campaign.donations.length)})
-            </span>
-          </h2>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-display text-base font-semibold">
+              Donations{" "}
+              <span className="text-sm font-normal text-muted-foreground">
+                (latest {Math.min(100, campaign.donations.length)})
+              </span>
+            </h2>
+            {campaign.donations.length > 0 ? (
+              <a
+                href={`/dashboard/campaigns/${campaign.id}/export`}
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+              >
+                <Download className="h-4 w-4" aria-hidden /> Download CSV
+              </a>
+            ) : null}
+          </div>
           <p className="mt-1 text-xs text-muted-foreground">
             Every donation to this campaign. Only confirmed (SUCCESS) donations
             count toward your total.
