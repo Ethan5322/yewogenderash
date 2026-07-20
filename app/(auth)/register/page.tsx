@@ -22,6 +22,7 @@ import {
 export default function RegisterPage() {
   const router = useRouter();
   const [serverError, setServerError] = React.useState<string | null>(null);
+  const honeypotRef = React.useRef<HTMLInputElement>(null);
 
   const {
     register,
@@ -34,7 +35,7 @@ export default function RegisterPage() {
     const res = await fetch("/api/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(values),
+      body: JSON.stringify({ ...values, website: honeypotRef.current?.value ?? "" }),
     });
 
     if (!res.ok) {
@@ -67,6 +68,19 @@ export default function RegisterPage() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+          {/* Honeypot: hidden from humans, catnip for bots. Never fill it. */}
+          <div className="hidden" aria-hidden>
+            <label htmlFor="website">Website</label>
+            <input
+              ref={honeypotRef}
+              id="website"
+              name="website"
+              type="text"
+              tabIndex={-1}
+              autoComplete="off"
+            />
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="name">Full name</Label>
             <Input id="name" autoComplete="name" {...register("name")} />

@@ -4,13 +4,25 @@ import { db } from "@/lib/db";
 import { hashPassword } from "@/lib/auth/password";
 import { registerSchema } from "@/lib/validators/auth";
 import { writeAudit, clientIp } from "@/lib/audit";
+import { rateLimit, ipKey, tooManyResponse } from "@/lib/rate-limit";
 
 export async function POST(req: Request) {
+  // Throttle account creation from one source to blunt signup spam.
+  const limit = rateLimit(ipKey(req, "register"), 5, 15 * 60_000);
+  if (!limit.ok) return tooManyResponse(limit);
+
   let body: unknown;
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+
+  // Honeypot: a hidden field no human fills. If a bot populated it, pretend the
+  // signup succeeded (201) so it doesn't learn to retry — but create nothing.
+  if (typeof (body as { website?: unknown })?.website === "string" &&
+      (body as { website: string }).website.trim() !== "") {
+    return NextResponse.json({ ok: true }, { status: 201 });
   }
 
   const parsed = registerSchema.safeParse(body);

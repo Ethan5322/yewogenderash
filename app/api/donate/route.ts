@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { appUrl } from "@/lib/env";
 import { initializeChapaPayment } from "@/lib/chapa";
 import { newTxRef, MIN_DONATION_ETB, MAX_DONATION_ETB } from "@/lib/donations";
+import { rateLimit, ipKey, tooManyResponse } from "@/lib/rate-limit";
 
 const donateSchema = z.object({
   queryCode: z.string().trim().min(4).max(16),
@@ -24,6 +25,10 @@ const donateSchema = z.object({
  * this endpoint never touches campaign totals.
  */
 export async function POST(req: Request) {
+  // A single source shouldn't be able to open dozens of checkout sessions.
+  const limit = rateLimit(ipKey(req, "donate"), 8, 5 * 60_000);
+  if (!limit.ok) return tooManyResponse(limit);
+
   const parsed = donateSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json(
