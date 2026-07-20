@@ -45,3 +45,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Personal notes (never commit — may contain secrets)
+NEXT-STEPS.md
