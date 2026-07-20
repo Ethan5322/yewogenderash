@@ -126,6 +126,11 @@ export default async function MyCampaignsPage() {
                       </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
+                      <Button asChild size="sm" variant="outline">
+                        <Link href={`/dashboard/campaigns/${c.id}`}>
+                          Details &amp; donations
+                        </Link>
+                      </Button>
                       {(c.status === "DRAFT" || c.status === "REJECTED") && (
                         <SubmitCampaignButton campaignId={c.id} />
                       )}
