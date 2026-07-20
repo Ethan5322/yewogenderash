@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { signIn } from "next-auth/react";
+import { signIn, getSession } from "next-auth/react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
@@ -22,7 +22,7 @@ import {
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") ?? "/";
+  const callbackUrl = searchParams.get("callbackUrl");
   const [serverError, setServerError] = React.useState<string | null>(null);
 
   const {
@@ -42,7 +42,16 @@ function LoginForm() {
       setServerError("Wrong email or password.");
       return;
     }
-    router.push(callbackUrl);
+    // Honour an explicit callback (came from a protected link); otherwise send
+    // people to their own home: admins to the control room, owners to their
+    // dashboard, everyone else to the site.
+    let dest = callbackUrl;
+    if (!dest) {
+      const session = await getSession();
+      const role = session?.user?.role;
+      dest = role === "ADMIN" ? "/admin" : role === "OWNER" ? "/dashboard" : "/";
+    }
+    router.push(dest);
     router.refresh();
   }
 
