@@ -9,6 +9,11 @@ import {
 } from "lucide-react";
 import { db } from "@/lib/db";
 import { formatETB } from "@/lib/format";
+import { getAdminAnalytics } from "@/lib/analytics";
+import {
+  DonationsTrendChart,
+  CampaignsByStatusChart,
+} from "@/components/admin/analytics-charts";
 
 export const metadata = { title: "Admin · Overview" };
 
@@ -37,6 +42,8 @@ export default async function AdminOverviewPage() {
       _sum: { amount: true },
     }),
   ]);
+
+  const { donationsByDay, campaignsByStatus } = await getAdminAnalytics(30);
 
   const stats = [
     {
@@ -80,6 +87,24 @@ export default async function AdminOverviewPage() {
             <p className="mt-1 text-xs text-muted-foreground">{s.sub}</p>
           </div>
         ))}
+      </div>
+
+      <div className="mt-8 grid gap-4 lg:grid-cols-2">
+        <section className="rounded-xl border bg-card p-5 shadow-sm">
+          <h2 className="text-sm font-semibold">Donations raised</h2>
+          <p className="mb-3 text-xs text-muted-foreground">
+            Successful donations per day, last 30 days (ETB)
+          </p>
+          <DonationsTrendChart data={donationsByDay} />
+        </section>
+
+        <section className="rounded-xl border bg-card p-5 shadow-sm">
+          <h2 className="text-sm font-semibold">Campaigns by status</h2>
+          <p className="mb-3 text-xs text-muted-foreground">
+            Every campaign across its lifecycle states
+          </p>
+          <CampaignsByStatusChart data={campaignsByStatus} />
+        </section>
       </div>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2">
