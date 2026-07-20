@@ -1,6 +1,6 @@
 import Link from "next/link";
-import type { CampaignStatus } from "@prisma/client";
-import { Star } from "lucide-react";
+import type { CampaignStatus, CampaignCategory, Prisma } from "@prisma/client";
+import { Star, Search } from "lucide-react";
 import { db } from "@/lib/db";
 import { requirePermission } from "@/lib/admin/permissions";
 import { StatusBadge } from "@/components/campaigns/status-badge";
@@ -20,8 +20,27 @@ const STATUS_FILTERS: { value: CampaignStatus | "ALL"; label: string }[] = [
   { value: "ARCHIVED", label: "Archived" },
   { value: "DRAFT", label: "Drafts" },
 ];
-
 const VALID_STATUSES = new Set(STATUS_FILTERS.map((f) => f.value));
+
+const CATEGORY_FILTERS: { value: CampaignCategory | "ALL"; label: string }[] = [
+  { value: "ALL", label: "All categories" },
+  ...(Object.entries(CATEGORY_LABELS) as [CampaignCategory, string][]).map(
+    ([value, label]) => ({ value, label })
+  ),
+];
+const VALID_CATEGORIES = new Set(CATEGORY_FILTERS.map((f) => f.value));
+
+type Filters = { status: string; category: string; q: string };
+
+function hrefFor(base: Filters, over: Partial<Filters>): string {
+  const m = { ...base, ...over };
+  const sp = new URLSearchParams();
+  if (m.status !== "ALL") sp.set("status", m.status);
+  if (m.category !== "ALL") sp.set("category", m.category);
+  if (m.q) sp.set("q", m.q);
+  const qs = sp.toString();
+  return qs ? `/admin/campaigns?${qs}` : "/admin/campaigns";
+}
 
 export default async function AdminCampaignsPage({
   searchParams,
@@ -30,13 +49,34 @@ export default async function AdminCampaignsPage({
 }) {
   await requirePermission("campaigns");
   const sp = await searchParams;
-  const raw = typeof sp.status === "string" ? sp.status : "ALL";
-  const status = (VALID_STATUSES.has(raw as CampaignStatus | "ALL") ? raw : "ALL") as
-    | CampaignStatus
-    | "ALL";
+
+  const rawStatus = typeof sp.status === "string" ? sp.status : "ALL";
+  const status = (VALID_STATUSES.has(rawStatus as CampaignStatus | "ALL")
+    ? rawStatus
+    : "ALL") as CampaignStatus | "ALL";
+
+  const rawCat = typeof sp.category === "string" ? sp.category : "ALL";
+  const category = (VALID_CATEGORIES.has(rawCat as CampaignCategory | "ALL")
+    ? rawCat
+    : "ALL") as CampaignCategory | "ALL";
+
+  const q = (typeof sp.q === "string" ? sp.q : "").trim().slice(0, 100);
+  const filters: Filters = { status, category, q };
+
+  const where: Prisma.CampaignWhereInput = {};
+  if (status !== "ALL") where.status = status;
+  if (category !== "ALL") where.category = category;
+  if (q) {
+    where.OR = [
+      { title: { contains: q, mode: "insensitive" } },
+      { queryCode: { contains: q, mode: "insensitive" } },
+      { owner: { user: { name: { contains: q, mode: "insensitive" } } } },
+      { owner: { user: { email: { contains: q, mode: "insensitive" } } } },
+    ];
+  }
 
   const campaigns = await db.campaign.findMany({
-    where: status === "ALL" ? {} : { status },
+    where,
     orderBy: [{ status: "asc" }, { createdAt: "desc" }],
     take: 100,
     select: {
@@ -56,13 +96,29 @@ export default async function AdminCampaignsPage({
 
   return (
     <div>
-      <h1 className="font-display text-2xl font-bold tracking-tight">Campaigns</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="font-display text-2xl font-bold tracking-tight">Campaigns</h1>
+        {/* Search (preserves the active filters) */}
+        <form action="/admin/campaigns" className="flex items-center gap-2">
+          {status !== "ALL" ? <input type="hidden" name="status" value={status} /> : null}
+          {category !== "ALL" ? <input type="hidden" name="category" value={category} /> : null}
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+            <input
+              name="q"
+              defaultValue={q}
+              placeholder="Search title, querycode, owner…"
+              className="h-9 w-64 rounded-md border border-input bg-background pl-8 pr-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            />
+          </div>
+        </form>
+      </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
         {STATUS_FILTERS.map((f) => (
           <Link
             key={f.value}
-            href={f.value === "ALL" ? "/admin/campaigns" : `/admin/campaigns?status=${f.value}`}
+            href={hrefFor(filters, { status: f.value })}
             className={cn(
               "rounded-full border px-3 py-1 text-sm font-medium transition-colors",
               status === f.value
@@ -74,6 +130,33 @@ export default async function AdminCampaignsPage({
           </Link>
         ))}
       </div>
+
+      <div className="mt-2 flex flex-wrap gap-2">
+        {CATEGORY_FILTERS.map((f) => (
+          <Link
+            key={f.value}
+            href={hrefFor(filters, { category: f.value })}
+            className={cn(
+              "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+              category === f.value
+                ? "border-transparent bg-secondary text-secondary-foreground"
+                : "border-input text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            )}
+          >
+            {f.label}
+          </Link>
+        ))}
+      </div>
+
+      {q ? (
+        <p className="mt-3 text-sm text-muted-foreground">
+          {campaigns.length} result{campaigns.length === 1 ? "" : "s"} for
+          &ldquo;{q}&rdquo; ·{" "}
+          <Link href={hrefFor(filters, { q: "" })} className="text-primary hover:underline">
+            clear search
+          </Link>
+        </p>
+      ) : null}
 
       <div className="mt-6 overflow-x-auto rounded-xl border bg-card shadow-sm">
         <table className="w-full min-w-[760px] text-sm">
@@ -91,7 +174,7 @@ export default async function AdminCampaignsPage({
             {campaigns.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">
-                  No campaigns match this filter.
+                  No campaigns match these filters.
                 </td>
               </tr>
             ) : (
