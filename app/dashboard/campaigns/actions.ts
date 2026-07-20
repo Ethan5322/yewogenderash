@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { z } from "zod";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { writeAudit } from "@/lib/audit";
@@ -149,5 +150,66 @@ export async function submitCampaignAction(campaignId: string): Promise<ActionRe
   });
 
   revalidatePath("/dashboard/campaigns");
+  return { ok: true };
+}
+
+const updateSchema = z.object({
+  campaignId: z.string().min(1),
+  title: z.string().trim().min(3, "Give the update a short title").max(120),
+  body: z.string().trim().min(5, "Add a little more detail").max(5000),
+});
+
+/**
+ * Post a progress update to one of the owner's own campaigns. Ownership is
+ * enforced in the WHERE clause; updates are only allowed on live campaigns
+ * (ACTIVE/COMPLETED) so drafts under review can't publish content to donors.
+ */
+export async function postCampaignUpdateAction(
+  _prev: ActionResult | null,
+  formData: FormData
+): Promise<ActionResult> {
+  const { user, owner } = await requireVerifiedOwner();
+
+  const parsed = updateSchema.safeParse({
+    campaignId: formData.get("campaignId"),
+    title: formData.get("title"),
+    body: formData.get("body"),
+  });
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  }
+
+  const campaign = await db.campaign.findFirst({
+    where: {
+      id: parsed.data.campaignId,
+      ownerId: owner.id,
+      status: { in: ["ACTIVE", "COMPLETED"] },
+    },
+    select: { id: true, slug: true },
+  });
+  if (!campaign) {
+    return {
+      ok: false,
+      error: "Updates can only be posted to your own live campaigns.",
+    };
+  }
+
+  await db.campaignUpdate.create({
+    data: {
+      campaignId: campaign.id,
+      title: parsed.data.title,
+      body: parsed.data.body,
+    },
+  });
+  await writeAudit({
+    actorId: user.id,
+    action: "CAMPAIGN_UPDATE_POSTED",
+    entityType: "Campaign",
+    entityId: campaign.id,
+  });
+
+  revalidatePath(`/dashboard/campaigns/${campaign.id}`);
+  revalidatePath(`/campaigns/${campaign.slug}`);
+  revalidatePath(`/campaigns/${campaign.slug}/updates`);
   return { ok: true };
 }

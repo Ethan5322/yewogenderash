@@ -8,6 +8,7 @@ import {
   HandCoins,
   Target,
   TrendingUp,
+  Megaphone,
 } from "lucide-react";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
@@ -15,6 +16,7 @@ import { SiteHeader } from "@/components/site/site-header";
 import { SiteFooter } from "@/components/site/site-footer";
 import { StatusBadge } from "@/components/campaigns/status-badge";
 import { ProgressBar } from "@/components/campaigns/progress-bar";
+import { PostUpdateForm } from "@/components/dashboard/post-update-form";
 import { CATEGORY_LABELS } from "@/lib/campaign-types";
 import { formatETB, formatDate, progressPercent } from "@/lib/format";
 
@@ -61,9 +63,16 @@ export default async function OwnerCampaignDetailPage({
           createdAt: true,
         },
       },
+      updates: {
+        orderBy: { createdAt: "desc" },
+        select: { id: true, title: true, body: true, createdAt: true },
+      },
     },
   });
   if (!campaign) notFound();
+
+  const canPostUpdates =
+    campaign.status === "ACTIVE" || campaign.status === "COMPLETED";
 
   const pct = progressPercent(
     Number(campaign.currentAmount),
@@ -207,6 +216,48 @@ export default async function OwnerCampaignDetailPage({
               </table>
             </div>
           )}
+        </section>
+
+        {/* Campaign updates */}
+        <section className="mt-8 rounded-xl border bg-card p-6 shadow-sm">
+          <div className="flex items-center gap-2">
+            <Megaphone className="h-4 w-4 text-muted-foreground" aria-hidden />
+            <h2 className="font-display text-base font-semibold">Updates</h2>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Post progress so your donors stay informed. Updates appear on your
+            public campaign page.
+          </p>
+
+          {canPostUpdates ? (
+            <div className="mt-4">
+              <PostUpdateForm campaignId={campaign.id} />
+            </div>
+          ) : (
+            <p className="mt-4 rounded-md border bg-muted/40 p-3 text-sm text-muted-foreground">
+              You can post updates once this campaign is live (approved).
+            </p>
+          )}
+
+          {campaign.updates.length > 0 ? (
+            <ol className="mt-6 space-y-5 border-l pl-6">
+              {campaign.updates.map((u) => (
+                <li key={u.id} className="relative">
+                  <span
+                    className="absolute -left-[1.65rem] top-1.5 h-3 w-3 rounded-full border-2 border-background bg-primary"
+                    aria-hidden
+                  />
+                  <time className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    {formatDate(u.createdAt)}
+                  </time>
+                  <h3 className="mt-1 font-semibold">{u.title}</h3>
+                  <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-foreground/85">
+                    {u.body}
+                  </p>
+                </li>
+              ))}
+            </ol>
+          ) : null}
         </section>
 
         {/* Payouts + QR */}
