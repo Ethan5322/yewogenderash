@@ -6,9 +6,14 @@
  * default). Change it immediately in any real environment.
  */
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
 
-const db = new PrismaClient();
+// Prisma 7 requires a driver adapter. Seed over the DIRECT (session) connection
+// to avoid pooled prepared-statement quirks.
+const url = process.env.DIRECT_URL ?? process.env.DATABASE_URL;
+if (!url) throw new Error("DIRECT_URL/DATABASE_URL missing — run with --env-file=.env");
+const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: url }) });
 
 async function main() {
   const adminEmail = process.env.SEED_ADMIN_EMAIL ?? "admin@yewogenderash.local";
