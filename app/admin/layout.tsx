@@ -8,6 +8,7 @@ const ADMIN_NAV = [
   { href: "/admin/campaigns", label: "Campaigns" },
   { href: "/admin/owners", label: "Owners (KYC)" },
   { href: "/admin/payouts", label: "Payouts" },
+  { href: "/admin/content", label: "Content" },
 ] as const;
 
 export const metadata = { title: "Admin" };
