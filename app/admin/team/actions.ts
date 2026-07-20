@@ -9,7 +9,6 @@ import { writeAudit } from "@/lib/audit";
 import {
   ADMIN_PERMISSION_KEYS,
   currentAdmin,
-  permsFrom,
   requirePermission,
   type PermMap,
 } from "@/lib/admin/permissions";

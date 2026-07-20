@@ -22,7 +22,7 @@ import {
 export default function RegisterPage() {
   const router = useRouter();
   const [serverError, setServerError] = React.useState<string | null>(null);
-  const honeypotRef = React.useRef<HTMLInputElement>(null);
+  const [honeypot, setHoneypot] = React.useState("");
 
   const {
     register,
@@ -35,7 +35,7 @@ export default function RegisterPage() {
     const res = await fetch("/api/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...values, website: honeypotRef.current?.value ?? "" }),
+      body: JSON.stringify({ ...values, website: honeypot }),
     });
 
     if (!res.ok) {
@@ -72,12 +72,13 @@ export default function RegisterPage() {
           <div className="hidden" aria-hidden>
             <label htmlFor="website">Website</label>
             <input
-              ref={honeypotRef}
               id="website"
               name="website"
               type="text"
               tabIndex={-1}
               autoComplete="off"
+              value={honeypot}
+              onChange={(e) => setHoneypot(e.target.value)}
             />
           </div>
 
