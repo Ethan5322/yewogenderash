@@ -21,19 +21,13 @@ const securityHeaders = [
   },
 ];
 
-// Turbopack workspace root:
-// - Local Windows dev: node_modules is a junction escaping the project, so the
-//   root must be the common ancestor (C:\Users\mule).
-// - Everywhere else (incl. Vercel/Linux): pin explicitly to the project dir.
-//   Leaving it unset let Turbopack mis-detect a root outside the project on
-//   Vercel ("Invalid distDirRoot: .next … navigate out of the projectPath").
-const turbopackRoot =
-  process.platform === "win32" && !process.env.VERCEL
-    ? "C:\\Users\\mule"
-    : process.cwd();
-
+// Turbopack workspace root. Defaults to the project dir (correct on Vercel, so
+// `.next` is inside the root — no "Invalid distDirRoot"). Local Windows dev,
+// where node_modules is a junction escaping the project, sets TURBOPACK_ROOT in
+// its own gitignored .env to the common ancestor. No absolute path is ever
+// committed, so it can never leak into the Linux build.
 const nextConfig: NextConfig = {
-  turbopack: { root: turbopackRoot },
+  turbopack: { root: process.env.TURBOPACK_ROOT || process.cwd() },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
