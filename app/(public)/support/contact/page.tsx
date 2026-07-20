@@ -20,7 +20,7 @@ export default function ContactPage() {
       <PageHeader
         eyebrow="Support"
         title="Contact us"
-        description="Questions about a campaign, a donation, or becoming a verified owner? We're here to help."
+        description="Questions about a campaign, a donation, or becoming a verified owner? We're here to help — we typically respond within one business day."
       />
 
       <div className="grid gap-10 lg:grid-cols-3">
