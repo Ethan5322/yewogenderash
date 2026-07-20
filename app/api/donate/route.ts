@@ -81,10 +81,11 @@ export async function POST(req: Request) {
       where: { id: donation.id },
       data: { status: "CANCELLED" },
     });
-    return NextResponse.json(
-      { error: `Payment could not be started: ${init.error}` },
-      { status: 502 }
-    );
+    // Turn the gateway's most common rejection into a donor-friendly message.
+    const friendly = /email/i.test(init.error)
+      ? "The payment provider rejected this email address. Please check it and try again."
+      : `Payment could not be started: ${init.error}`;
+    return NextResponse.json({ error: friendly }, { status: 502 });
   }
 
   return NextResponse.json({ checkoutUrl: init.checkoutUrl, txRef });

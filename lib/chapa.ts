@@ -15,9 +15,23 @@ const CHAPA_BASE = "https://api.chapa.co/v1";
 
 type ChapaInitResponse = {
   status: string;
-  message: string;
+  // Chapa returns a string on success/generic errors, but a field->messages
+  // object on validation failures (e.g. { email: ["validation.email"] }).
+  message: string | Record<string, string[] | string>;
   data?: { checkout_url: string };
 };
+
+/** Flatten Chapa's message (string or field-error object) to readable text. */
+function chapaMessage(message: unknown, fallback: string): string {
+  if (typeof message === "string" && message.trim()) return message;
+  if (message && typeof message === "object") {
+    const parts = Object.entries(message as Record<string, unknown>).map(
+      ([field, val]) => `${field}: ${Array.isArray(val) ? val.join(", ") : String(val)}`
+    );
+    if (parts.length) return parts.join("; ");
+  }
+  return fallback;
+}
 
 export type ChapaVerifyData = {
   status: "success" | "failed" | "pending" | string;
@@ -64,7 +78,7 @@ export async function initializeChapaPayment(params: {
   if (!res.ok || body?.status !== "success" || !body.data?.checkout_url) {
     return {
       ok: false,
-      error: body?.message ?? `Gateway error (HTTP ${res.status})`,
+      error: chapaMessage(body?.message, `Gateway error (HTTP ${res.status})`),
     };
   }
   return { ok: true, checkoutUrl: body.data.checkout_url };
