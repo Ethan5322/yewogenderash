@@ -124,7 +124,7 @@ export async function decideOwnerAction(
       id: true,
       userId: true,
       authorCode: true,
-      user: { select: { verificationStatus: true } },
+      user: { select: { verificationStatus: true, role: true } },
     },
   });
   if (!owner) return { ok: false, error: "Owner not found" };
@@ -137,7 +137,12 @@ export async function decideOwnerAction(
     await db.$transaction([
       db.user.update({
         where: { id: owner.userId },
-        data: { verificationStatus: "VERIFIED" },
+        // Promote to OWNER on approval so the role is meaningful everywhere
+        // (login routing, header, access). Never demote an admin.
+        data: {
+          verificationStatus: "VERIFIED",
+          ...(owner.user.role === "ADMIN" ? {} : { role: "OWNER" }),
+        },
       }),
       db.campaignOwner.update({
         where: { id: owner.id },

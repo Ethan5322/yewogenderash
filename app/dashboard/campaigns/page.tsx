@@ -50,7 +50,7 @@ export default async function MyCampaignsPage() {
 
   return (
     <>
-      <SiteHeader />
+      <SiteHeader user={session.user} />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
