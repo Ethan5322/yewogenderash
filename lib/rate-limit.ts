@@ -1,6 +1,4 @@
-import "server-only";
 import { NextResponse } from "next/server";
-import { clientIp } from "@/lib/audit";
 
 /**
  * Fixed-window, in-memory rate limiter. It is PER SERVERLESS INSTANCE, so on a
@@ -53,6 +51,13 @@ export function rateLimit(
     };
   }
   return { ok: true, remaining: limit - w.count, retryAfterSec: 0 };
+}
+
+/** Best-effort client IP from proxy headers (Vercel sets x-forwarded-for). */
+function clientIp(req: Request): string | null {
+  const fwd = req.headers.get("x-forwarded-for");
+  if (fwd) return fwd.split(",")[0].trim();
+  return req.headers.get("x-real-ip");
 }
 
 /** Best-effort client IP for keying limits; falls back to a shared bucket. */
