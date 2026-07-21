@@ -213,6 +213,10 @@ model CampaignOwner {
   verifiedAt         DateTime?
   /// Payout account details (bank/telebirr), JSON kept admin-readable only
   payoutAccount      Json?
+  /// Public ID-card portrait (gallery upload, auto-cropped square) in yd-media.
+  /// Distinct from the private KYC selfie — this is the photo shown ON the
+  /// corporate Fundraiser ID card.
+  idPhotoUrl         String?
   /// Owner preference: WhatsApp alert on each successful donation
   whatsappAlerts     Boolean         @default(true)
   whatsappPhone      String?

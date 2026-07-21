@@ -86,28 +86,32 @@ export default async function DashboardPage() {
           </Card>
         ) : null}
 
-        {/* Author ID (verified owners) */}
+        {/* Fundraiser ID (verified owners) */}
         {isOwner && authorCode ? (
           <Card className="mt-8">
             <CardHeader>
-              <CardTitle className="text-base">Your Author ID</CardTitle>
+              <CardTitle className="text-base">Your Fundraiser ID</CardTitle>
               <CardDescription>
-                Your public verification profile · code{" "}
-                <span className="font-mono font-medium">{authorCode}</span>. Share
-                it, or let an admin scan the QR to confirm your identity.
+                Your official corporate ID card · verification code{" "}
+                <span className="font-mono font-medium">{authorCode}</span>. Add
+                your photo, print the card, or let an admin scan the QR to confirm
+                your identity.
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-wrap items-center gap-4">
               {/* eslint-disable-next-line @next/next/no-img-element -- dynamic PNG route */}
               <img
                 src={`/a/${authorCode}/qr`}
-                alt="Your author verification QR"
+                alt="Your fundraiser verification QR"
                 width={80}
                 height={80}
                 className="rounded border bg-white p-1"
               />
+              <Button asChild size="sm">
+                <Link href="/dashboard/id">Open my Fundraiser ID</Link>
+              </Button>
               <Button asChild variant="outline" size="sm">
-                <Link href={`/a/${authorCode}`}>View my Author ID</Link>
+                <Link href={`/a/${authorCode}`}>Public profile</Link>
               </Button>
             </CardContent>
           </Card>

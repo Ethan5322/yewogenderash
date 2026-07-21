@@ -6,6 +6,7 @@ import { requirePermission } from "@/lib/admin/permissions";
 import { signedKycUrl } from "@/lib/supabase/server";
 import { OwnerDecisionPanel } from "@/components/admin/owner-decision-panel";
 import { StatusBadge } from "@/components/campaigns/status-badge";
+import { FundraiserIdCard } from "@/components/owner/fundraiser-id-card";
 import { formatDate } from "@/lib/format";
 
 export const metadata = { title: "Admin · Owner review" };
@@ -186,6 +187,26 @@ export default async function AdminOwnerDetailPage({
         </div>
 
         <div className="space-y-6">
+          {/* Issued Fundraiser ID (verified owners) */}
+          {owner.mulesooVerified && owner.authorCode ? (
+            <section className="rounded-xl border bg-card p-6 shadow-sm">
+              <h2 className="mb-4 font-display text-base font-semibold">
+                Fundraiser ID
+              </h2>
+              <FundraiserIdCard
+                name={owner.user.name}
+                authorCode={owner.authorCode}
+                verifiedAt={owner.verifiedAt}
+                photoUrl={owner.idPhotoUrl}
+                mulesooVerified={owner.mulesooVerified}
+              />
+              <p className="mt-3 text-xs text-muted-foreground">
+                Scan the QR to open this owner's verification profile with the
+                biometric capture.
+              </p>
+            </section>
+          ) : null}
+
           {/* Decision */}
           <section className="rounded-xl border bg-card p-6 shadow-sm">
             <h2 className="font-display text-base font-semibold">KYC decision</h2>

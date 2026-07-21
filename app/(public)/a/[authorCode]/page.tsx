@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
-  ShieldCheck,
   BadgeCheck,
   ScanFace,
   Download,
@@ -14,7 +13,7 @@ import { getAuthorProfile } from "@/lib/authors";
 import { signedKycUrl } from "@/lib/supabase/server";
 import { StatusBadge } from "@/components/campaigns/status-badge";
 import { ProgressBar } from "@/components/campaigns/progress-bar";
-import { Badge } from "@/components/ui/badge";
+import { FundraiserIdCard } from "@/components/owner/fundraiser-id-card";
 import { CATEGORY_LABELS } from "@/lib/campaign-types";
 import { formatETB, formatDate, progressPercent } from "@/lib/format";
 
@@ -27,10 +26,6 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
     title: owner ? `${owner.user.name} · Verified owner` : "Author not found",
     robots: { index: false, follow: false },
   };
-}
-
-function initials(name: string) {
-  return name.split(/\s+/).slice(0, 2).map((s) => s[0]?.toUpperCase() ?? "").join("");
 }
 
 export default async function AuthorProfilePage({ params }: Params) {
@@ -46,66 +41,27 @@ export default async function AuthorProfilePage({ params }: Params) {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 sm:py-14">
-      {/* ID card */}
-      <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
-        <div className="bg-primary/5 p-6 sm:p-8">
-          <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-start">
-            <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-primary/15 text-2xl font-bold text-primary">
-              {initials(owner.user.name)}
-            </div>
-            <div className="min-w-0 flex-1 text-center sm:text-left">
-              <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-                <h1 className="font-display text-2xl font-bold tracking-tight">
-                  {owner.user.name}
-                </h1>
-                {owner.mulesooVerified ? (
-                  <Badge variant="gold">
-                    <ShieldCheck className="h-3.5 w-3.5" aria-hidden /> Mulesoo verified
-                  </Badge>
-                ) : null}
-              </div>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Verified campaign owner on Yewogen Derash
-              </p>
-              <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-                <div>
-                  <dt className="text-xs uppercase tracking-wide text-muted-foreground">
-                    Verification code
-                  </dt>
-                  <dd className="font-mono font-semibold">{owner.authorCode}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs uppercase tracking-wide text-muted-foreground">
-                    Verified since
-                  </dt>
-                  <dd>{owner.verifiedAt ? formatDate(owner.verifiedAt) : "—"}</dd>
-                </div>
-              </dl>
-            </div>
-            {/* Author QR */}
-            <div className="flex shrink-0 flex-col items-center gap-1">
-              {/* eslint-disable-next-line @next/next/no-img-element -- dynamic PNG route */}
-              <img
-                src={`/a/${owner.authorCode}/qr`}
-                alt={`Verification QR for ${owner.authorCode}`}
-                width={96}
-                height={96}
-                className="rounded-lg border bg-white p-1"
-              />
-              <a
-                href={`/a/${owner.authorCode}/qr`}
-                download={`author-${owner.authorCode}.png`}
-                className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-              >
-                <Download className="h-3 w-3" aria-hidden /> QR
-              </a>
-            </div>
-          </div>
-        </div>
+      {/* Corporate Fundraiser ID card */}
+      <div className="flex flex-col items-center gap-4">
+        <FundraiserIdCard
+          name={owner.user.name}
+          authorCode={owner.authorCode ?? ""}
+          verifiedAt={owner.verifiedAt}
+          photoUrl={owner.idPhotoUrl}
+          mulesooVerified={owner.mulesooVerified}
+        />
+        <a
+          href={`/a/${owner.authorCode}/qr`}
+          download={`fundraiser-${owner.authorCode}.png`}
+          className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+        >
+          <Download className="h-3 w-3" aria-hidden /> Download QR
+        </a>
+      </div>
 
-        {/* Admin-only biometric verification panel */}
-        {isAdmin ? (
-          <div className="border-t bg-background p-6 sm:p-8">
+      {/* Admin-only biometric verification panel */}
+      {isAdmin ? (
+        <div className="mt-8 overflow-hidden rounded-2xl border bg-card p-6 shadow-sm sm:p-8">
             <div className="flex items-center gap-2">
               <ScanFace className="h-4 w-4 text-primary" aria-hidden />
               <h2 className="font-display text-sm font-semibold">
@@ -154,9 +110,8 @@ export default async function AuthorProfilePage({ params }: Params) {
                 </p>
               </dl>
             </div>
-          </div>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
 
       {/* Owned campaigns */}
       <section className="mt-8">

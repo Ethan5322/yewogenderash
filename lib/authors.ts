@@ -16,6 +16,7 @@ export async function getAuthorProfile(authorCode: string) {
       mulesooVerified: true,
       verifiedAt: true,
       biometricStatus: true,
+      idPhotoUrl: true,
       createdAt: true,
       user: { select: { name: true, verificationStatus: true } },
       campaigns: {
