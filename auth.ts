@@ -3,6 +3,7 @@ import Credentials from "next-auth/providers/credentials";
 import { authConfig } from "@/auth.config";
 import { db } from "@/lib/db";
 import { verifyPassword } from "@/lib/auth/password";
+import { verifyOtp } from "@/lib/auth/otp";
 import { loginSchema } from "@/lib/validators/auth";
 
 /**
@@ -16,6 +17,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       credentials: {
         email: {},
         password: {},
+        code: {}, // 2FA code — required for ADMIN accounts
       },
       async authorize(credentials) {
         const parsed = loginSchema.safeParse(credentials);
@@ -27,6 +29,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const valid = await verifyPassword(parsed.data.password, user.passwordHash);
         if (!valid) return null;
+
+        // Second factor is MANDATORY for admins — they can only sign in through
+        // the /admin-login flow, which supplies a valid one-time code. Password
+        // alone never grants an admin session.
+        if (user.role === "ADMIN") {
+          const code = typeof credentials?.code === "string" ? credentials.code : "";
+          const otp = await verifyOtp(user.id, "LOGIN_2FA", code);
+          if (!otp.ok) return null;
+        }
 
         // Shape consumed by the jwt callback in auth.config.ts
         return {

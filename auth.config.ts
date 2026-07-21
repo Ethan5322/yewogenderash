@@ -35,10 +35,13 @@ export const authConfig = {
       const user = auth?.user;
       const isLoggedIn = !!user;
 
-      // Admin control room: ADMIN only. Logged-in non-admins go home,
-      // logged-out users go to /login (returning false does that).
-      if (pathname.startsWith("/admin")) {
-        if (!isLoggedIn) return false;
+      // Admin control room: ADMIN only. Logged-out users go to the dedicated
+      // /admin-login (2FA), never the public /login. (/admin-login itself is
+      // not under /admin/ so it's excluded here.)
+      if (pathname === "/admin" || pathname.startsWith("/admin/")) {
+        if (!isLoggedIn) {
+          return Response.redirect(new URL("/admin-login", request.nextUrl));
+        }
         if (user.role !== "ADMIN") {
           return Response.redirect(new URL("/", request.nextUrl));
         }

@@ -10,7 +10,7 @@ import { db } from "@/lib/db";
 
 const CALLMEBOT_BASE = "https://api.callmebot.com/whatsapp.php";
 
-async function sendWhatsApp(
+export async function sendWhatsApp(
   phone: string,
   apiKey: string,
   text: string

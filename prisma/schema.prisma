@@ -140,6 +140,7 @@ enum OtpPurpose {
   EMAIL_VERIFY
   PHONE_VERIFY
   PASSWORD_RESET
+  LOGIN_2FA
 
   @@map("yd_otp_purpose")
 }
