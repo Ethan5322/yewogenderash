@@ -12,12 +12,21 @@ export const registerSchema = z.object({
     .min(2, "Enter your full name")
     .max(100, "Name is too long"),
   email: z.email("Enter a valid email address").max(190),
+  // International phone (any country). Permissive on formatting (+, spaces,
+  // dashes, parentheses) but must contain 7–15 digits per E.164.
   phone: z
     .string()
     .trim()
     .regex(
-      /^\+?[0-9\s-]{9,15}$/,
-      "Enter a valid phone number (e.g. +2519...)"
+      /^\+?[0-9().\s-]{7,20}$/,
+      "Enter a valid phone number with country code, e.g. +27 82 123 4567"
+    )
+    .refine(
+      (v) => {
+        const digits = v.replace(/\D/g, "");
+        return digits.length >= 7 && digits.length <= 15;
+      },
+      "Enter a valid phone number with country code, e.g. +27 82 123 4567"
     )
     .optional()
     .or(z.literal("")),

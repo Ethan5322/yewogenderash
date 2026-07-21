@@ -60,11 +60,16 @@ function readUpload(
 }
 
 // ── Phone number (so it can be OTP-verified) ─────────────────────
+// International (any country): permissive on formatting, 7–15 digits (E.164).
 const phoneSchema = z.object({
   phone: z
     .string()
     .trim()
-    .regex(/^\+?[0-9\s-]{9,15}$/, "Enter a valid phone number (e.g. +2519...)"),
+    .regex(/^\+?[0-9().\s-]{7,20}$/, "Enter a valid phone number with country code, e.g. +27 82 123 4567")
+    .refine((v) => {
+      const d = v.replace(/\D/g, "");
+      return d.length >= 7 && d.length <= 15;
+    }, "Enter a valid phone number with country code, e.g. +27 82 123 4567"),
 });
 
 export async function updatePhoneAction(
@@ -76,7 +81,9 @@ export async function updatePhoneAction(
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid phone" };
   }
-  const phone = parsed.data.phone.replace(/[\s-]/g, "");
+  // Normalise to E.164-ish: keep a leading +, strip all other non-digits.
+  const trimmed = parsed.data.phone.trim();
+  const phone = (trimmed.startsWith("+") ? "+" : "") + trimmed.replace(/\D/g, "");
 
   const clash = await db.user.findFirst({
     where: { phone, id: { not: userId } },

@@ -66,7 +66,7 @@ export const whatsappPrefsSchema = z.object({
   whatsappPhone: z
     .string()
     .trim()
-    .regex(/^\+?[0-9\s-]{9,15}$/, "Enter a valid phone number")
+    .regex(/^\+?[0-9().\s-]{7,20}$/, "Enter a valid phone number with country code")
     .optional()
     .or(z.literal("")),
   callmebotApiKey: z.string().trim().max(120).optional().or(z.literal("")),

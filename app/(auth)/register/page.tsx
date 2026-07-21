@@ -140,7 +140,7 @@ function RegisterForm() {
               id="phone"
               type="tel"
               autoComplete="tel"
-              placeholder="+251 9..."
+              placeholder="+27 82 123 4567 (any country)"
               {...register("phone")}
             />
             {errors.phone && (

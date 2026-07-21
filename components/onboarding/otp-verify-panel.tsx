@@ -141,7 +141,7 @@ function PhoneForm({ initialPhone }: { initialPhone: string }) {
           id="phone"
           name="phone"
           defaultValue={initialPhone}
-          placeholder="+2519..."
+          placeholder="+27 82 123 4567"
           className="w-52"
         />
         <Button type="submit" size="sm" disabled={pending}>

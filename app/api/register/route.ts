@@ -35,7 +35,11 @@ export async function POST(req: Request) {
 
   const { name, password } = parsed.data;
   const email = parsed.data.email.toLowerCase().trim();
-  const phone = parsed.data.phone?.trim() || null;
+  // Normalise to E.164-ish: keep a leading +, strip other formatting.
+  const rawPhone = parsed.data.phone?.trim();
+  const phone = rawPhone
+    ? (rawPhone.startsWith("+") ? "+" : "") + rawPhone.replace(/\D/g, "")
+    : null;
 
   try {
     const user = await db.user.create({
