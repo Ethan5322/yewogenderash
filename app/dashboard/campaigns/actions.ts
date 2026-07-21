@@ -125,6 +125,88 @@ export async function createCampaignAction(
   redirect(`/dashboard/campaigns?created=${campaign.slug}`);
 }
 
+/**
+ * Owner edits their own campaign's CONTENT (title, story, image, target, etc.).
+ * Ownership is enforced in the WHERE clause. Money, status, querycode, and the
+ * featured flag are never touched here — those stay admin-only. The slug is
+ * kept stable so existing links/QRs never break. Archived/completed campaigns
+ * are locked.
+ */
+export async function updateCampaignAction(
+  campaignId: string,
+  _prev: ActionResult | null,
+  formData: FormData
+): Promise<ActionResult> {
+  const { user, owner } = await requireVerifiedOwner();
+
+  const parsed = campaignCreateSchema.safeParse({
+    title: formData.get("title"),
+    description: formData.get("description"),
+    story: formData.get("story"),
+    category: formData.get("category"),
+    targetAmount: formData.get("targetAmount"),
+    location: formData.get("location") ?? "",
+    endDate: formData.get("endDate") ?? "",
+  });
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the form" };
+  }
+
+  const existing = await db.campaign.findFirst({
+    where: { id: campaignId, ownerId: owner.id },
+    select: { id: true, status: true, slug: true },
+  });
+  if (!existing) return { ok: false, error: "Campaign not found." };
+  if (existing.status === "ARCHIVED" || existing.status === "COMPLETED") {
+    return { ok: false, error: "This campaign can no longer be edited." };
+  }
+
+  // Optional replacement hero image → public media bucket. No file = keep current.
+  let heroImageUrl: string | undefined;
+  const hero = formData.get("heroImage");
+  if (hero instanceof File && hero.size > 0) {
+    if (!(ALLOWED_IMAGE_TYPES as readonly string[]).includes(hero.type)) {
+      return { ok: false, error: "Hero image must be a JPG, PNG, or WEBP" };
+    }
+    if (hero.size > MAX_UPLOAD_BYTES) {
+      return { ok: false, error: "Hero image is too large (maximum 5 MB)" };
+    }
+    const path = `campaigns/${owner.id}/hero-${Date.now()}.${IMG_EXT[hero.type]}`;
+    const up = await uploadMediaFile(
+      path,
+      new Uint8Array(await hero.arrayBuffer()),
+      hero.type
+    );
+    if (!up.ok) return { ok: false, error: `Image upload failed: ${up.error}` };
+    heroImageUrl = up.url;
+  }
+
+  await db.campaign.update({
+    where: { id: existing.id },
+    data: {
+      title: parsed.data.title,
+      description: parsed.data.description,
+      story: parsed.data.story,
+      category: parsed.data.category,
+      targetAmount: parsed.data.targetAmount,
+      location: parsed.data.location || null,
+      endDate: parsed.data.endDate ? new Date(parsed.data.endDate) : null,
+      ...(heroImageUrl ? { heroImageUrl } : {}),
+    },
+  });
+
+  await writeAudit({
+    actorId: user.id,
+    action: "CAMPAIGN_EDITED",
+    entityType: "Campaign",
+    entityId: existing.id,
+  });
+
+  revalidatePath(`/dashboard/campaigns/${existing.id}`);
+  revalidatePath(`/campaigns/${existing.slug}`);
+  redirect(`/dashboard/campaigns/${existing.id}?updated=1`);
+}
+
 /** DRAFT (or admin-REJECTED, after edits) → PENDING_REVIEW. Owner-scoped. */
 export async function submitCampaignAction(campaignId: string): Promise<ActionResult> {
   const { user, owner } = await requireVerifiedOwner();

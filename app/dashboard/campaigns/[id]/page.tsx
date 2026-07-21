@@ -9,11 +9,13 @@ import {
   Target,
   TrendingUp,
   Megaphone,
+  Pencil,
 } from "lucide-react";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { SiteHeader } from "@/components/site/site-header";
 import { SiteFooter } from "@/components/site/site-footer";
+import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/campaigns/status-badge";
 import { ProgressBar } from "@/components/campaigns/progress-bar";
 import { PostUpdateForm } from "@/components/dashboard/post-update-form";
@@ -112,11 +114,20 @@ export default async function OwnerCampaignDetailPage({
           <ArrowLeft className="h-4 w-4" aria-hidden /> My campaigns
         </Link>
 
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          <h1 className="font-display text-2xl font-bold tracking-tight">
-            {campaign.title}
-          </h1>
-          <StatusBadge status={campaign.status} />
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="font-display text-2xl font-bold tracking-tight">
+              {campaign.title}
+            </h1>
+            <StatusBadge status={campaign.status} />
+          </div>
+          {campaign.status !== "ARCHIVED" && campaign.status !== "COMPLETED" ? (
+            <Button asChild size="sm" variant="outline">
+              <Link href={`/dashboard/campaigns/${campaign.id}/edit`}>
+                <Pencil className="h-3.5 w-3.5" aria-hidden /> Edit campaign
+              </Link>
+            </Button>
+          ) : null}
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
           {CATEGORY_LABELS[campaign.category]} · querycode{" "}
@@ -135,13 +146,14 @@ export default async function OwnerCampaignDetailPage({
           ) : null}
         </p>
 
-        {/* Read-only authority note */}
+        {/* Authority note */}
         <div className="mt-6 flex items-start gap-3 rounded-lg border bg-muted/40 p-4 text-sm">
           <Lock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
           <p className="text-muted-foreground">
-            This is a read-only view of your campaign and its donations. For
-            trust and safety, only platform administrators can edit a campaign or
-            change its status or funds. To request a change, reach us via{" "}
+            You can <span className="font-medium text-foreground">edit your
+            campaign&apos;s content and image</span> any time. Its funds, status,
+            and querycode are managed by administrators for trust and safety. To
+            request a status change, reach us via{" "}
             <Link href="/support/contact" className="text-primary hover:underline">
               support
             </Link>

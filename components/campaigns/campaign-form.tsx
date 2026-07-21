@@ -32,22 +32,48 @@ function Field({
   );
 }
 
-export function CampaignForm() {
-  const [state, action, pending] = useActionState<ActionResult | null, FormData>(
-    createCampaignAction,
+export type CampaignFormDefaults = {
+  title?: string;
+  category?: string;
+  targetAmount?: number | string;
+  location?: string;
+  endDate?: string;
+  description?: string;
+  story?: string;
+};
+
+export function CampaignForm({
+  action = createCampaignAction,
+  defaults,
+  submitLabel = "Create draft",
+  footerNote = "Your campaign is created as a draft. Submit it for review when ready — it goes live only after admin approval.",
+  currentHeroUrl,
+}: {
+  action?: (prev: ActionResult | null, fd: FormData) => Promise<ActionResult>;
+  defaults?: CampaignFormDefaults;
+  submitLabel?: string;
+  footerNote?: string;
+  currentHeroUrl?: string | null;
+}) {
+  const [state, formAction, pending] = useActionState<ActionResult | null, FormData>(
+    action,
     null
   );
   const [hero, setHero] = React.useState<File | null>(null);
 
   return (
-    <form action={action} className="space-y-6">
+    <form action={formAction} className="space-y-6">
       <Field label="Campaign title" hint="Clear and specific — no exaggerated claims.">
-        <Input name="title" required minLength={8} maxLength={90} />
+        <Input name="title" required minLength={8} maxLength={90} defaultValue={defaults?.title} />
       </Field>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Category">
-          <select name="category" className={selectClass} defaultValue="MEDICAL">
+          <select
+            name="category"
+            className={selectClass}
+            defaultValue={defaults?.category ?? "MEDICAL"}
+          >
             {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
@@ -63,20 +89,18 @@ export function CampaignForm() {
             max={10000000}
             step={1}
             required
+            defaultValue={defaults?.targetAmount}
           />
         </Field>
         <Field label="Location" hint="City or region (optional).">
-          <Input name="location" maxLength={80} placeholder="e.g. Addis Ababa" />
+          <Input name="location" maxLength={80} placeholder="e.g. Addis Ababa" defaultValue={defaults?.location} />
         </Field>
         <Field label="End date" hint="Optional — leave empty for open-ended.">
-          <Input name="endDate" type="date" />
+          <Input name="endDate" type="date" defaultValue={defaults?.endDate} />
         </Field>
       </div>
 
-      <Field
-        label="Short summary"
-        hint="Shown on campaign cards. 40–300 characters."
-      >
+      <Field label="Short summary" hint="Shown on campaign cards. 40–300 characters.">
         <textarea
           name="description"
           rows={3}
@@ -84,6 +108,7 @@ export function CampaignForm() {
           minLength={40}
           maxLength={300}
           className={textareaClass}
+          defaultValue={defaults?.description}
         />
       </Field>
 
@@ -97,12 +122,28 @@ export function CampaignForm() {
           required
           minLength={120}
           className={textareaClass}
+          defaultValue={defaults?.story}
         />
       </Field>
 
+      {currentHeroUrl ? (
+        <div>
+          <p className="text-sm font-medium">Current hero image</p>
+          {/* eslint-disable-next-line @next/next/no-img-element -- user upload on arbitrary host */}
+          <img
+            src={currentHeroUrl}
+            alt="Current hero"
+            className="mt-1.5 h-32 w-full max-w-sm rounded-lg border object-cover"
+          />
+          <p className="mt-1 text-xs text-muted-foreground">
+            Upload a new image below to replace it, or leave empty to keep it.
+          </p>
+        </div>
+      ) : null}
+
       <FileDropzone
         name="heroImage"
-        label="Hero image (optional)"
+        label={currentHeroUrl ? "Replace hero image (optional)" : "Hero image (optional)"}
         accept="image/jpeg,image/png,image/webp"
         file={hero}
         onFileChange={setHero}
@@ -113,17 +154,14 @@ export function CampaignForm() {
       ) : null}
 
       <div className="flex items-center justify-between gap-4 border-t pt-6">
-        <p className="text-xs text-muted-foreground">
-          Your campaign is created as a draft. Submit it for review when ready —
-          it goes live only after admin approval.
-        </p>
+        <p className="text-xs text-muted-foreground">{footerNote}</p>
         <Button type="submit" disabled={pending}>
           {pending ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
             <Rocket className="h-4 w-4" aria-hidden />
           )}
-          Create draft
+          {submitLabel}
         </Button>
       </div>
     </form>
