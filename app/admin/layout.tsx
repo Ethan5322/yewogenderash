@@ -12,6 +12,7 @@ const ADMIN_NAV: (AdminNavItem & { perm?: AdminPermission })[] = [
   { href: "/admin/payouts", label: "Payouts", key: "payouts", perm: "payouts" },
   { href: "/admin/content", label: "Content", key: "content", perm: "content" },
   { href: "/admin/blog", label: "Blog", key: "blog", perm: "content" },
+  { href: "/admin/messages", label: "Messages", key: "messages", perm: "messages" },
   { href: "/admin/team", label: "Team", key: "admins", perm: "admins" },
   { href: "/admin/audit", label: "Audit", key: "audit", perm: "admins" },
 ];

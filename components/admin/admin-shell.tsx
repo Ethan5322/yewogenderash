@@ -10,6 +10,7 @@ import {
   Landmark,
   FileText,
   Newspaper,
+  MessageSquare,
   Users,
   ScrollText,
   LogOut,
@@ -25,6 +26,7 @@ const ICONS = {
   payouts: Landmark,
   content: FileText,
   blog: Newspaper,
+  messages: MessageSquare,
   admins: Users,
   audit: ScrollText,
 } as const;

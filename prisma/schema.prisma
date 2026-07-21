@@ -232,6 +232,7 @@ model CampaignOwner {
   payouts        Payout[]
   notifications  Notification[]
   payoutAccounts PayoutAccount[]
+  messages       Message[]
 
   @@map("yd_campaign_owners")
 }
@@ -510,6 +511,31 @@ model PayoutAccount {
 
   @@index([ownerId])
   @@map("yd_payout_accounts")
+}
+
+// ── Messaging (fundraiser ↔ admin) ───────────────────────────────
+
+/// A message between a fundraiser and the admin team.
+///  - Owner→admin and admin→owner replies both carry `ownerId` (the thread).
+///  - An admin NOTICE to every fundraiser is `isBroadcast` with `ownerId` null.
+/// `fromAdmin` gives direction; the read flags drive unread badges per side.
+model Message {
+  id           String         @id @default(cuid())
+  ownerId      String?
+  owner        CampaignOwner? @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  /// The user who wrote it (admin user or the owner's user). Kept for audit.
+  senderUserId String?
+  fromAdmin    Boolean        @default(false)
+  isBroadcast  Boolean        @default(false)
+  subject      String?
+  body         String
+  readByOwner  Boolean        @default(false)
+  readByAdmin  Boolean        @default(false)
+  createdAt    DateTime       @default(now())
+
+  @@index([ownerId, createdAt])
+  @@index([isBroadcast, createdAt])
+  @@map("yd_messages")
 }
 
 // ── Blog / content marketing ─────────────────────────────────────

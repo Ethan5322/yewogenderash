@@ -41,7 +41,7 @@ console.log(`Fee ledger: +${ledger.rowCount} rows`);
 
 // ── 4. Verified payout account for the demo owner ───────────────────
 const ownerRes = await c.query(`
-  SELECT o.id AS owner_id, u.name
+  SELECT o.id AS owner_id, o."userId" AS user_id, u.name
   FROM "yd_campaign_owners" o
   JOIN "yd_users" u ON u.id = o."userId"
   WHERE u.email = 'owner@demo.local'
@@ -52,6 +52,7 @@ if (ownerRes.rowCount === 0) {
   process.exit(0);
 }
 const ownerId = ownerRes.rows[0].owner_id;
+const ownerUserId = ownerRes.rows[0].user_id;
 
 // Replace any prior demo account so this stays idempotent.
 await c.query(`DELETE FROM "yd_payout_accounts" WHERE "ownerId"=$1 AND "chapaSubaccountId" LIKE 'DEMO-%'`, [ownerId]);
@@ -134,6 +135,29 @@ for (const p of POSTS) {
   );
 }
 console.log(`Blog: ${POSTS.length} published posts`);
+
+// ── 7. Demo messages (owner↔admin thread + a broadcast notice) ──────
+await c.query(`DELETE FROM "yd_messages" WHERE body LIKE '[DEMO]%' OR subject LIKE '[DEMO]%'`);
+const twoHrs = "now() - interval '2 hours'";
+const oneHr = "now() - interval '1 hour'";
+const halfHr = "now() - interval '30 minutes'";
+await c.query(
+  `INSERT INTO "yd_messages"(id,"ownerId","senderUserId","fromAdmin","isBroadcast",body,"readByOwner","readByAdmin","createdAt")
+   VALUES ($1,$2,$3,false,false,$4,true,false,${twoHrs})`,
+  [randomUUID(), ownerId, ownerUserId, "[DEMO] Hello, when will the payout for my Heart Surgery campaign be approved?"]
+);
+await c.query(
+  `INSERT INTO "yd_messages"(id,"ownerId","senderUserId","fromAdmin","isBroadcast",body,"readByOwner","readByAdmin","createdAt")
+   VALUES ($1,$2,$3,true,false,$4,false,true,${oneHr})`,
+  [randomUUID(), ownerId, adminId, "[DEMO] Thanks for reaching out — your payout is under review and will be processed within 2 business days."]
+);
+await c.query(
+  `INSERT INTO "yd_messages"(id,"ownerId","senderUserId","fromAdmin","isBroadcast",subject,body,"readByOwner","readByAdmin","createdAt")
+   VALUES ($1,NULL,$2,true,true,$3,$4,false,false,${halfHr})`,
+  [randomUUID(), adminId, "[DEMO] Scheduled maintenance",
+   "[DEMO] The platform will undergo brief maintenance this Sunday 02:00–03:00. Donations may pause momentarily."]
+);
+console.log("Messages: 1 owner→admin (unread), 1 admin reply, 1 broadcast notice");
 
 await c.end();
 console.log("\nDone. Demo data ready for testing.");

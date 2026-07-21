@@ -13,6 +13,7 @@ export const ADMIN_PERMISSIONS = {
   campaigns: "Campaign review & decisions",
   payouts: "Payout approval & processing",
   content: "Site content editing",
+  messages: "Fundraiser messages & notices",
   admins: "Manage admins & permissions",
 } as const;
 

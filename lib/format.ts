@@ -43,6 +43,17 @@ export function formatDate(date: Date | string): string {
   }).format(typeof date === "string" ? new Date(date) : date);
 }
 
+/** Human date + time, e.g. "19 Jul 2026, 14:30". */
+export function formatDateTime(date: Date | string): string {
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(typeof date === "string" ? new Date(date) : date);
+}
+
 /** Relative time, e.g. "3 days ago". Falls back to a date for old items. */
 export function timeAgo(date: Date | string): string {
   const d = typeof date === "string" ? new Date(date) : date;

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { BadgeCheck, Clock, ShieldQuestion, Megaphone, Landmark, Settings } from "lucide-react";
+import { BadgeCheck, Clock, ShieldQuestion, Megaphone, Landmark, Settings, MessageSquare } from "lucide-react";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { SiteHeader } from "@/components/site/site-header";
@@ -118,7 +118,7 @@ export default async function DashboardPage() {
         ) : null}
 
         {/* Owner tools */}
-        <div className="mt-8 grid gap-6 sm:grid-cols-3">
+        <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           <DashCard
             icon={Megaphone}
             title="My campaigns"
@@ -138,6 +138,14 @@ export default async function DashboardPage() {
             href="/dashboard/payouts"
             cta="View payouts"
             disabled={!isOwner}
+          />
+          <DashCard
+            icon={MessageSquare}
+            title="Messages"
+            description="Message the Yewogen Derash team and read their notices."
+            href="/dashboard/messages"
+            cta="Open messages"
+            disabled={false}
           />
           <DashCard
             icon={Settings}
