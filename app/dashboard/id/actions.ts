@@ -2,10 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { Prisma } from "@prisma/client";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { writeAudit } from "@/lib/audit";
 import { uploadMediaFile, MAX_UPLOAD_BYTES, ALLOWED_IMAGE_TYPES } from "@/lib/supabase/server";
+import { faceDistance, parseDescriptor } from "@/lib/face/distance";
 
 export type ActionResult = { ok: true; url: string } | { ok: false; error: string };
 
@@ -24,7 +26,7 @@ export async function uploadIdPhotoAction(
 
   const owner = await db.campaignOwner.findUnique({
     where: { userId: session.user.id },
-    select: { id: true, userId: true },
+    select: { id: true, userId: true, faceDescriptor: true },
   });
   if (!owner) redirect("/start");
 
@@ -44,9 +46,20 @@ export async function uploadIdPhotoAction(
   const up = await uploadMediaFile(path, buffer, "image/jpeg");
   if (!up.ok) return { ok: false, error: `Upload failed: ${up.error}` };
 
+  // Face detected in the ID photo (if any) — match it to the live biometric
+  // capture so the reviewer sees a same-person score.
+  const idDesc = parseDescriptor(formData.get("descriptor"));
+  const selfieDesc = parseDescriptor(owner.faceDescriptor);
+  const matchScore =
+    idDesc && selfieDesc ? faceDistance(selfieDesc, idDesc) : undefined;
+
   await db.campaignOwner.update({
     where: { id: owner.id },
-    data: { idPhotoUrl: up.url },
+    data: {
+      idPhotoUrl: up.url,
+      ...(idDesc ? { idPhotoDescriptor: idDesc as Prisma.InputJsonValue } : {}),
+      ...(matchScore !== undefined ? { faceMatchScore: matchScore } : {}),
+    },
   });
 
   await writeAudit({

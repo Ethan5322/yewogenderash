@@ -209,6 +209,15 @@ model CampaignOwner {
   user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   idNumber           String?
   biometricStatus    BiometricStatus @default(NOT_CAPTURED)
+  /// 128-D face descriptor from the live biometric capture (the enrolment
+  /// template). Compared against the ID photo at registration and against the
+  /// live face at login. Stored as a JSON number array.
+  faceDescriptor     Json?
+  /// 128-D descriptor detected in the uploaded ID-card photo.
+  idPhotoDescriptor  Json?
+  /// Euclidean distance between the live face and the ID-photo face. Lower =
+  /// closer match; below ~0.6 is the same person. Null until both are captured.
+  faceMatchScore     Float?
   /// Public verification code shown on the author profile (e.g. YWD-A1B2C3)
   authorCode         String?         @unique
   /// Platform trust seal — set only by admin approval, never user-editable

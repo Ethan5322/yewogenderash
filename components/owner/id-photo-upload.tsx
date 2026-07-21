@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, Upload, ImageUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { uploadIdPhotoAction } from "@/app/dashboard/id/actions";
+import { describeFace } from "@/lib/face/faceapi";
 
 // Output portrait size (3:4) — matches the ID-card portrait slot.
 const OUT_W = 600;
@@ -84,6 +85,20 @@ export function IdPhotoUpload({ hasPhoto }: { hasPhoto: boolean }) {
     setError(null);
     const fd = new FormData();
     fd.append("photo", blob, "id-photo.jpg");
+    // Detect the face in the ID photo so the backend can match it to the live
+    // biometric capture. Best-effort — a photo with no detectable face still
+    // uploads (the match just stays unknown).
+    try {
+      const bitmap = await createImageBitmap(blob);
+      const c = document.createElement("canvas");
+      c.width = bitmap.width;
+      c.height = bitmap.height;
+      c.getContext("2d")?.drawImage(bitmap, 0, 0);
+      const descriptor = await describeFace(c);
+      if (descriptor) fd.append("descriptor", JSON.stringify(descriptor));
+    } catch {
+      /* no descriptor — upload proceeds without a match */
+    }
     const res = await uploadIdPhotoAction(null, fd);
     setPending(false);
     if (res.ok) {

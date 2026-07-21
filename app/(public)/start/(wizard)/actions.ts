@@ -2,10 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { writeAudit } from "@/lib/audit";
+import { faceDistance, parseDescriptor } from "@/lib/face/distance";
 import {
   ensureOwnerProfile,
   getOwnerContext,
@@ -248,6 +250,21 @@ export async function captureBiometricAction(
   );
   if (!up.ok) return { ok: false, error: `Selfie upload failed: ${up.error}` };
 
+  // Real biometric: the browser detected a face and sent its 128-D descriptor
+  // (the enrolment template). Reject a capture with no face — a blank/spoofed
+  // frame can never enrol.
+  const descriptor = parseDescriptor(formData.get("descriptor"));
+  if (!descriptor) {
+    return { ok: false, error: "No face was detected in the capture. Please retake." };
+  }
+  // If the ID-card photo was already analysed, refresh the match distance now.
+  const existing = await db.campaignOwner.findUnique({
+    where: { id: owner.id },
+    select: { idPhotoDescriptor: true },
+  });
+  const idDesc = parseDescriptor(existing?.idPhotoDescriptor);
+  const matchScore = idDesc ? faceDistance(descriptor, idDesc) : undefined;
+
   await db.$transaction([
     db.verificationDocument.deleteMany({
       where: { ownerId: owner.id, documentType: "SELFIE" },
@@ -257,7 +274,11 @@ export async function captureBiometricAction(
     }),
     db.campaignOwner.update({
       where: { id: owner.id },
-      data: { biometricStatus: "PENDING" },
+      data: {
+        biometricStatus: "PENDING",
+        faceDescriptor: descriptor as Prisma.InputJsonValue,
+        ...(matchScore !== undefined ? { faceMatchScore: matchScore } : {}),
+      },
     }),
   ]);
 

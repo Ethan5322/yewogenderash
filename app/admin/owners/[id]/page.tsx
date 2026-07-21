@@ -116,6 +116,22 @@ export default async function AdminOwnerDetailPage({
                 <dd>{owner.biometricStatus}</dd>
               </div>
               <div>
+                <dt className="text-muted-foreground">Face match (live vs ID)</dt>
+                <dd>
+                  {owner.faceMatchScore == null ? (
+                    <span className="text-muted-foreground">not computed</span>
+                  ) : owner.faceMatchScore < 0.6 ? (
+                    <span className="font-medium text-success">
+                      ✓ Same person · {owner.faceMatchScore.toFixed(3)}
+                    </span>
+                  ) : (
+                    <span className="font-medium text-destructive">
+                      ✗ No match · {owner.faceMatchScore.toFixed(3)}
+                    </span>
+                  )}
+                </dd>
+              </div>
+              <div>
                 <dt className="text-muted-foreground">Author code</dt>
                 <dd className="font-mono">{owner.authorCode ?? "—"}</dd>
               </div>

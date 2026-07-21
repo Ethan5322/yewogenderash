@@ -2,10 +2,28 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Camera, RefreshCw, Check, Loader2, Upload } from "lucide-react";
+import { Camera, RefreshCw, Loader2, Upload, ScanFace } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FileDropzone } from "@/components/onboarding/file-dropzone";
 import { captureBiometricAction } from "@/app/(public)/start/(wizard)/actions";
+import { describeFace } from "@/lib/face/faceapi";
+
+/** Load a File into an <img> element for face detection. */
+function fileToImage(file: File): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(img);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("image load failed"));
+    };
+    img.src = url;
+  });
+}
 
 export function SelfieCapture() {
   const router = useRouter();
@@ -80,8 +98,26 @@ export function SelfieCapture() {
     setBusy(true);
     setError(null);
     try {
+      // Real biometric: a detectable face must be present, and we extract its
+      // 128-D descriptor (the enrolment template) in the browser.
+      let descriptor: number[] | null = null;
+      try {
+        const img = await fileToImage(captured);
+        descriptor = await describeFace(img);
+      } catch {
+        descriptor = null;
+      }
+      if (!descriptor) {
+        setError(
+          "We couldn't detect a clear face. Retake in good lighting, facing the camera."
+        );
+        setBusy(false);
+        return;
+      }
+
       const fd = new FormData();
       fd.append("selfie", captured);
+      fd.append("descriptor", JSON.stringify(descriptor));
       const res = await captureBiometricAction(null, fd);
       if (res.ok) router.refresh();
       else setError(res.error);
@@ -108,8 +144,8 @@ export function SelfieCapture() {
             <RefreshCw className="h-4 w-4" aria-hidden /> Retake
           </Button>
           <Button onClick={submit} disabled={busy}>
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-            Use this photo
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ScanFace className="h-4 w-4" aria-hidden />}
+            {busy ? "Verifying face…" : "Use this photo"}
           </Button>
         </div>
       </div>

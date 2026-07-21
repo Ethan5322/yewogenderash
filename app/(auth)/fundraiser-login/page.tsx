@@ -8,6 +8,7 @@ import { Loader2, IdCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FaceScan } from "@/components/auth/face-scan";
 import {
   Card,
   CardContent,
@@ -22,6 +23,7 @@ function FundraiserLoginForm() {
   const callbackUrl = searchParams.get("callbackUrl") ?? "/dashboard";
   const [error, setError] = React.useState<string | null>(null);
   const [pending, setPending] = React.useState(false);
+  const [faceDescriptor, setFaceDescriptor] = React.useState<number[] | null>(null);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -31,11 +33,14 @@ function FundraiserLoginForm() {
     const res = await signIn("fundraiser-code", {
       code: String(form.get("code") ?? "").trim().toUpperCase(),
       password: String(form.get("password") ?? ""),
+      faceDescriptor: faceDescriptor ? JSON.stringify(faceDescriptor) : "",
       redirect: false,
     });
     setPending(false);
     if (res?.error) {
-      setError("That verification code and password don't match a fundraiser account.");
+      setError(
+        "Sign-in failed. Check your code and password, and scan your face if your account has face verification enabled."
+      );
       return;
     }
     router.push(callbackUrl);
@@ -76,6 +81,14 @@ function FundraiserLoginForm() {
               autoComplete="current-password"
               required
             />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Face verification</Label>
+            <FaceScan onDescriptor={setFaceDescriptor} />
+            <p className="text-xs text-muted-foreground">
+              If your account has face verification, scan your face to sign in.
+            </p>
           </div>
 
           {error ? (

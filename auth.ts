@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { verifyPassword } from "@/lib/auth/password";
 import { verifyOtp } from "@/lib/auth/otp";
 import { loginSchema } from "@/lib/validators/auth";
+import { faceDistance, parseDescriptor, MATCH_THRESHOLD } from "@/lib/face/distance";
 
 /**
  * Full Auth.js setup (Node runtime). Middleware uses auth.config.ts instead —
@@ -56,7 +57,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     Credentials({
       id: "fundraiser-code",
       name: "Fundraiser code",
-      credentials: { code: {}, password: {} },
+      credentials: { code: {}, password: {}, faceDescriptor: {} },
       async authorize(credentials) {
         const code = String(credentials?.code ?? "").trim().toUpperCase();
         const password = String(credentials?.password ?? "");
@@ -65,6 +66,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const owner = await db.campaignOwner.findUnique({
           where: { authorCode: code },
           select: {
+            faceDescriptor: true,
             user: {
               select: {
                 id: true,
@@ -82,6 +84,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const valid = await verifyPassword(password, user.passwordHash);
         if (!valid) return null;
+
+        // Biometric factor: when a face template is enrolled, the live face
+        // supplied at login must match it (same-person within threshold).
+        const enrolled = parseDescriptor(owner?.faceDescriptor);
+        if (enrolled) {
+          const probe = parseDescriptor(credentials?.faceDescriptor);
+          if (!probe || faceDistance(enrolled, probe) >= MATCH_THRESHOLD) return null;
+        }
 
         return { id: user.id, name: user.name, email: user.email, role: user.role };
       },
