@@ -3,7 +3,8 @@ import type { OtpPurpose } from "@prisma/client";
 import { db } from "@/lib/db";
 
 const OTP_TTL_MS = 10 * 60 * 1000; // 10 minutes
-const RESEND_COOLDOWN_MS = 60 * 1000; // 1 minute between requests
+export const RESEND_COOLDOWN_SECONDS = 30;
+const RESEND_COOLDOWN_MS = RESEND_COOLDOWN_SECONDS * 1000; // 30s between requests
 
 function hashCode(code: string) {
   return createHash("sha256").update(code).digest("hex");

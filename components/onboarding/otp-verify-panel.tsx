@@ -23,13 +23,23 @@ function ChannelVerify({
   icon: React.ReactNode;
   onVerified: () => void;
 }) {
+  const COOLDOWN = 30; // seconds — matches the server resend cooldown
   const [code, setCode] = React.useState("");
   const [sent, setSent] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
+  const [cooldown, setCooldown] = React.useState(0);
   const [msg, setMsg] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
 
+  // Tick the resend countdown down to zero.
+  React.useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
+
   async function send() {
+    if (cooldown > 0 || busy) return;
     setBusy(true);
     setError(null);
     setMsg(null);
@@ -40,8 +50,14 @@ function ChannelVerify({
         body: JSON.stringify({ purpose }),
       });
       if (res.ok) {
+        const data = await res.json().catch(() => ({}));
         setSent(true);
-        setMsg("Code sent. In development it's printed to the server console.");
+        setCooldown(COOLDOWN);
+        setMsg(
+          data.devCode
+            ? `Dev code: ${data.devCode} (SMS/email isn't wired yet)`
+            : "Code sent."
+        );
       } else {
         const data = await res.json().catch(() => ({}));
         setError(data.error ?? "Could not send a code. Try again.");
@@ -89,9 +105,9 @@ function ChannelVerify({
       {!verified ? (
         <div className="mt-3 space-y-3">
           {!sent ? (
-            <Button type="button" size="sm" variant="outline" onClick={send} disabled={busy}>
+            <Button type="button" size="sm" variant="outline" onClick={send} disabled={busy || cooldown > 0}>
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Send code
+              {cooldown > 0 ? `Resend in ${cooldown}s` : "Send code"}
             </Button>
           ) : (
             <div className="flex flex-wrap items-center gap-2">
@@ -107,8 +123,8 @@ function ChannelVerify({
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                 Verify
               </Button>
-              <Button type="button" size="sm" variant="ghost" onClick={send} disabled={busy}>
-                Resend
+              <Button type="button" size="sm" variant="ghost" onClick={send} disabled={busy || cooldown > 0}>
+                {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend"}
               </Button>
             </div>
           )}

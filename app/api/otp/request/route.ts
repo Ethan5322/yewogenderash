@@ -43,7 +43,7 @@ export async function POST(req: Request) {
   const result = await createOtp(user.id, purpose);
   if (!result.ok) {
     return NextResponse.json(
-      { error: "Please wait a minute before requesting another code." },
+      { error: "Please wait a few seconds before requesting another code." },
       { status: 429 }
     );
   }
@@ -55,5 +55,10 @@ export async function POST(req: Request) {
     code: result.code,
   });
 
-  return NextResponse.json({ ok: true });
+  // DEV ONLY: surface the code to the UI so testing needs no SMS/email or
+  // console digging. Never included in production builds.
+  const devCode =
+    process.env.NODE_ENV === "development" ? result.code : undefined;
+
+  return NextResponse.json(devCode ? { ok: true, devCode } : { ok: true });
 }
