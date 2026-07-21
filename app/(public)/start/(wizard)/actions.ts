@@ -277,6 +277,7 @@ export async function captureBiometricAction(
       data: {
         biometricStatus: "PENDING",
         faceDescriptor: descriptor as Prisma.InputJsonValue,
+        livenessPassed: formData.get("liveness") === "passed",
         ...(matchScore !== undefined ? { faceMatchScore: matchScore } : {}),
       },
     }),

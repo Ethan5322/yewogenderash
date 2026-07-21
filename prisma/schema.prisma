@@ -222,6 +222,9 @@ model CampaignOwner {
   faceMatched        Boolean?
   /// Which engine produced the verdict: "insightface" or "face-api".
   faceEngine         String?
+  /// True when the live capture passed the active liveness challenge (head
+  /// turn + blink) — a still photo held to the camera cannot satisfy it.
+  livenessPassed     Boolean         @default(false)
   /// Public verification code shown on the author profile (e.g. YWD-A1B2C3)
   authorCode         String?         @unique
   /// Platform trust seal — set only by admin approval, never user-editable

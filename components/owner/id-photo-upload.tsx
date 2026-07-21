@@ -6,6 +6,7 @@ import { Loader2, Upload, ImageUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { uploadIdPhotoAction } from "@/app/dashboard/id/actions";
 import { describeFace } from "@/lib/face/faceapi";
+import { assessImageQuality } from "@/lib/face/quality";
 
 // Output portrait size (3:4) — matches the ID-card portrait slot.
 const OUT_W = 600;
@@ -60,6 +61,13 @@ export function IdPhotoUpload({ hasPhoto }: { hasPhoto: boolean }) {
         return;
       }
       ctx.drawImage(img, sx, sy, sw, sh, 0, 0, OUT_W, OUT_H);
+      // Reject blurry/dark/low-res photos before they are used on the ID.
+      const quality = assessImageQuality(canvas);
+      if (!quality.ok) {
+        setError(quality.reason);
+        URL.revokeObjectURL(url);
+        return;
+      }
       canvas.toBlob(
         (b) => {
           if (b) {

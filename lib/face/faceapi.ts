@@ -88,6 +88,58 @@ export async function detectBox(el: HTMLVideoElement | HTMLImageElement | HTMLCa
   return { x: det.box.x, y: det.box.y, width: det.box.width, height: det.box.height, score: det.score };
 }
 
+/** Nets for the liveness challenge: tiny detector + landmarks (no descriptor). */
+export function loadForLiveness() {
+  return loadNets("tiny", "landmarks");
+}
+
+function dist(a: { x: number; y: number }, b: { x: number; y: number }): number {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+/** Eye aspect ratio for a 6-point eye — drops sharply during a blink. */
+function eyeAspect(eye: { x: number; y: number }[]): number {
+  if (!eye || eye.length < 6) return 1;
+  const v = dist(eye[1], eye[5]) + dist(eye[2], eye[4]);
+  const h = 2 * dist(eye[0], eye[3]);
+  return h === 0 ? 1 : v / h;
+}
+
+export type LivenessSample = {
+  /** Nose offset from face-box centre, normalised by box width (~-0.5..0.5). */
+  faceX: number;
+  /** Average eye aspect ratio (blink when it dips below ~0.2). */
+  ear: number;
+  box: FaceBox;
+};
+
+/**
+ * One liveness sample from a live frame: head-turn offset + blink metric. The
+ * caller collects these over a few seconds to prove a live, moving 3-D face
+ * (a held-up photo can't satisfy both a left+right turn and a blink).
+ */
+export async function detectLiveness(
+  el: HTMLVideoElement | HTMLImageElement | HTMLCanvasElement
+): Promise<LivenessSample | null> {
+  const f = await loadForLiveness();
+  const det = await f
+    .detectSingleFace(el, new f.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.4 }))
+    .withFaceLandmarks();
+  if (!det) return null;
+  const box = det.detection.box;
+  const lm = det.landmarks;
+  const nose = lm.getNose();
+  const tip = nose[6] ?? nose[nose.length - 1];
+  const cx = box.x + box.width / 2;
+  const faceX = box.width ? (tip.x - cx) / box.width : 0;
+  const ear = (eyeAspect(lm.getLeftEye()) + eyeAspect(lm.getRightEye())) / 2;
+  return {
+    faceX,
+    ear,
+    box: { x: box.x, y: box.y, width: box.width, height: box.height, score: det.detection.score },
+  };
+}
+
 /**
  * Detect the single most prominent face and return its 128-D descriptor.
  * Returns null when no face is found (spoof/blank frame/bad photo).

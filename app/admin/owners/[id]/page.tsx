@@ -117,6 +117,16 @@ export default async function AdminOwnerDetailPage({
                 <dd>{owner.biometricStatus}</dd>
               </div>
               <div>
+                <dt className="text-muted-foreground">Liveness check</dt>
+                <dd>
+                  {owner.livenessPassed ? (
+                    <span className="font-medium text-success">✓ Passed (live)</span>
+                  ) : (
+                    <span className="text-warning">Not confirmed (uploaded / manual)</span>
+                  )}
+                </dd>
+              </div>
+              <div>
                 <dt className="text-muted-foreground">Face match (live vs ID)</dt>
                 <dd>
                   {owner.faceMatched == null ? (
