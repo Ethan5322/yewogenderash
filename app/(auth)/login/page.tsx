@@ -108,6 +108,12 @@ function LoginForm() {
             Create one
           </Link>
         </p>
+        <p className="mt-2 text-center text-sm text-muted-foreground">
+          Verified fundraiser?{" "}
+          <Link href="/fundraiser-login" className="font-medium text-primary hover:underline">
+            Sign in with your ID code
+          </Link>
+        </p>
       </CardContent>
     </Card>
   );

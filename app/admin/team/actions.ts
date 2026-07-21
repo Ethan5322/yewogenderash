@@ -5,6 +5,7 @@ import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { hashPassword } from "@/lib/auth/password";
+import { generateUniqueAdminCode } from "@/lib/querycode";
 import { writeAudit } from "@/lib/audit";
 import {
   ADMIN_PERMISSION_KEYS,
@@ -62,6 +63,7 @@ export async function createSubAdminAction(
         role: "ADMIN",
         isSuperAdmin: false,
         adminPermissions: permissions as Prisma.InputJsonValue,
+        adminCode: await generateUniqueAdminCode(),
         emailVerifiedAt: new Date(),
       },
       select: { id: true },

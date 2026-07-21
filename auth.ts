@@ -48,5 +48,43 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         };
       },
     }),
+
+    // Alternate fundraiser sign-in: verification code (author code) + the
+    // password chosen at registration. Owners can log in with the code printed
+    // on their Fundraiser ID instead of their email. Admins are excluded here —
+    // they must always use the 2FA flow above.
+    Credentials({
+      id: "fundraiser-code",
+      name: "Fundraiser code",
+      credentials: { code: {}, password: {} },
+      async authorize(credentials) {
+        const code = String(credentials?.code ?? "").trim().toUpperCase();
+        const password = String(credentials?.password ?? "");
+        if (!/^YWD-[A-Z0-9]{4,10}$/.test(code) || !password) return null;
+
+        const owner = await db.campaignOwner.findUnique({
+          where: { authorCode: code },
+          select: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+                isBanned: true,
+                passwordHash: true,
+              },
+            },
+          },
+        });
+        const user = owner?.user;
+        if (!user || user.isBanned || user.role !== "OWNER") return null;
+
+        const valid = await verifyPassword(password, user.passwordHash);
+        if (!valid) return null;
+
+        return { id: user.id, name: user.name, email: user.email, role: user.role };
+      },
+    }),
   ],
 });

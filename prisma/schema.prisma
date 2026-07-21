@@ -172,6 +172,9 @@ model User {
   // adminPermissions, e.g. { "kyc": true, "payouts": false }.
   isSuperAdmin       Boolean            @default(false)
   adminPermissions   Json               @default("{}")
+  /// Staff identifier for admins/sub-admins, e.g. YWD-ADM-7KQ2. Issued when an
+  /// admin account is created; null for non-admin users.
+  adminCode          String?            @unique
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 

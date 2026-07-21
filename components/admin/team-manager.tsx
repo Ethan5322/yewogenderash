@@ -19,6 +19,7 @@ export type AdminRowData = {
   id: string;
   name: string;
   email: string;
+  adminCode: string | null;
   isSuperAdmin: boolean;
   permissions: Record<string, boolean>;
 };
@@ -129,6 +130,11 @@ export function AdminRow({
             {isSelf ? <span className="text-xs text-muted-foreground">(you)</span> : null}
           </div>
           <p className="text-sm text-muted-foreground">{admin.email}</p>
+          {admin.adminCode ? (
+            <p className="mt-0.5 font-mono text-xs tracking-wider text-muted-foreground/70">
+              Staff ID · {admin.adminCode}
+            </p>
+          ) : null}
         </div>
 
         {currentIsSuper && !isSelf ? (

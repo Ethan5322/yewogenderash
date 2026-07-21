@@ -50,6 +50,7 @@ export type CurrentAdmin = {
   id: string;
   name: string;
   email: string;
+  adminCode: string | null;
   isSuperAdmin: boolean;
   adminPermissions: unknown;
 };
@@ -68,6 +69,7 @@ export async function currentAdmin(): Promise<CurrentAdmin> {
       name: true,
       email: true,
       role: true,
+      adminCode: true,
       isSuperAdmin: true,
       adminPermissions: true,
     },
@@ -77,6 +79,7 @@ export async function currentAdmin(): Promise<CurrentAdmin> {
     id: user.id,
     name: user.name,
     email: user.email,
+    adminCode: user.adminCode,
     isSuperAdmin: user.isSuperAdmin,
     adminPermissions: user.adminPermissions,
   };

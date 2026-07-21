@@ -52,6 +52,24 @@ export async function generateUniqueAuthorCode(): Promise<string> {
   throw new Error("Could not generate a unique author code after 5 attempts");
 }
 
+/**
+ * Staff identifier for an admin / sub-admin, e.g. YWD-ADM-7KQ2. Unique across
+ * all users. Issued when an admin account is created.
+ */
+export async function generateUniqueAdminCode(): Promise<string> {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    let tail = "";
+    for (let i = 0; i < 4; i++) tail += CODE_CHARS[randomInt(CODE_CHARS.length)];
+    const code = `YWD-ADM-${tail}`;
+    const clash = await db.user.findUnique({
+      where: { adminCode: code },
+      select: { id: true },
+    });
+    if (!clash) return code;
+  }
+  throw new Error("Could not generate a unique admin code after 5 attempts");
+}
+
 /** URL-safe slug from a title, deduplicated with a short random suffix. */
 export async function generateUniqueSlug(title: string): Promise<string> {
   const base =

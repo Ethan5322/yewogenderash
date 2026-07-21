@@ -40,11 +40,13 @@ export type AdminNavItem = {
 export function AdminShell({
   nav,
   email,
+  adminCode,
   isSuper,
   children,
 }: {
   nav: AdminNavItem[];
   email: string;
+  adminCode?: string | null;
   isSuper: boolean;
   children: React.ReactNode;
 }) {
@@ -90,6 +92,11 @@ export function AdminShell({
           <p className="truncate px-3 pb-1 text-xs text-muted-foreground" title={email}>
             {email}
           </p>
+          {adminCode ? (
+            <p className="px-3 pb-1 font-mono text-[11px] tracking-wider text-muted-foreground/70">
+              Staff ID · {adminCode}
+            </p>
+          ) : null}
           <Link
             href="/"
             className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"

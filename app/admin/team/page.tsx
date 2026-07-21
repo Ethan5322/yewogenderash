@@ -21,6 +21,7 @@ export default async function AdminTeamPage() {
       id: true,
       name: true,
       email: true,
+      adminCode: true,
       isSuperAdmin: true,
       adminPermissions: true,
     },
@@ -33,6 +34,7 @@ export default async function AdminTeamPage() {
     id: a.id,
     name: a.name,
     email: a.email,
+    adminCode: a.adminCode,
     isSuperAdmin: a.isSuperAdmin,
     permissions: permsFrom(a.adminPermissions) as Record<string, boolean>,
   }));

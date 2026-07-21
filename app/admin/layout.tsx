@@ -34,7 +34,12 @@ export default async function AdminLayout({
   ).map(({ href, label, key }) => ({ href, label, key }));
 
   return (
-    <AdminShell nav={nav} email={me.email} isSuper={me.isSuperAdmin}>
+    <AdminShell
+      nav={nav}
+      email={me.email}
+      adminCode={me.adminCode}
+      isSuper={me.isSuperAdmin}
+    >
       {children}
     </AdminShell>
   );
