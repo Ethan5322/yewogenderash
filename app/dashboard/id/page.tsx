@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, ExternalLink, Download, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ExternalLink, ShieldCheck } from "lucide-react";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { SiteHeader } from "@/components/site/site-header";
 import { SiteFooter } from "@/components/site/site-footer";
 import { FundraiserIdCard } from "@/components/owner/fundraiser-id-card";
 import { IdPhotoUpload } from "@/components/owner/id-photo-upload";
-import { PrintButton } from "@/components/owner/print-button";
+import { formatDate } from "@/lib/format";
 
 export const metadata = { title: "My Fundraiser ID" };
 
@@ -22,12 +22,12 @@ export default async function FundraiserIdPage() {
       verifiedAt: true,
       mulesooVerified: true,
       idPhotoUrl: true,
-      user: { select: { name: true } },
+      createdAt: true,
+      user: { select: { name: true, verificationStatus: true } },
     },
   });
 
-  // Only verified owners have an issued ID.
-  if (!owner || !owner.mulesooVerified || !owner.authorCode) {
+  if (!owner) {
     return (
       <div className="flex min-h-screen flex-col">
         <SiteHeader user={session.user} />
@@ -37,18 +37,18 @@ export default async function FundraiserIdPage() {
           </Link>
           <h1 className="mt-4 font-display text-2xl font-bold tracking-tight">Fundraiser ID</h1>
           <p className="mt-3 rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground">
-            Your corporate Fundraiser ID is issued automatically once an
-            administrator approves your verification.{" "}
-            <Link href="/start" className="text-primary hover:underline">
-              Complete verification
-            </Link>{" "}
-            to get yours.
+            Begin owner verification to be issued your Fundraiser ID.{" "}
+            <Link href="/start" className="text-primary hover:underline">Get started</Link>.
           </p>
         </main>
         <SiteFooter />
       </div>
     );
   }
+
+  const approved = owner.mulesooVerified && !!owner.authorCode;
+  const code = owner.authorCode ?? "PENDING-REVIEW";
+  const status = approved ? "VERIFIED" : "PENDING REVIEW";
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -61,40 +61,41 @@ export default async function FundraiserIdPage() {
           My Fundraiser ID
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Your official verification card. Anyone — including our admins — can
-          scan the QR to confirm your identity on Yewogen Derash.
+          Your official verification card. It stays locked until an administrator
+          approves your verification — then you can download it as an image or PDF.
         </p>
 
-        {/* The card */}
-        <div className="mt-8 flex justify-center print:mt-0">
+        {/* The card (masked until approved) */}
+        <div className="mt-8 flex justify-center">
           <FundraiserIdCard
             name={owner.user.name}
-            authorCode={owner.authorCode}
-            verifiedAt={owner.verifiedAt}
+            verificationCode={code}
+            issued={owner.verifiedAt ? formatDate(owner.verifiedAt) : "—"}
+            status={status}
             photoUrl={owner.idPhotoUrl}
-            mulesooVerified={owner.mulesooVerified}
+            approved={approved}
+            showDownload
+            fields={[
+              { label: "Status", value: approved ? "Verified" : "Pending" },
+              { label: "Member since", value: formatDate(owner.createdAt) },
+              { label: "Platform", value: "Yewogen Derash" },
+            ]}
           />
         </div>
 
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-3 print:hidden">
-          <PrintButton />
-          <a
-            href={`/a/${owner.authorCode}/qr`}
-            download={`fundraiser-${owner.authorCode}.png`}
-            className="inline-flex items-center gap-1.5 rounded-md border border-input px-4 py-2 text-sm font-medium transition-colors hover:bg-accent"
-          >
-            <Download className="h-4 w-4" aria-hidden /> Download QR
-          </a>
-          <Link
-            href={`/a/${owner.authorCode}`}
-            className="inline-flex items-center gap-1.5 rounded-md border border-input px-4 py-2 text-sm font-medium transition-colors hover:bg-accent"
-          >
-            <ExternalLink className="h-4 w-4" aria-hidden /> Public profile
-          </Link>
-        </div>
+        {approved ? (
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+            <Link
+              href={`/a/${owner.authorCode}`}
+              className="inline-flex items-center gap-1.5 rounded-md border border-input px-4 py-2 text-sm font-medium transition-colors hover:bg-accent"
+            >
+              <ExternalLink className="h-4 w-4" aria-hidden /> Public profile
+            </Link>
+          </div>
+        ) : null}
 
         {/* Photo management */}
-        <section className="mt-10 rounded-xl border bg-card p-6 shadow-sm print:hidden">
+        <section className="mt-10 rounded-xl border bg-card p-6 shadow-sm">
           <div className="flex items-center gap-2">
             <ShieldCheck className="h-4 w-4 text-primary" aria-hidden />
             <h2 className="font-display text-base font-semibold">ID photo</h2>

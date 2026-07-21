@@ -45,10 +45,15 @@ export default async function AuthorProfilePage({ params }: Params) {
       <div className="flex flex-col items-center gap-4">
         <FundraiserIdCard
           name={owner.user.name}
-          authorCode={owner.authorCode ?? ""}
-          verifiedAt={owner.verifiedAt}
+          verificationCode={owner.authorCode ?? "—"}
+          issued={owner.verifiedAt ? formatDate(owner.verifiedAt) : "—"}
+          status="VERIFIED"
           photoUrl={owner.idPhotoUrl}
-          mulesooVerified={owner.mulesooVerified}
+          approved
+          fields={[
+            { label: "Status", value: "Verified" },
+            { label: "Platform", value: "Yewogen Derash" },
+          ]}
         />
         <a
           href={`/a/${owner.authorCode}/qr`}

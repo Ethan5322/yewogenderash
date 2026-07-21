@@ -195,10 +195,15 @@ export default async function AdminOwnerDetailPage({
               </h2>
               <FundraiserIdCard
                 name={owner.user.name}
-                authorCode={owner.authorCode}
-                verifiedAt={owner.verifiedAt}
+                verificationCode={owner.authorCode ?? "—"}
+                issued={owner.verifiedAt ? formatDate(owner.verifiedAt) : "—"}
+                status={owner.mulesooVerified ? "VERIFIED" : "PENDING REVIEW"}
                 photoUrl={owner.idPhotoUrl}
-                mulesooVerified={owner.mulesooVerified}
+                approved={owner.mulesooVerified}
+                fields={[
+                  { label: "Status", value: owner.mulesooVerified ? "Verified" : "Pending" },
+                  { label: "Platform", value: "Yewogen Derash" },
+                ]}
               />
               <p className="mt-3 text-xs text-muted-foreground">
                 Scan the QR to open this owner's verification profile with the

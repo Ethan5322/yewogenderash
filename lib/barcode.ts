@@ -28,6 +28,31 @@ const PATTERNS = [
 const START_B = 104;
 const STOP = 106;
 
+/**
+ * Code128-B module string for `value`: '1' = bar, '0' = space (each symbol
+ * starts on a bar). Shared by the SVG renderer and the canvas ID-card drawer.
+ */
+export function code128Modules(value: string): string {
+  const data = sanitize(value);
+  const codes: number[] = [START_B];
+  for (const ch of data) codes.push(ch.charCodeAt(0) - 32);
+  let sum = START_B;
+  data.split("").forEach((ch, i) => {
+    sum += (ch.charCodeAt(0) - 32) * (i + 1);
+  });
+  codes.push(sum % 103);
+  codes.push(STOP);
+
+  let bits = "";
+  for (const code of codes) {
+    const pattern = PATTERNS[code];
+    for (let i = 0; i < pattern.length; i++) {
+      bits += (i % 2 === 0 ? "1" : "0").repeat(Number(pattern[i]));
+    }
+  }
+  return bits;
+}
+
 /** Keep only printable ASCII (32–126); anything else becomes '?'. */
 function sanitize(input: string): string {
   return Array.from(input)
