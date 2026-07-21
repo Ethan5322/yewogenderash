@@ -10,6 +10,7 @@ import {
   Landmark,
   FileText,
   Users,
+  ScrollText,
   LogOut,
   ExternalLink,
 } from "lucide-react";
@@ -23,6 +24,7 @@ const ICONS = {
   payouts: Landmark,
   content: FileText,
   admins: Users,
+  audit: ScrollText,
 } as const;
 
 export type AdminNavItem = {
