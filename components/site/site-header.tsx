@@ -75,14 +75,11 @@ export function SiteHeader({ user }: { user?: HeaderUser }) {
               </Button>
             </>
           ) : (
-            <>
-              <Button asChild variant="ghost" size="sm">
-                <Link href="/login">Sign in</Link>
-              </Button>
-              <Button asChild size="sm">
-                <Link href="/start">Start a campaign</Link>
-              </Button>
-            </>
+            // Public visitors: only the campaign CTA here. Owner sign-in lives
+            // in the footer; admin sign-in is not shown on the public site.
+            <Button asChild size="sm">
+              <Link href="/start">Start a campaign</Link>
+            </Button>
           )}
         </div>
 
@@ -126,17 +123,9 @@ export function SiteHeader({ user }: { user?: HeaderUser }) {
                 </button>
               </>
             ) : (
-              <>
-                <Link
-                  href="/login"
-                  className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
-                >
-                  Sign in
-                </Link>
-                <Button asChild className="mt-2">
-                  <Link href="/start">Start a campaign</Link>
-                </Button>
-              </>
+              <Button asChild className="mt-2">
+                <Link href="/start">Start a campaign</Link>
+              </Button>
             )}
           </nav>
         </div>
