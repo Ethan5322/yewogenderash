@@ -6,7 +6,11 @@ import { z } from "zod";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { writeAudit } from "@/lib/audit";
-import { campaignAvailableBalance, MIN_PAYOUT_ETB } from "@/lib/payouts";
+import {
+  campaignAvailableBalance,
+  evaluateWithdrawalApproval,
+  MIN_PAYOUT_ETB,
+} from "@/lib/payouts";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -23,7 +27,16 @@ async function requireOwner() {
   if (!session?.user?.id) redirect("/login?callbackUrl=/dashboard/payouts");
   const owner = await db.campaignOwner.findUnique({
     where: { userId: session.user.id },
-    select: { id: true, userId: true, payoutAccount: true },
+    select: {
+      id: true,
+      userId: true,
+      mulesooVerified: true,
+      payoutAccounts: {
+        where: { isDefault: true, isVerified: true },
+        take: 1,
+        select: { id: true },
+      },
+    },
   });
   if (!owner) redirect("/start");
   return owner;
@@ -47,10 +60,11 @@ export async function requestPayoutAction(
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the amount" };
   }
-  if (!owner.payoutAccount) {
+  const account = owner.payoutAccounts[0];
+  if (!account) {
     return {
       ok: false,
-      error: "Add your payout account in owner verification first.",
+      error: "Add and verify a payout bank account before requesting a payout.",
     };
   }
 
@@ -72,22 +86,39 @@ export async function requestPayoutAction(
     };
   }
 
+  // Automated approval gate — conservative; most requests still reach a human.
+  const decision = await evaluateWithdrawalApproval({
+    ownerId: owner.id,
+    mulesooVerified: owner.mulesooVerified,
+    hasVerifiedAccount: true,
+    amount: parsed.data.amount,
+  });
+
   const payout = await db.payout.create({
     data: {
       campaignId: campaign.id,
       ownerId: owner.id,
       amount: parsed.data.amount,
       currency: campaign.currency,
-      status: "REQUESTED",
+      payoutAccountId: account.id,
+      status: decision.autoApprove ? "APPROVED" : "REQUESTED",
+      autoApproved: decision.autoApprove,
+      reviewReason: decision.reason,
+      approvedAt: decision.autoApprove ? new Date() : null,
     },
   });
 
   await writeAudit({
     actorId: owner.userId,
-    action: "PAYOUT_REQUESTED",
+    action: decision.autoApprove ? "PAYOUT_AUTO_APPROVED" : "PAYOUT_REQUESTED",
     entityType: "Payout",
     entityId: payout.id,
-    detail: { campaignId: campaign.id, amount: parsed.data.amount },
+    detail: {
+      campaignId: campaign.id,
+      amount: parsed.data.amount,
+      autoApproved: decision.autoApprove,
+      reason: decision.reason,
+    },
   });
 
   revalidatePath("/dashboard/payouts");

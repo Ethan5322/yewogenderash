@@ -41,7 +41,22 @@ export async function POST(req: Request) {
   // Donations land on exactly one campaign, resolved by its unique querycode.
   const campaign = await db.campaign.findUnique({
     where: { queryCode: input.queryCode },
-    select: { id: true, title: true, status: true, currency: true },
+    select: {
+      id: true,
+      title: true,
+      status: true,
+      currency: true,
+      // The owner's active subaccount is the Chapa split target (their bank).
+      owner: {
+        select: {
+          payoutAccounts: {
+            where: { isDefault: true, isVerified: true, chapaSubaccountId: { not: null } },
+            select: { chapaSubaccountId: true },
+            take: 1,
+          },
+        },
+      },
+    },
   });
   if (!campaign || campaign.status !== "ACTIVE") {
     return NextResponse.json(
@@ -49,6 +64,7 @@ export async function POST(req: Request) {
       { status: 404 }
     );
   }
+  const subaccountId = campaign.owner?.payoutAccounts[0]?.chapaSubaccountId ?? undefined;
 
   const session = await auth();
   const txRef = newTxRef();
@@ -73,6 +89,7 @@ export async function POST(req: Request) {
     firstName: donorName ?? "Anonymous",
     txRef,
     returnUrl: `${appUrl()}/donate/thanks?tx_ref=${encodeURIComponent(txRef)}`,
+    subaccountId,
   });
 
   if (!init.ok) {

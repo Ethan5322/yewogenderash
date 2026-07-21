@@ -8,11 +8,13 @@ import {
   HandCoins,
   Target,
   TrendingUp,
+  Landmark,
   Megaphone,
   Pencil,
 } from "lucide-react";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { campaignAvailableBalance } from "@/lib/payouts";
 import { SiteHeader } from "@/components/site/site-header";
 import { SiteFooter } from "@/components/site/site-footer";
 import { Button } from "@/components/ui/button";
@@ -76,6 +78,9 @@ export default async function OwnerCampaignDetailPage({
   const canPostUpdates =
     campaign.status === "ACTIVE" || campaign.status === "COMPLETED";
 
+  // Net (after the 3% platform fee) and what's still withdrawable.
+  const available = await campaignAvailableBalance(campaign.id);
+
   const pct = progressPercent(
     Number(campaign.currentAmount),
     Number(campaign.targetAmount)
@@ -100,6 +105,12 @@ export default async function OwnerCampaignDetailPage({
       label: "Progress",
       value: `${pct}%`,
       sub: "of target",
+    },
+    {
+      icon: Landmark,
+      label: "Available to withdraw",
+      value: formatETB(available, campaign.currency),
+      sub: "net, after 3% fee & payouts",
     },
   ];
 
@@ -162,7 +173,7 @@ export default async function OwnerCampaignDetailPage({
         </div>
 
         {/* Stats */}
-        <div className="mt-6 grid gap-4 sm:grid-cols-3">
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {stats.map((s) => (
             <div key={s.label} className="rounded-xl border bg-card p-5 shadow-sm">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">

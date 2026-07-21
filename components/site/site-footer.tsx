@@ -7,6 +7,7 @@ const FOOTER_GROUPS = [
     links: [
       { href: "/campaigns", label: "Browse campaigns" },
       { href: "/start", label: "Start a campaign" },
+      { href: "/blog", label: "Blog" },
       { href: "/support", label: "Support" },
     ],
   },

@@ -9,6 +9,7 @@ import {
   BadgeCheck,
   Landmark,
   FileText,
+  Newspaper,
   Users,
   ScrollText,
   LogOut,
@@ -23,6 +24,7 @@ const ICONS = {
   kyc: BadgeCheck,
   payouts: Landmark,
   content: FileText,
+  blog: Newspaper,
   admins: Users,
   audit: ScrollText,
 } as const;

@@ -5,12 +5,14 @@ import { ArrowLeft } from "lucide-react";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { campaignAvailableBalance } from "@/lib/payouts";
+import { listChapaBanks } from "@/lib/chapa";
 import { SiteHeader } from "@/components/site/site-header";
 import { SiteFooter } from "@/components/site/site-footer";
 import {
   PayoutRequestForm,
   CancelPayoutButton,
 } from "@/components/dashboard/payout-controls";
+import { PayoutAccountForm } from "@/components/dashboard/payout-account-form";
 import { formatETB, formatDate } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Payouts" };
@@ -31,6 +33,16 @@ export default async function OwnerPayoutsPage() {
     where: { userId: session.user.id },
     select: {
       id: true,
+      payoutAccounts: {
+        where: { isDefault: true },
+        take: 1,
+        select: {
+          accountName: true,
+          bankName: true,
+          accountNumber: true,
+          isVerified: true,
+        },
+      },
       campaigns: {
         where: { status: { in: ["ACTIVE", "COMPLETED"] } },
         select: { id: true, title: true, currency: true },
@@ -62,6 +74,13 @@ export default async function OwnerPayoutsPage() {
   );
   const requestable = campaignsWithBalance.filter((c) => c.available >= 100);
 
+  const account = owner.payoutAccounts[0] ?? null;
+  // Chapa's supported-bank list drives the account form's dropdown.
+  const banksRes = await listChapaBanks().catch(() => ({ ok: false as const, error: "" }));
+  const banks = banksRes.ok
+    ? banksRes.banks.map((b) => ({ code: String(b.id), name: b.name }))
+    : [];
+
   return (
     <>
       <SiteHeader user={session.user} />
@@ -82,7 +101,43 @@ export default async function OwnerPayoutsPage() {
         </p>
 
         <section className="mt-8 rounded-xl border bg-card p-6 shadow-sm">
+          <h2 className="font-display text-base font-semibold">Payout bank account</h2>
+          {account ? (
+            <div className="mt-3 rounded-lg border bg-muted/30 p-4 text-sm">
+              <p className="font-medium">
+                {account.accountName} · {account.bankName}
+              </p>
+              <p className="mt-0.5 text-muted-foreground">
+                Account ending {account.accountNumber.slice(-4)}
+                {account.isVerified ? (
+                  <span className="ml-2 text-success">✓ verified</span>
+                ) : (
+                  <span className="ml-2 text-warning">pending verification</span>
+                )}
+              </p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Donations to your campaigns settle here automatically, after the
+                3% platform fee. Add a new account below to replace it.
+              </p>
+            </div>
+          ) : (
+            <p className="mt-2 text-sm text-muted-foreground">
+              Add a verified bank account so donations can settle to you. The
+              platform fee (3%) is taken automatically at payment time.
+            </p>
+          )}
+          <div className="mt-4">
+            <PayoutAccountForm banks={banks} />
+          </div>
+        </section>
+
+        <section className="mt-6 rounded-xl border bg-card p-6 shadow-sm">
           <h2 className="font-display text-base font-semibold">Request a payout</h2>
+          {!account?.isVerified ? (
+            <p className="mt-2 text-sm text-warning">
+              Add a verified payout account above before requesting a payout.
+            </p>
+          ) : null}
           <div className="mt-4">
             <PayoutRequestForm campaigns={requestable} />
           </div>

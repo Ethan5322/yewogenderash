@@ -3,6 +3,7 @@ import { randomUUID } from "crypto";
 import { db } from "@/lib/db";
 import { verifyChapaTransaction } from "@/lib/chapa";
 import { toNumber } from "@/lib/format";
+import { computeFeeSplit } from "@/lib/fees";
 
 export const MIN_DONATION_ETB = 10;
 export const MAX_DONATION_ETB = 1_000_000;
@@ -33,7 +34,25 @@ export async function settleDonation(
 > {
   const donation = await db.donation.findUnique({
     where: { txRef },
-    include: { campaign: { select: { id: true, title: true, ownerId: true } } },
+    include: {
+      campaign: {
+        select: {
+          id: true,
+          title: true,
+          ownerId: true,
+          currency: true,
+          owner: {
+            select: {
+              payoutAccounts: {
+                where: { isDefault: true, isVerified: true },
+                select: { chapaSubaccountId: true },
+                take: 1,
+              },
+            },
+          },
+        },
+      },
+    },
   });
   if (!donation) return { outcome: "not_found" };
   if (donation.status === "SUCCESS") return { outcome: "already_settled" };
@@ -69,6 +88,12 @@ export async function settleDonation(
     return { outcome: "amount_mismatch", detail };
   }
 
+  // The 3% platform fee split. Chapa moves the money via the subaccount split;
+  // we record the exact figures here so the ledger is authoritative regardless.
+  const split = computeFeeSplit(expected);
+  const subaccountId =
+    donation.campaign.owner?.payoutAccounts[0]?.chapaSubaccountId ?? null;
+
   const settled = await db.$transaction(async (tx) => {
     // Guarded flip — a concurrent settle (webhook + thanks page racing)
     // loses here and credits nothing.
@@ -79,13 +104,50 @@ export async function settleDonation(
         paidAt: new Date(),
         gatewayTransactionId: gw.reference ?? null,
         webhookPayload: gw as object,
+        platformFee: split.fee,
+        netAmount: split.net,
+        feeRate: split.rate,
       },
     });
     if (flipped.count === 0) return false;
 
+    // Public "raised" figure tracks gross (what donors gave).
     await tx.campaign.update({
       where: { id: donation.campaignId },
       data: { currentAmount: { increment: donation.amount } },
+    });
+
+    // Append-only fee record — one row per settled donation.
+    await tx.feeLedger.create({
+      data: {
+        donationId: donation.id,
+        campaignId: donation.campaignId,
+        grossAmount: split.gross,
+        feeAmount: split.fee,
+        netAmount: split.net,
+        feeRate: split.rate,
+        currency: donation.currency,
+        chapaSubaccountId: subaccountId,
+      },
+    });
+
+    // Per-campaign balance denorm — net is the withdrawable money.
+    await tx.campaignBalance.upsert({
+      where: { campaignId: donation.campaignId },
+      create: {
+        campaignId: donation.campaignId,
+        grossRaised: split.gross,
+        totalFees: split.fee,
+        netRaised: split.net,
+        availableAmount: split.net,
+        currency: donation.currency,
+      },
+      update: {
+        grossRaised: { increment: split.gross },
+        totalFees: { increment: split.fee },
+        netRaised: { increment: split.net },
+        availableAmount: { increment: split.net },
+      },
     });
 
     // Owner alert — delivery happens in the notification worker (phase 11).
@@ -94,7 +156,7 @@ export async function settleDonation(
         ownerId: donation.campaign.ownerId,
         campaignId: donation.campaignId,
         channel: "WHATSAPP",
-        message: `New donation: ETB ${expected.toLocaleString()} to "${donation.campaign.title}" (${txRef})`,
+        message: `New donation: ETB ${expected.toLocaleString()} to "${donation.campaign.title}" — net ETB ${split.net.toLocaleString()} after 3% fee (${txRef})`,
       },
     });
     return true;

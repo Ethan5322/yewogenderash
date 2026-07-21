@@ -29,11 +29,12 @@ if (!url || /PROJECT_REF|REGION|PASSWORD/.test(url)) {
   process.exit(1);
 }
 
-// The 12 tables this app owns (must match prisma @@map names).
+// The tables this app owns (must match prisma @@map names).
 const OWNED = [
   "yd_users", "yd_otp_codes", "yd_campaign_owners", "yd_verification_documents",
   "yd_campaigns", "yd_campaign_updates", "yd_donations", "yd_payouts",
   "yd_webhook_events", "yd_notifications", "yd_audit_logs", "yd_site_content",
+  "yd_fee_ledger", "yd_campaign_balances", "yd_payout_accounts", "yd_blog_posts",
 ];
 
 const client = new pg.Client({ connectionString: url });

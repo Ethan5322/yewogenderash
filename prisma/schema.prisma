@@ -145,6 +145,14 @@ enum OtpPurpose {
   @@map("yd_otp_purpose")
 }
 
+enum BlogStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+
+  @@map("yd_blog_status")
+}
+
 // ── Identity ─────────────────────────────────────────────────────
 
 model User {
@@ -171,6 +179,7 @@ model User {
   donations    Donation[]
   otpCodes     OtpCode[]
   auditLogs    AuditLog[]     @relation("AuditActor")
+  blogPosts    BlogPost[]
 
   @@map("yd_users")
 }
@@ -214,10 +223,11 @@ model CampaignOwner {
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
 
-  campaigns     Campaign[]
-  documents     VerificationDocument[]
-  payouts       Payout[]
-  notifications Notification[]
+  campaigns      Campaign[]
+  documents      VerificationDocument[]
+  payouts        Payout[]
+  notifications  Notification[]
+  payoutAccounts PayoutAccount[]
 
   @@map("yd_campaign_owners")
 }
@@ -271,6 +281,8 @@ model Campaign {
   payouts       Payout[]
   updates       CampaignUpdate[]
   notifications Notification[]
+  feeLedgers    FeeLedger[]
+  balance       CampaignBalance?
 
   @@index([status, category])
   @@index([ownerId])
@@ -299,7 +311,14 @@ model Donation {
   donorId              String?
   donor                User?          @relation(fields: [donorId], references: [id])
   donorName            String?
+  /// Gross amount the donor paid (what Chapa charged).
   amount               Decimal        @db.Decimal(12, 2)
+  /// Platform fee taken via Chapa split at transaction time (3% of gross).
+  platformFee          Decimal        @default(0) @db.Decimal(12, 2)
+  /// Net credited to the campaign = amount − platformFee.
+  netAmount            Decimal        @default(0) @db.Decimal(12, 2)
+  /// Fee rate applied, kept for audit even if the platform rate changes later.
+  feeRate              Decimal        @default(0.03) @db.Decimal(5, 4)
   currency             String         @default("ETB")
   paymentMethod        String?
   /// Our transaction reference sent to Chapa (tx_ref) — unique for idempotency
@@ -310,6 +329,8 @@ model Donation {
   paidAt               DateTime?
   createdAt            DateTime       @default(now())
   updatedAt            DateTime       @updatedAt
+
+  feeLedger FeeLedger?
 
   @@index([campaignId, status])
   @@index([donorId])
@@ -330,6 +351,14 @@ model Payout {
   approvedAt        DateTime?
   paidAt            DateTime?
   note              String?
+  /// True when the automated approval rules cleared this request (no human
+  /// reviewer). See lib/payouts.ts evaluateAutoApproval().
+  autoApproved      Boolean       @default(false)
+  /// Snapshot of which rule decided this request, for audit.
+  reviewReason      String?
+  /// The payout account (verified bank / Chapa subaccount) funds are sent to.
+  payoutAccountId   String?
+  payoutAccountRef  PayoutAccount? @relation(fields: [payoutAccountId], references: [id])
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 
@@ -402,4 +431,101 @@ model SiteContent {
   updatedAt DateTime @updatedAt
 
   @@map("yd_site_content")
+}
+
+// ── Money ledger & balances ──────────────────────────────────────
+
+/// One row per SUCCESS donation recording the exact fee split. Append-only
+/// financial record — gross = donor paid, fee = platform's 3% cut (taken by
+/// Chapa split at transaction time), net = credited to the campaign balance.
+/// Never mutate a row; corrections are new compensating rows.
+model FeeLedger {
+  id                String   @id @default(cuid())
+  donationId        String   @unique
+  donation          Donation @relation(fields: [donationId], references: [id])
+  campaignId        String
+  campaign          Campaign @relation(fields: [campaignId], references: [id])
+  grossAmount       Decimal  @db.Decimal(12, 2)
+  feeAmount         Decimal  @db.Decimal(12, 2)
+  netAmount         Decimal  @db.Decimal(12, 2)
+  feeRate           Decimal  @db.Decimal(5, 4)
+  currency          String   @default("ETB")
+  /// Chapa subaccount the net portion was split to (fundraiser's bank).
+  chapaSubaccountId String?
+  createdAt         DateTime @default(now())
+
+  @@index([campaignId])
+  @@map("yd_fee_ledger")
+}
+
+/// Per-campaign money summary — the authoritative balance surface. Kept in
+/// sync inside the same transaction that settles a donation or pays out.
+/// Separate row per campaign: funds are NEVER pooled across campaigns.
+model CampaignBalance {
+  id              String   @id @default(cuid())
+  campaignId      String   @unique
+  campaign        Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  /// Sum of gross donor payments that reached SUCCESS.
+  grossRaised     Decimal  @default(0) @db.Decimal(12, 2)
+  /// Sum of platform fees taken on those donations.
+  totalFees       Decimal  @default(0) @db.Decimal(12, 2)
+  /// grossRaised − totalFees — the campaign's own money.
+  netRaised       Decimal  @default(0) @db.Decimal(12, 2)
+  /// Sum of payouts requested/approved/paid (reserved against net).
+  totalWithdrawn  Decimal  @default(0) @db.Decimal(12, 2)
+  /// netRaised − totalWithdrawn — what the owner can still request.
+  availableAmount Decimal  @default(0) @db.Decimal(12, 2)
+  currency        String   @default("ETB")
+  updatedAt       DateTime @updatedAt
+
+  @@map("yd_campaign_balances")
+}
+
+/// A fundraiser's verified payout destination. Promoted from the old
+/// CampaignOwner.payoutAccount JSON to a first-class table so each account
+/// maps to a Chapa subaccount and carries its own verification state.
+model PayoutAccount {
+  id                String        @id @default(cuid())
+  ownerId           String
+  owner             CampaignOwner @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  accountName       String
+  bankName          String
+  /// Chapa bank id (from the /banks endpoint) used to create the subaccount.
+  bankCode          String
+  accountNumber     String
+  /// Chapa subaccount id — the split target for this owner's donations.
+  chapaSubaccountId String?
+  isVerified        Boolean       @default(false)
+  verifiedAt        DateTime?
+  /// The owner's currently active payout account (only one should be true).
+  isDefault         Boolean       @default(false)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  payouts Payout[]
+
+  @@index([ownerId])
+  @@map("yd_payout_accounts")
+}
+
+// ── Blog / content marketing ─────────────────────────────────────
+
+/// Public blog posts (trust content, success stories, guides). Authored by
+/// admins; only PUBLISHED posts are visible on the public site.
+model BlogPost {
+  id            String     @id @default(cuid())
+  slug          String     @unique
+  title         String
+  excerpt       String
+  body          String
+  coverImageUrl String?
+  status        BlogStatus @default(DRAFT)
+  authorId      String?
+  author        User?      @relation(fields: [authorId], references: [id])
+  publishedAt   DateTime?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@index([status, publishedAt])
+  @@map("yd_blog_posts")
 }

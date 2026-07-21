@@ -71,6 +71,15 @@ export default async function AdminCampaignDetailPage({
 
   const owner = campaign.owner;
 
+  // Fee split totals for this campaign's separated ledger (§12.4).
+  const feeAgg = await db.feeLedger.aggregate({
+    where: { campaignId: id },
+    _sum: { grossAmount: true, feeAmount: true, netAmount: true },
+  });
+  const gross = Number(feeAgg._sum.grossAmount ?? 0);
+  const fees = Number(feeAgg._sum.feeAmount ?? 0);
+  const net = Number(feeAgg._sum.netAmount ?? 0);
+
   // Short-lived signed URLs so the reviewer can open each private document.
   const docs = await Promise.all(
     owner.documents.map(async (d) => ({
@@ -204,7 +213,29 @@ export default async function AdminCampaignDetailPage({
           </section>
           {/* Donation ledger (per-campaign, §12.4) */}
           <section className="rounded-xl border bg-card p-6 shadow-sm">
-            <h2 className="font-display text-base font-semibold">
+            <h2 className="font-display text-base font-semibold">Financial summary</h2>
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <div className="rounded-lg border bg-muted/30 p-4">
+                <p className="text-xs text-muted-foreground">Gross raised</p>
+                <p className="mt-1 font-display text-lg font-bold">
+                  {formatETB(gross, campaign.currency)}
+                </p>
+              </div>
+              <div className="rounded-lg border bg-muted/30 p-4">
+                <p className="text-xs text-muted-foreground">Platform fees (3%)</p>
+                <p className="mt-1 font-display text-lg font-bold text-warning">
+                  {formatETB(fees, campaign.currency)}
+                </p>
+              </div>
+              <div className="rounded-lg border bg-muted/30 p-4">
+                <p className="text-xs text-muted-foreground">Net to campaign</p>
+                <p className="mt-1 font-display text-lg font-bold text-success">
+                  {formatETB(net, campaign.currency)}
+                </p>
+              </div>
+            </div>
+
+            <h2 className="mt-6 border-t pt-4 font-display text-base font-semibold">
               Donation ledger (latest 20)
             </h2>
             {campaign.donations.length === 0 ? (
