@@ -12,6 +12,7 @@ import {
   Landmark,
   FileCheck2,
 } from "lucide-react";
+import { auth } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -61,7 +62,14 @@ const REQUIREMENTS = [
   { icon: FileCheck2, label: "Supporting document for your cause" },
 ] as const;
 
-export default function StartPage() {
+export default async function StartPage() {
+  // Logged-in users continue straight into the wizard; guests register first
+  // (the wizard is the next stop after account creation).
+  const session = await auth();
+  const beginHref = session?.user
+    ? "/start/verify"
+    : "/register?next=/start/verify";
+
   return (
     <div>
       {/* Hero */}
@@ -82,7 +90,7 @@ export default function StartPage() {
           </p>
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             <Button asChild size="lg">
-              <Link href="/register">Create your account</Link>
+              <Link href={beginHref}>Begin verification</Link>
             </Button>
             <Button asChild size="lg" variant="outline">
               <Link href="/support/fees">See fees & payouts</Link>
@@ -148,11 +156,12 @@ export default function StartPage() {
           <div className="mt-12 flex flex-col items-center gap-4 rounded-xl border bg-background p-8 text-center">
             <h3 className="font-display text-xl font-semibold">Ready to begin?</h3>
             <p className="max-w-lg text-sm text-muted-foreground">
-              Create your account now. You can complete verification at your own
-              pace and submit for review when you&apos;re ready.
+              Create your account and continue straight through every
+              verification step — phone &amp; email, terms, documents, and a live
+              face check — then submit for admin review.
             </p>
             <Button asChild size="lg">
-              <Link href="/register">Create your account</Link>
+              <Link href={beginHref}>Begin verification</Link>
             </Button>
           </div>
         </div>

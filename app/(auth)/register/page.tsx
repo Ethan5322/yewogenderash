@@ -2,11 +2,11 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2 } from "lucide-react";
+import { Loader2, ShieldCheck } from "lucide-react";
 import { registerSchema, type RegisterInput } from "@/lib/validators/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,8 +19,21 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-export default function RegisterPage() {
+/** Only allow same-site relative redirects (no open-redirect via ?next=). */
+function safeNext(next: string | null): string | null {
+  if (!next || !next.startsWith("/") || next.startsWith("//")) return null;
+  return next;
+}
+
+function RegisterForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const next = safeNext(searchParams.get("next"));
+  // Registering to become a campaign owner (came from /start) → continue
+  // straight into the verification wizard, and require a phone (it must be
+  // OTP-verified in the very next step).
+  const isFundraiser = !!next && next.startsWith("/start");
+
   const [serverError, setServerError] = React.useState<string | null>(null);
   const [honeypot, setHoneypot] = React.useState("");
 
@@ -32,38 +45,47 @@ export default function RegisterPage() {
 
   async function onSubmit(values: RegisterInput) {
     setServerError(null);
+    // Fundraisers must supply a phone — it's verified by OTP in the next step.
+    if (isFundraiser && !values.phone?.trim()) {
+      setServerError("A phone number is required to become a campaign owner.");
+      return;
+    }
+
     const res = await fetch("/api/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...values, website: honeypot }),
     });
-
     if (!res.ok) {
       const data = await res.json().catch(() => null);
       setServerError(data?.error ?? "Something went wrong. Please try again.");
       return;
     }
 
-    // Auto sign-in after successful registration
     const login = await signIn("credentials", {
       email: values.email,
       password: values.password,
       redirect: false,
     });
     if (login?.error) {
-      router.push("/login");
+      router.push(next ? `/login?callbackUrl=${encodeURIComponent(next)}` : "/login");
       return;
     }
-    router.push("/");
+    // Continue the fundraiser journey (or wherever we were sent); else home.
+    router.push(next ?? "/");
     router.refresh();
   }
 
   return (
     <Card className="w-full max-w-md">
       <CardHeader>
-        <CardTitle className="text-2xl">Create your account</CardTitle>
+        <CardTitle className="text-2xl">
+          {isFundraiser ? "Become a campaign owner" : "Create your account"}
+        </CardTitle>
         <CardDescription>
-          Donate to verified campaigns, or start your own
+          {isFundraiser
+            ? "Step 1 of verification. After this you'll verify your phone & email, accept the terms, and upload your documents — all in one continuous flow."
+            : "Donate to verified campaigns, or start your own"}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -106,7 +128,12 @@ export default function RegisterPage() {
 
           <div className="space-y-2">
             <Label htmlFor="phone">
-              Phone <span className="text-muted-foreground">(optional)</span>
+              Phone{" "}
+              {isFundraiser ? (
+                <span className="text-destructive">*</span>
+              ) : (
+                <span className="text-muted-foreground">(optional)</span>
+              )}
             </Label>
             <Input
               id="phone"
@@ -141,17 +168,36 @@ export default function RegisterPage() {
 
           <Button type="submit" className="w-full" disabled={isSubmitting}>
             {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-            Create account
+            {isFundraiser ? "Create account & continue" : "Create account"}
           </Button>
         </form>
 
+        {isFundraiser ? (
+          <p className="mt-4 flex items-start gap-1.5 text-xs text-muted-foreground">
+            <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" aria-hidden />
+            You can only create campaigns after completing every verification step
+            and being approved by an administrator.
+          </p>
+        ) : null}
+
         <p className="mt-4 text-center text-sm text-muted-foreground">
           Already have an account?{" "}
-          <Link href="/login" className="font-medium text-primary hover:underline">
+          <Link
+            href={next ? `/login?callbackUrl=${encodeURIComponent(next)}` : "/login"}
+            className="font-medium text-primary hover:underline"
+          >
             Sign in
           </Link>
         </p>
       </CardContent>
     </Card>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <React.Suspense>
+      <RegisterForm />
+    </React.Suspense>
   );
 }

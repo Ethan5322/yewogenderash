@@ -79,7 +79,7 @@ export default async function DashboardPage() {
             {!inReview ? (
               <CardContent>
                 <Button asChild>
-                  <Link href="/start">Start owner verification</Link>
+                  <Link href="/start/verify">Continue owner verification</Link>
                 </Button>
               </CardContent>
             ) : null}
