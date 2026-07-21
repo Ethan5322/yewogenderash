@@ -36,6 +36,8 @@ export type OnboardingState = {
   hasProfile: boolean;
   emailVerified: boolean;
   phoneVerified: boolean;
+  /** A phone is on file (verified by the admin's call, not by OTP). */
+  phonePresent: boolean;
   consentDone: boolean;
   identityDone: boolean;
   primaryIdUploaded: boolean;
@@ -59,6 +61,10 @@ export function computeOnboardingState(ctx: OwnerContext): OnboardingState {
 
   const emailVerified = !!ctx.emailVerifiedAt;
   const phoneVerified = !!ctx.phoneVerifiedAt;
+  // The email is verified by OTP; the phone is only collected here and verified
+  // by the admin's call during evaluation — so "contact done" needs a phone on
+  // file, not a phone OTP.
+  const phonePresent = !!ctx.phone;
   const consentDone =
     !!owner?.termsAcceptedAt &&
     !!owner?.feesAcceptedAt &&
@@ -80,7 +86,7 @@ export function computeOnboardingState(ctx: OwnerContext): OnboardingState {
   const approved = status === "VERIFIED";
 
   let nextStep = "/start/verify";
-  if (!emailVerified || !phoneVerified) nextStep = "/start/verify";
+  if (!emailVerified || !phonePresent) nextStep = "/start/verify";
   else if (!consentDone) nextStep = "/start/terms";
   else if (!documentsDone) nextStep = "/start/documents";
   else if (!biometricDone) nextStep = "/start/review";
@@ -90,6 +96,7 @@ export function computeOnboardingState(ctx: OwnerContext): OnboardingState {
     hasProfile: !!owner,
     emailVerified,
     phoneVerified,
+    phonePresent,
     consentDone,
     identityDone,
     primaryIdUploaded,
@@ -107,7 +114,7 @@ export function computeOnboardingState(ctx: OwnerContext): OnboardingState {
 export function canSubmitForReview(state: OnboardingState): boolean {
   return (
     state.emailVerified &&
-    state.phoneVerified &&
+    state.phonePresent &&
     state.consentDone &&
     state.documentsDone &&
     state.biometricDone &&

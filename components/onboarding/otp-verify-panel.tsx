@@ -150,7 +150,8 @@ function PhoneForm({ initialPhone }: { initialPhone: string }) {
   return (
     <form action={action} className="rounded-lg border p-4">
       <label htmlFor="phone" className="text-sm font-medium">
-        Add a phone number to verify
+        Add your phone number{" "}
+        <span className="text-muted-foreground">(we&apos;ll call to verify it)</span>
       </label>
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <Input
@@ -176,18 +177,17 @@ export function OtpVerifyPanel({
   email,
   phone,
   emailVerified,
-  phoneVerified,
 }: {
   email: string;
   phone: string | null;
   emailVerified: boolean;
-  phoneVerified: boolean;
 }) {
   const router = useRouter();
   const refresh = () => router.refresh();
 
   return (
     <div className="space-y-4">
+      {/* Email — verified by an emailed OTP code. */}
       <ChannelVerify
         purpose="EMAIL_VERIFY"
         target={email}
@@ -196,14 +196,26 @@ export function OtpVerifyPanel({
         onVerified={refresh}
       />
 
+      {/* Phone — collected here, verified by the admin's call (no OTP). */}
       {phone ? (
-        <ChannelVerify
-          purpose="PHONE_VERIFY"
-          target={phone}
-          verified={phoneVerified}
-          icon={<Phone className="h-4 w-4" aria-hidden />}
-          onVerified={refresh}
-        />
+        <div className="rounded-lg border p-4">
+          <div className="flex items-center gap-2 text-sm">
+            <Phone className="h-4 w-4 text-muted-foreground" aria-hidden />
+            <span className="font-medium">{phone}</span>
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            An administrator will call this number to verify your identity during
+            review — no code needed here.
+          </p>
+          <details className="mt-2">
+            <summary className="cursor-pointer text-xs font-medium text-primary">
+              Change number
+            </summary>
+            <div className="mt-2">
+              <PhoneForm initialPhone={phone} />
+            </div>
+          </details>
+        </div>
       ) : (
         <PhoneForm initialPhone="" />
       )}

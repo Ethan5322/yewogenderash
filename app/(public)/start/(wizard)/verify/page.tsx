@@ -25,17 +25,18 @@ export default async function VerifyStep() {
   if (!user) redirect("/login?callbackUrl=/start/verify");
 
   const emailVerified = !!user.emailVerifiedAt;
-  const phoneVerified = !!user.phoneVerifiedAt;
-  const bothDone = emailVerified && phoneVerified;
+  const phonePresent = !!user.phone;
+  const done = emailVerified && phonePresent;
 
   return (
     <section>
       <h2 className="font-display text-xl font-semibold tracking-tight">
-        Verify your email and phone
+        Verify your email &amp; add your phone
       </h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        We confirm both so donors can trust that a real, reachable person is
-        behind every campaign.
+        We email you a code to confirm your email. Your phone number is verified
+        by our team&apos;s call during review — so donors know a real, reachable
+        person is behind every campaign.
       </p>
 
       <div className="mt-6">
@@ -43,12 +44,11 @@ export default async function VerifyStep() {
           email={user.email}
           phone={user.phone}
           emailVerified={emailVerified}
-          phoneVerified={phoneVerified}
         />
       </div>
 
       <div className="mt-8 flex justify-end">
-        {bothDone ? (
+        {done ? (
           <Button asChild>
             <Link href="/start/terms">
               Continue <ArrowRight className="h-4 w-4" aria-hidden />

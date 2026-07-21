@@ -1,6 +1,7 @@
 import { createHash, randomInt } from "crypto";
 import type { OtpPurpose } from "@prisma/client";
 import { db } from "@/lib/db";
+import { sendEmail, emailConfigured } from "@/lib/email";
 
 const OTP_TTL_MS = 10 * 60 * 1000; // 10 minutes
 export const RESEND_COOLDOWN_SECONDS = 30;
@@ -84,9 +85,10 @@ export async function verifyOtp(
 }
 
 /**
- * Delivery stub — Phase 2 scaffold. Real channels (email provider / SMS)
- * plug in here without touching callers. Codes are only ever printed to the
- * SERVER console, never returned to clients.
+ * Deliver an OTP by EMAIL. SMS is intentionally not used — the phone number is
+ * collected for the admin to CALL during evaluation, and every verification
+ * code (including the phone-verify purpose) is emailed to the account's email.
+ * Falls back to the server console (dev) when email isn't configured.
  */
 export async function deliverOtp(params: {
   purpose: OtpPurpose;
@@ -97,4 +99,19 @@ export async function deliverOtp(params: {
   console.log(
     `[otp] ${params.purpose} code for ${params.email ?? params.phone}: ${params.code}`
   );
+
+  if (params.email && emailConfigured()) {
+    const res = await sendEmail({
+      to: params.email,
+      subject: `Your Yewogen Derash verification code: ${params.code}`,
+      text: `Your verification code is ${params.code}. It expires in 10 minutes.\n\nIf you did not request this, you can ignore this email.`,
+      html:
+        `<div style="font-family:system-ui,Arial,sans-serif">` +
+        `<p>Your Yewogen Derash verification code is:</p>` +
+        `<p style="font-size:28px;font-weight:700;letter-spacing:4px">${params.code}</p>` +
+        `<p style="color:#555">It expires in 10 minutes. If you didn't request this, ignore this email.</p>` +
+        `</div>`,
+    });
+    if (!res.ok) console.error("[otp] email delivery failed:", res.error);
+  }
 }

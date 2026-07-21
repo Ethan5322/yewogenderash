@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CheckCircle2, Circle, ScanFace, Clock } from "lucide-react";
+import { CheckCircle2, Circle, ScanFace, PhoneCall } from "lucide-react";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { Button } from "@/components/ui/button";
 import {
   getOwnerContext,
   computeOnboardingState,
@@ -39,21 +41,41 @@ export default async function ReviewStep() {
   if (!state.consentDone) redirect("/start/terms");
   if (!state.documentsDone) redirect("/start/documents");
 
-  // Already submitted — show the pending-review confirmation.
+  // Already submitted — show the completion confirmation.
   if (state.submitted) {
     return (
       <section className="rounded-xl border bg-card p-8 text-center shadow-sm">
-        <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-accent text-accent-foreground">
-          <Clock className="h-7 w-7" aria-hidden />
+        <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-success/15 text-success">
+          {state.approved ? (
+            <CheckCircle2 className="h-7 w-7" aria-hidden />
+          ) : (
+            <PhoneCall className="h-7 w-7" aria-hidden />
+          )}
         </span>
         <h2 className="mt-5 font-display text-xl font-semibold">
-          {state.approved ? "You're a verified owner" : "Application submitted"}
+          {state.approved ? "You're a verified owner" : "Application completed"}
         </h2>
-        <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-          {state.approved
-            ? "Your identity is verified. You can now create campaigns."
-            : "Our team is reviewing your submission. You'll be notified once a decision is made — this usually takes 1–2 business days."}
-        </p>
+        {state.approved ? (
+          <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+            Your identity is verified. You can now create campaigns.
+          </p>
+        ) : (
+          <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+            Your documents have been saved and sent to our administrators. We
+            will evaluate them and{" "}
+            <span className="font-medium text-foreground">
+              call you on {ctx.phone ?? "the number you provided"}
+            </span>{" "}
+            to complete your verification.
+          </p>
+        )}
+        <div className="mt-6">
+          <Button asChild>
+            <Link href={state.approved ? "/dashboard/campaigns/new" : "/dashboard"}>
+              {state.approved ? "Create a campaign" : "Close"}
+            </Link>
+          </Button>
+        </div>
       </section>
     );
   }
@@ -113,7 +135,7 @@ export default async function ReviewStep() {
       <div>
         <h3 className="font-display text-base font-semibold">Before you submit</h3>
         <ul className="mt-3 space-y-2">
-          <ChecklistRow done={state.emailVerified && state.phoneVerified} label="Email & phone verified" />
+          <ChecklistRow done={state.emailVerified && state.phonePresent} label="Email verified · phone on file" />
           <ChecklistRow done={state.consentDone} label="Terms, fees & consent accepted" />
           <ChecklistRow done={state.identityDone} label="Identity & payout details provided" />
           <ChecklistRow done={state.primaryIdUploaded} label="ID document uploaded" />
