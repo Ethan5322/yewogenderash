@@ -71,9 +71,10 @@ function RegisterForm() {
       router.push(next ? `/login?callbackUrl=${encodeURIComponent(next)}` : "/login");
       return;
     }
-    // Continue the fundraiser journey (or wherever we were sent); else home.
-    router.push(next ?? "/");
-    router.refresh();
+    // Full-page navigation (not router.push) so the freshly-set session cookie
+    // is fully committed before the next page's authenticated fetches run —
+    // otherwise the first request (e.g. Send OTP) can race and 401.
+    window.location.assign(next ?? "/");
   }
 
   return (
