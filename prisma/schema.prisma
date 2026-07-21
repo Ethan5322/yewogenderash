@@ -215,9 +215,13 @@ model CampaignOwner {
   faceDescriptor     Json?
   /// 128-D descriptor detected in the uploaded ID-card photo.
   idPhotoDescriptor  Json?
-  /// Euclidean distance between the live face and the ID-photo face. Lower =
-  /// closer match; below ~0.6 is the same person. Null until both are captured.
+  /// Raw match score. Meaning depends on faceEngine: face-api = Euclidean
+  /// distance (lower better), insightface = cosine similarity (higher better).
   faceMatchScore     Float?
+  /// Engine-agnostic verdict: did the live face match the ID photo?
+  faceMatched        Boolean?
+  /// Which engine produced the verdict: "insightface" or "face-api".
+  faceEngine         String?
   /// Public verification code shown on the author profile (e.g. YWD-A1B2C3)
   authorCode         String?         @unique
   /// Platform trust seal — set only by admin approval, never user-editable

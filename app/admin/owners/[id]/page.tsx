@@ -118,15 +118,19 @@ export default async function AdminOwnerDetailPage({
               <div>
                 <dt className="text-muted-foreground">Face match (live vs ID)</dt>
                 <dd>
-                  {owner.faceMatchScore == null ? (
+                  {owner.faceMatched == null ? (
                     <span className="text-muted-foreground">not computed</span>
-                  ) : owner.faceMatchScore < 0.6 ? (
+                  ) : owner.faceMatched ? (
                     <span className="font-medium text-success">
-                      ✓ Same person · {owner.faceMatchScore.toFixed(3)}
+                      ✓ Same person
+                      {owner.faceMatchScore != null ? ` · ${owner.faceMatchScore.toFixed(3)}` : ""}
+                      {owner.faceEngine ? ` · ${owner.faceEngine}` : ""}
                     </span>
                   ) : (
                     <span className="font-medium text-destructive">
-                      ✗ No match · {owner.faceMatchScore.toFixed(3)}
+                      ✗ No match
+                      {owner.faceMatchScore != null ? ` · ${owner.faceMatchScore.toFixed(3)}` : ""}
+                      {owner.faceEngine ? ` · ${owner.faceEngine}` : ""}
                     </span>
                   )}
                 </dd>

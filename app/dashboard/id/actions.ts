@@ -6,8 +6,14 @@ import { Prisma } from "@prisma/client";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { writeAudit } from "@/lib/audit";
-import { uploadMediaFile, MAX_UPLOAD_BYTES, ALLOWED_IMAGE_TYPES } from "@/lib/supabase/server";
-import { faceDistance, parseDescriptor } from "@/lib/face/distance";
+import {
+  uploadMediaFile,
+  signedKycUrl,
+  MAX_UPLOAD_BYTES,
+  ALLOWED_IMAGE_TYPES,
+} from "@/lib/supabase/server";
+import { faceDistance, parseDescriptor, MATCH_THRESHOLD } from "@/lib/face/distance";
+import { faceServiceConfigured, faceCompare } from "@/lib/face/service";
 
 export type ActionResult = { ok: true; url: string } | { ok: false; error: string };
 
@@ -46,12 +52,39 @@ export async function uploadIdPhotoAction(
   const up = await uploadMediaFile(path, buffer, "image/jpeg");
   if (!up.ok) return { ok: false, error: `Upload failed: ${up.error}` };
 
-  // Face detected in the ID photo (if any) — match it to the live biometric
-  // capture so the reviewer sees a same-person score.
+  // Same-person match between the live biometric selfie and this ID photo.
+  // Prefer the high-accuracy InsightFace service when configured; otherwise use
+  // the in-browser face-api descriptors the client sent.
   const idDesc = parseDescriptor(formData.get("descriptor"));
-  const selfieDesc = parseDescriptor(owner.faceDescriptor);
-  const matchScore =
-    idDesc && selfieDesc ? faceDistance(selfieDesc, idDesc) : undefined;
+  let faceMatched: boolean | undefined;
+  let matchScore: number | undefined;
+  let faceEngine: string | undefined;
+
+  if (faceServiceConfigured()) {
+    const selfieDoc = await db.verificationDocument.findFirst({
+      where: { ownerId: owner.id, documentType: "SELFIE" },
+      orderBy: { createdAt: "desc" },
+      select: { fileUrl: true },
+    });
+    const selfieUrl = selfieDoc ? await signedKycUrl(selfieDoc.fileUrl, 600) : null;
+    if (selfieUrl) {
+      const cmp = await faceCompare(selfieUrl, up.url);
+      if (cmp) {
+        faceMatched = cmp.samePerson;
+        matchScore = cmp.similarity;
+        faceEngine = "insightface";
+      }
+    }
+  }
+  if (faceEngine === undefined) {
+    const selfieDesc = parseDescriptor(owner.faceDescriptor);
+    if (idDesc && selfieDesc) {
+      const d = faceDistance(selfieDesc, idDesc);
+      matchScore = d;
+      faceMatched = d < MATCH_THRESHOLD;
+      faceEngine = "face-api";
+    }
+  }
 
   await db.campaignOwner.update({
     where: { id: owner.id },
@@ -59,6 +92,8 @@ export async function uploadIdPhotoAction(
       idPhotoUrl: up.url,
       ...(idDesc ? { idPhotoDescriptor: idDesc as Prisma.InputJsonValue } : {}),
       ...(matchScore !== undefined ? { faceMatchScore: matchScore } : {}),
+      ...(faceMatched !== undefined ? { faceMatched } : {}),
+      ...(faceEngine !== undefined ? { faceEngine } : {}),
     },
   });
 
