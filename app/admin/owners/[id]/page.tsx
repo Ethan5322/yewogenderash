@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { requirePermission } from "@/lib/admin/permissions";
 import { signedKycUrl } from "@/lib/supabase/server";
 import { OwnerDecisionPanel } from "@/components/admin/owner-decision-panel";
+import { FlagControl } from "@/components/admin/flag-control";
 import { StatusBadge } from "@/components/campaigns/status-badge";
 import { FundraiserIdCard } from "@/components/owner/fundraiser-id-card";
 import { formatDate } from "@/lib/format";
@@ -231,6 +232,17 @@ export default async function AdminOwnerDetailPage({
               </p>
             </section>
           ) : null}
+
+          {/* Fraud flag */}
+          <section className="rounded-xl border bg-card p-6 shadow-sm">
+            <h2 className="mb-3 font-display text-base font-semibold">Fraud flag</h2>
+            <FlagControl
+              kind="owner"
+              id={owner.id}
+              flagged={owner.flagged}
+              reason={owner.flagReason}
+            />
+          </section>
 
           {/* Decision */}
           <section className="rounded-xl border bg-card p-6 shadow-sm">

@@ -44,7 +44,7 @@ export default async function NewCampaignPage() {
         </p>
 
         <div className="mt-8 rounded-xl border bg-card p-6 shadow-sm">
-          <CampaignForm />
+          <CampaignForm requireProof />
         </div>
       </main>
       <SiteFooter />

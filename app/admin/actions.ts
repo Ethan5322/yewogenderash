@@ -292,3 +292,63 @@ export async function toggleFeaturedAction(campaignId: string): Promise<ActionRe
   revalidatePath(`/admin/campaigns/${campaignId}`);
   return { ok: true };
 }
+
+/** Raise or clear a fraud flag on a campaign (brief §13). Audited. */
+export async function setCampaignFlagAction(
+  campaignId: string,
+  flagged: boolean,
+  reason?: string
+): Promise<ActionResult> {
+  const { id: adminId } = await requirePermission("campaigns");
+  const campaign = await db.campaign.findUnique({
+    where: { id: campaignId },
+    select: { id: true },
+  });
+  if (!campaign) return { ok: false, error: "Campaign not found." };
+
+  await db.campaign.update({
+    where: { id: campaignId },
+    data: { flagged, flagReason: flagged ? (reason?.trim() || "Flagged for review") : null },
+  });
+  await writeAudit({
+    actorId: adminId,
+    action: flagged ? "CAMPAIGN_FLAGGED" : "CAMPAIGN_UNFLAGGED",
+    entityType: "Campaign",
+    entityId: campaignId,
+    detail: flagged ? { reason } : undefined,
+  });
+
+  revalidatePath("/admin");
+  revalidatePath(`/admin/campaigns/${campaignId}`);
+  return { ok: true };
+}
+
+/** Raise or clear a fraud flag on an owner. Audited. */
+export async function setOwnerFlagAction(
+  ownerId: string,
+  flagged: boolean,
+  reason?: string
+): Promise<ActionResult> {
+  const { id: adminId } = await requirePermission("kyc");
+  const owner = await db.campaignOwner.findUnique({
+    where: { id: ownerId },
+    select: { id: true },
+  });
+  if (!owner) return { ok: false, error: "Owner not found." };
+
+  await db.campaignOwner.update({
+    where: { id: ownerId },
+    data: { flagged, flagReason: flagged ? (reason?.trim() || "Flagged for review") : null },
+  });
+  await writeAudit({
+    actorId: adminId,
+    action: flagged ? "OWNER_FLAGGED" : "OWNER_UNFLAGGED",
+    entityType: "CampaignOwner",
+    entityId: ownerId,
+    detail: flagged ? { reason } : undefined,
+  });
+
+  revalidatePath("/admin");
+  revalidatePath(`/admin/owners/${ownerId}`);
+  return { ok: true };
+}

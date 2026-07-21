@@ -5,6 +5,7 @@ import {
   HandCoins,
   Landmark,
   Percent,
+  Flag,
   ClipboardList,
   ArrowRight,
 } from "lucide-react";
@@ -28,6 +29,8 @@ export default async function AdminOverviewPage() {
     donationAgg,
     payoutAgg,
     feeAgg,
+    flaggedCampaigns,
+    flaggedOwners,
   ] = await Promise.all([
     db.campaign.count(),
     db.campaign.count({ where: { status: "ACTIVE" } }),
@@ -46,6 +49,8 @@ export default async function AdminOverviewPage() {
     db.feeLedger.aggregate({
       _sum: { feeAmount: true, netAmount: true },
     }),
+    db.campaign.count({ where: { flagged: true } }),
+    db.campaignOwner.count({ where: { flagged: true } }),
   ]);
 
   const { donationsByDay, campaignsByStatus } = await getAdminAnalytics(30);
@@ -81,13 +86,19 @@ export default async function AdminOverviewPage() {
       value: formatETB(Number(feeAgg._sum.feeAmount ?? 0)),
       sub: `${formatETB(Number(feeAgg._sum.netAmount ?? 0))} net to campaigns`,
     },
+    {
+      icon: Flag,
+      label: "Fraud flags",
+      value: String(flaggedCampaigns + flaggedOwners),
+      sub: `${flaggedCampaigns} campaigns · ${flaggedOwners} owners`,
+    },
   ];
 
   return (
     <div>
       <h1 className="font-display text-2xl font-bold tracking-tight">Overview</h1>
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {stats.map((s) => (
           <div key={s.label} className="rounded-xl border bg-card p-5 shadow-sm">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">

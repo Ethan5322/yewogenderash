@@ -3,16 +3,28 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import type { DocumentType } from "@prisma/client";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { writeAudit } from "@/lib/audit";
 import { campaignCreateSchema } from "@/lib/validators/campaign";
 import { generateUniqueQueryCode, generateUniqueSlug } from "@/lib/querycode";
+import { CATEGORY_PROOF } from "@/lib/campaign-types";
 import {
   uploadMediaFile,
+  uploadKycFile,
   ALLOWED_IMAGE_TYPES,
   MAX_UPLOAD_BYTES,
 } from "@/lib/supabase/server";
+
+// Proof document (private) accepts images + PDF.
+const PROOF_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
+const PROOF_EXT: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "application/pdf": "pdf",
+};
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -60,6 +72,19 @@ export async function createCampaignAction(
   });
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the form" };
+  }
+
+  // Anti-fraud: a category-matched proof document is MANDATORY for every
+  // campaign (brief §6.1/§6.2). Validate before anything is created.
+  const proof = formData.get("proofDocument");
+  if (!(proof instanceof File) || proof.size === 0) {
+    return { ok: false, error: "Attach the required proof document for this campaign." };
+  }
+  if (!PROOF_TYPES.includes(proof.type)) {
+    return { ok: false, error: "Proof must be a JPG, PNG, WEBP, or PDF." };
+  }
+  if (proof.size > MAX_UPLOAD_BYTES) {
+    return { ok: false, error: "Proof document is too large (maximum 5 MB)." };
   }
 
   const openCount = await db.campaign.count({
@@ -114,12 +139,32 @@ export async function createCampaignAction(
     },
   });
 
+  // Store the proof privately and attach it to THIS campaign. If the upload
+  // fails, roll the campaign back so we never keep an unverified campaign.
+  const proofPath = `campaigns/${owner.id}/proof-${campaign.id}-${Date.now()}.${PROOF_EXT[proof.type]}`;
+  const proofUp = await uploadKycFile(
+    proofPath,
+    new Uint8Array(await proof.arrayBuffer()),
+    proof.type
+  );
+  if (!proofUp.ok) {
+    await db.campaign.delete({ where: { id: campaign.id } });
+    return { ok: false, error: `Proof upload failed: ${proofUp.error}` };
+  }
+  await db.campaignDocument.create({
+    data: {
+      campaignId: campaign.id,
+      documentType: CATEGORY_PROOF[parsed.data.category].docType as DocumentType,
+      fileUrl: proofPath,
+    },
+  });
+
   await writeAudit({
     actorId: user.id,
     action: "CAMPAIGN_CREATED",
     entityType: "Campaign",
     entityId: campaign.id,
-    detail: { title: campaign.title, queryCode },
+    detail: { title: campaign.title, queryCode, proofType: CATEGORY_PROOF[parsed.data.category].docType },
   });
 
   redirect(`/dashboard/campaigns?created=${campaign.slug}`);

@@ -7,6 +7,7 @@ import { signedKycUrl } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/campaigns/status-badge";
 import { CampaignDecisionPanel } from "@/components/admin/campaign-decision-panel";
+import { FlagControl } from "@/components/admin/flag-control";
 import { CATEGORY_LABELS } from "@/lib/campaign-types";
 import { formatETB, formatDate } from "@/lib/format";
 
@@ -39,6 +40,7 @@ export default async function AdminCampaignDetailPage({
           documents: { orderBy: { createdAt: "desc" } },
         },
       },
+      documents: { orderBy: { createdAt: "desc" } },
       _count: { select: { donations: { where: { status: "SUCCESS" } } } },
       donations: {
         orderBy: { createdAt: "desc" },
@@ -83,6 +85,12 @@ export default async function AdminCampaignDetailPage({
   // Short-lived signed URLs so the reviewer can open each private document.
   const docs = await Promise.all(
     owner.documents.map(async (d) => ({
+      ...d,
+      signedUrl: await signedKycUrl(d.fileUrl, 600),
+    }))
+  );
+  const campaignDocs = await Promise.all(
+    campaign.documents.map(async (d) => ({
       ...d,
       signedUrl: await signedKycUrl(d.fileUrl, 600),
     }))
@@ -166,6 +174,53 @@ export default async function AdminCampaignDetailPage({
                 </p>
               </div>
             ) : null}
+          </section>
+
+          {/* Per-campaign proof (category-matched evidence for THIS campaign) */}
+          <section className="rounded-xl border bg-card p-6 shadow-sm">
+            <h2 className="font-display text-base font-semibold">
+              Campaign proof documents ({campaignDocs.length})
+            </h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Evidence attached to this specific campaign. Verify it matches the
+              category and story before approving. Links expire in 10 minutes.
+            </p>
+            {campaignDocs.length === 0 ? (
+              <p className="mt-4 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm text-warning">
+                No proof document on this campaign. Treat with caution — newer
+                campaigns require a category-matched proof at creation.
+              </p>
+            ) : (
+              <ul className="mt-4 divide-y">
+                {campaignDocs.map((d) => (
+                  <li key={d.id} className="flex items-center justify-between gap-3 py-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <FileText className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium">
+                          {d.documentType.replaceAll("_", " ")}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Uploaded {formatDate(d.createdAt)} · status {d.status}
+                        </p>
+                      </div>
+                    </div>
+                    {d.signedUrl ? (
+                      <a
+                        href={d.signedUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-primary hover:underline"
+                      >
+                        Open <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+                      </a>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">unavailable</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
 
           <section className="rounded-xl border bg-card p-6 shadow-sm">
@@ -355,6 +410,14 @@ export default async function AdminCampaignDetailPage({
                 campaignId={campaign.id}
                 status={campaign.status}
                 isFeatured={campaign.isFeatured}
+              />
+            </div>
+            <div className="mt-4 border-t pt-4">
+              <FlagControl
+                kind="campaign"
+                id={campaign.id}
+                flagged={campaign.flagged}
+                reason={campaign.flagReason}
               />
             </div>
           </section>

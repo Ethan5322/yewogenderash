@@ -6,7 +6,7 @@ import { Loader2, Rocket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FileDropzone } from "@/components/onboarding/file-dropzone";
-import { CATEGORY_LABELS } from "@/lib/campaign-types";
+import { CATEGORY_LABELS, CATEGORY_PROOF } from "@/lib/campaign-types";
 import { createCampaignAction, type ActionResult } from "@/app/dashboard/campaigns/actions";
 
 const selectClass =
@@ -48,18 +48,25 @@ export function CampaignForm({
   submitLabel = "Create draft",
   footerNote = "Your campaign is created as a draft. Submit it for review when ready — it goes live only after admin approval.",
   currentHeroUrl,
+  requireProof = false,
 }: {
   action?: (prev: ActionResult | null, fd: FormData) => Promise<ActionResult>;
   defaults?: CampaignFormDefaults;
   submitLabel?: string;
   footerNote?: string;
   currentHeroUrl?: string | null;
+  /** Require a category-matched proof document (campaign creation only). */
+  requireProof?: boolean;
 }) {
   const [state, formAction, pending] = useActionState<ActionResult | null, FormData>(
     action,
     null
   );
   const [hero, setHero] = React.useState<File | null>(null);
+  const [category, setCategory] = React.useState(defaults?.category ?? "MEDICAL");
+  const [proof, setProof] = React.useState<File | null>(null);
+  const proofSpec = CATEGORY_PROOF[category as keyof typeof CATEGORY_PROOF] ?? CATEGORY_PROOF.OTHER;
+  const proofMissing = requireProof && !proof;
 
   return (
     <form action={formAction} className="space-y-6">
@@ -72,7 +79,8 @@ export function CampaignForm({
           <select
             name="category"
             className={selectClass}
-            defaultValue={defaults?.category ?? "MEDICAL"}
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
           >
             {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
               <option key={value} value={value}>
@@ -126,6 +134,27 @@ export function CampaignForm({
         />
       </Field>
 
+      {requireProof ? (
+        <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
+          <p className="text-sm font-semibold">
+            {proofSpec.label} <span className="text-destructive">*</span>
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {proofSpec.hint} Required to verify this specific campaign — reviewed
+            privately by administrators before it can go live. Image or PDF.
+          </p>
+          <div className="mt-3">
+            <FileDropzone
+              name="proofDocument"
+              label="Upload proof document"
+              accept="image/jpeg,image/png,image/webp,application/pdf"
+              file={proof}
+              onFileChange={setProof}
+            />
+          </div>
+        </div>
+      ) : null}
+
       {currentHeroUrl ? (
         <div>
           <p className="text-sm font-medium">Current hero image</p>
@@ -153,9 +182,15 @@ export function CampaignForm({
         <p className="text-sm text-destructive">{state.error}</p>
       ) : null}
 
+      {proofMissing ? (
+        <p className="text-sm text-warning">
+          Attach the required {proofSpec.label.toLowerCase()} document to continue.
+        </p>
+      ) : null}
+
       <div className="flex items-center justify-between gap-4 border-t pt-6">
         <p className="text-xs text-muted-foreground">{footerNote}</p>
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" disabled={pending || proofMissing}>
           {pending ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (

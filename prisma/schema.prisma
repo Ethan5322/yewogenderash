@@ -227,6 +227,9 @@ model CampaignOwner {
   /// Platform trust seal — set only by admin approval, never user-editable
   mulesooVerified    Boolean         @default(false)
   verifiedAt         DateTime?
+  /// Anti-fraud: an admin has flagged this owner as suspicious (brief §13).
+  flagged            Boolean         @default(false)
+  flagReason         String?
   /// Payout account details (bank/telebirr), JSON kept admin-readable only
   payoutAccount      Json?
   /// Public ID-card portrait (gallery upload, auto-cropped square) in yd-media.
@@ -293,6 +296,9 @@ model Campaign {
   location      String?
   endDate       DateTime?
   isFeatured    Boolean          @default(false)
+  /// Anti-fraud: an admin has flagged this campaign as suspicious (brief §13).
+  flagged       Boolean          @default(false)
+  flagReason    String?
   reviewedAt    DateTime?
   reviewNote    String?
   createdAt     DateTime         @default(now())
@@ -304,6 +310,7 @@ model Campaign {
   notifications Notification[]
   feeLedgers    FeeLedger[]
   balance       CampaignBalance?
+  documents     CampaignDocument[]
 
   @@index([status, category])
   @@index([ownerId])
@@ -320,6 +327,25 @@ model CampaignUpdate {
 
   @@index([campaignId])
   @@map("yd_campaign_updates")
+}
+
+/// Per-campaign proof document (brief §6.1/§6.2): the category-matched evidence
+/// a fundraiser must attach to EACH campaign at creation — a hospital letter for
+/// a medical campaign, a school letter for education, etc. Stored privately in
+/// yd-kyc; only admins view it (signed URLs), and they check it before approval.
+model CampaignDocument {
+  id           String         @id @default(cuid())
+  campaignId   String
+  campaign     Campaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  documentType DocumentType
+  /// Path in the private Supabase Storage bucket — never a public URL.
+  fileUrl      String
+  status       DocumentStatus @default(PENDING)
+  adminNote    String?
+  createdAt    DateTime       @default(now())
+
+  @@index([campaignId])
+  @@map("yd_campaign_documents")
 }
 
 // ── Money ────────────────────────────────────────────────────────
