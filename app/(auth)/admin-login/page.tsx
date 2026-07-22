@@ -34,19 +34,26 @@ export default function AdminLoginPage() {
     e.preventDefault();
     setVerifying(true);
     setError(null);
-    const res = await signIn("credentials", {
-      email: creds.email,
-      password: creds.password,
-      code,
-      redirect: false,
-    });
-    if (res?.error) {
-      setError("Wrong or expired code. Request a new one.");
+    try {
+      const res = await signIn("credentials", {
+        email: creds.email,
+        password: creds.password,
+        code,
+        redirect: false,
+      });
+      if (res?.error) {
+        setError("Wrong or expired code. Request a new one.");
+        setVerifying(false);
+        return;
+      }
+      // Signed in — go to the control room. Keep the spinner up during the
+      // navigation so the button never looks idle mid-transition.
+      router.push("/admin");
+      router.refresh();
+    } catch {
+      setError("Something went wrong signing in. Please try again.");
       setVerifying(false);
-      return;
     }
-    router.push("/admin");
-    router.refresh();
   }
 
   return (

@@ -22,6 +22,8 @@ import {
 export const metadata = { title: "Admin · Overview" };
 
 export default async function AdminOverviewPage() {
+  // One concurrent batch — every widget's data in a single DB round-trip group
+  // so the overview paints fast even on a slow connection.
   const [
     totalCampaigns,
     activeCampaigns,
@@ -33,6 +35,12 @@ export default async function AdminOverviewPage() {
     feeAgg,
     flaggedCampaigns,
     flaggedOwners,
+    pendingPayouts,
+    unreadMessages,
+    openReports,
+    rejectedKyc,
+    analytics,
+    breakdown,
   ] = await Promise.all([
     db.campaign.count(),
     db.campaign.count({ where: { status: "ACTIVE" } }),
@@ -53,14 +61,14 @@ export default async function AdminOverviewPage() {
     }),
     db.campaign.count({ where: { flagged: true } }),
     db.campaignOwner.count({ where: { flagged: true } }),
-  ]);
-
-  const [pendingPayouts, unreadMessages, openReports, rejectedKyc] = await Promise.all([
     db.payout.count({ where: { status: { in: ["REQUESTED", "APPROVED"] } } }),
     adminUnreadTotal(),
     db.supportMessage.count({ where: { type: "REPORT", status: "OPEN" } }),
     db.user.count({ where: { verificationStatus: "REJECTED" } }),
+    getAdminAnalytics(30),
+    getBreakdownAnalytics(),
   ]);
+  const { donationsByDay, campaignsByStatus } = analytics;
 
   // Everything that needs a human decision, surfaced up top.
   const actions = [
@@ -72,9 +80,6 @@ export default async function AdminOverviewPage() {
     { label: "Fraud flags open", count: flaggedCampaigns + flaggedOwners, href: "/admin/campaigns" },
     { label: "Failed verifications", count: rejectedKyc, href: "/admin/owners" },
   ].filter((a) => a.count > 0);
-
-  const { donationsByDay, campaignsByStatus } = await getAdminAnalytics(30);
-  const breakdown = await getBreakdownAnalytics();
 
   const stats = [
     {
