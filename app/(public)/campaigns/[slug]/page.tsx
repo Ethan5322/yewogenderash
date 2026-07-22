@@ -14,7 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ProgressBar } from "@/components/campaigns/progress-bar";
-import { MulesooStamp, OwnerTrust } from "@/components/campaigns/verified-badges";
+import { MulesooStamp } from "@/components/campaigns/verified-badges";
 import { MobileDonateBar } from "@/components/campaigns/mobile-donate-bar";
 import { getPublicCampaignBySlug, CATEGORY_LABELS } from "@/lib/campaigns";
 import { formatETB, progressPercent, formatDate } from "@/lib/format";
@@ -87,15 +87,52 @@ export default async function CampaignDetailPage({ params }: Params) {
             ) : null}
           </div>
 
-          <h1 className="mt-3 font-display text-3xl font-bold tracking-tight sm:text-4xl">
+          <h1 className="mt-3 font-display text-3xl font-bold leading-tight tracking-tight sm:text-4xl">
             {campaign.title}
           </h1>
-          <OwnerTrust
-            className="mt-3"
-            ownerName={campaign.ownerName}
-            mulesooVerified={campaign.mulesooVerified}
-            authorCode={campaign.authorCode}
-          />
+
+          {/* Fundraiser byline — who, when, and the goal, laid out cleanly */}
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-4 rounded-xl border bg-card p-4">
+            <div className="flex min-w-0 items-center gap-3">
+              <span
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 font-display text-lg font-bold text-primary"
+                aria-hidden
+              >
+                {campaign.ownerName.slice(0, 1).toUpperCase()}
+              </span>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="truncate font-semibold">{campaign.ownerName}</span>
+                  {campaign.mulesooVerified ? (
+                    campaign.authorCode ? (
+                      <Link
+                        href={`/a/${campaign.authorCode}`}
+                        className="shrink-0"
+                        title="View verification profile"
+                      >
+                        <Badge variant="verified" className="gap-1">
+                          <ShieldCheck className="h-3.5 w-3.5" aria-hidden /> Verified
+                        </Badge>
+                      </Link>
+                    ) : (
+                      <Badge variant="verified" className="shrink-0 gap-1">
+                        <ShieldCheck className="h-3.5 w-3.5" aria-hidden /> Verified
+                      </Badge>
+                    )
+                  ) : null}
+                </div>
+                <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                  Launched {formatDate(campaign.reviewedAt ?? campaign.createdAt)}
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Goal</p>
+              <p className="font-display text-lg font-bold leading-tight">
+                {formatETB(campaign.targetAmount, campaign.currency)}
+              </p>
+            </div>
+          </div>
 
           <p className="mt-6 text-base leading-relaxed text-foreground/90">
             {campaign.description}
