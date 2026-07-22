@@ -38,6 +38,7 @@ export default async function AuthorProfilePage({ params }: Params) {
   const isAdmin = session?.user?.role === "ADMIN";
   const selfie = owner.documents[0];
   const selfieUrl = isAdmin && selfie ? await signedKycUrl(selfie.fileUrl, 600) : null;
+  const totalRaised = owner.campaigns.reduce((sum, c) => sum + Number(c.currentAmount), 0);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 sm:py-14">
@@ -62,6 +63,51 @@ export default async function AuthorProfilePage({ params }: Params) {
         >
           <Download className="h-3 w-3" aria-hidden /> Download QR
         </a>
+      </div>
+
+      {/* Public verification details — everything a donor should know */}
+      <div className="mt-8 overflow-hidden rounded-2xl border bg-card shadow-sm">
+        <div className="flex items-center gap-2 border-b bg-success/5 px-6 py-3">
+          <BadgeCheck className="h-4 w-4 text-success" aria-hidden />
+          <h2 className="font-display text-sm font-semibold">Verified fundraiser</h2>
+        </div>
+        <dl className="grid gap-x-8 gap-y-4 p-6 sm:grid-cols-2">
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-muted-foreground">Full name</dt>
+            <dd className="mt-0.5 font-medium">{owner.user.name}</dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-muted-foreground">Verification code</dt>
+            <dd className="mt-0.5 font-mono font-medium tracking-wider">{owner.authorCode}</dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-muted-foreground">Status</dt>
+            <dd className="mt-0.5 inline-flex items-center gap-1.5 font-medium text-success">
+              <BadgeCheck className="h-4 w-4" aria-hidden /> Mulesoo verified owner
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-muted-foreground">Verified on</dt>
+            <dd className="mt-0.5 font-medium">
+              {owner.verifiedAt ? formatDate(owner.verifiedAt) : "—"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-muted-foreground">Reviewed by</dt>
+            <dd className="mt-0.5 font-medium">Yewogen Derash administrators</dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-muted-foreground">Public campaigns</dt>
+            <dd className="mt-0.5 font-medium">
+              {owner.campaigns.length} · {formatETB(totalRaised)} raised
+            </dd>
+          </div>
+        </dl>
+        <p className="border-t px-6 py-3 text-xs text-muted-foreground">
+          Identity documents and the biometric selfie were checked privately by
+          administrators and are never shown publicly. Scan the ID’s QR to reach
+          this page and confirm who you are supporting.
+        </p>
       </div>
 
       {/* Admin-only biometric verification panel */}
