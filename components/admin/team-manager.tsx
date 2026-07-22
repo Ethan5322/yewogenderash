@@ -2,13 +2,15 @@
 
 import * as React from "react";
 import { useActionState } from "react";
-import { Loader2, CheckCircle2, UserPlus, ShieldCheck, Crown } from "lucide-react";
+import { Loader2, CheckCircle2, UserPlus, ShieldCheck, Crown, Ban, IdCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FundraiserIdCard } from "@/components/owner/fundraiser-id-card";
 import {
   createSubAdminAction,
   updatePermissionsAction,
   setSuperAdminAction,
+  setAdminSuspendedAction,
   revokeAdminAction,
   type ActionResult,
 } from "@/app/admin/team/actions";
@@ -22,6 +24,9 @@ export type AdminRowData = {
   email: string;
   adminCode: string | null;
   isSuperAdmin: boolean;
+  isBanned: boolean;
+  idPhotoUrl: string | null;
+  issued: string;
   permissions: Record<string, boolean>;
 };
 
@@ -136,16 +141,19 @@ export function AdminRow({
   rolePresets,
   currentAdminId,
   currentIsSuper,
+  siteUrl,
 }: {
   admin: AdminRowData;
   permissionDefs: PermDef[];
   rolePresets: RolePreset[];
   currentAdminId: string;
   currentIsSuper: boolean;
+  siteUrl: string;
 }) {
   const [perms, setPerms] = React.useState<Record<string, boolean>>(admin.permissions);
   const [pending, startTransition] = React.useTransition();
   const [msg, setMsg] = React.useState<string | null>(null);
+  const [showId, setShowId] = React.useState(false);
   const isSelf = admin.id === currentAdminId;
 
   function run(fn: () => Promise<ActionResult>) {
@@ -179,6 +187,11 @@ export function AdminRow({
               </span>
             )}
             {isSelf ? <span className="text-xs text-muted-foreground">(you)</span> : null}
+            {admin.isBanned ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-semibold text-destructive">
+                <Ban className="h-3 w-3" aria-hidden /> Suspended
+              </span>
+            ) : null}
           </div>
           <p className="text-sm text-muted-foreground">{admin.email}</p>
           {admin.adminCode ? (
@@ -188,27 +201,62 @@ export function AdminRow({
           ) : null}
         </div>
 
-        {currentIsSuper && !isSelf ? (
-          <div className="flex flex-wrap gap-2">
-            {admin.isSuperAdmin ? (
-              <Button size="sm" variant="outline" disabled={pending}
-                onClick={() => run(() => setSuperAdminAction(admin.id, false))}>
-                Step down to sub-admin
-              </Button>
-            ) : (
-              <Button size="sm" variant="outline" disabled={pending}
-                onClick={() => run(() => setSuperAdminAction(admin.id, true))}>
-                <Crown className="h-3.5 w-3.5" aria-hidden /> Make main admin
-              </Button>
-            )}
-            <Button size="sm" variant="ghost" disabled={pending}
-              className="text-destructive hover:text-destructive"
-              onClick={() => run(() => revokeAdminAction(admin.id))}>
-              Remove
-            </Button>
-          </div>
-        ) : null}
+        <div className="flex flex-wrap gap-2">
+          {/* Download any admin's staff ID */}
+          <Button size="sm" variant="outline" onClick={() => setShowId((v) => !v)}>
+            <IdCard className="h-3.5 w-3.5" aria-hidden /> {showId ? "Hide ID" : "Staff ID"}
+          </Button>
+
+          {currentIsSuper && !isSelf ? (
+            <>
+              {admin.isSuperAdmin ? (
+                <Button size="sm" variant="outline" disabled={pending}
+                  onClick={() => run(() => setSuperAdminAction(admin.id, false))}>
+                  Step down to sub-admin
+                </Button>
+              ) : (
+                <>
+                  <Button size="sm" variant="outline" disabled={pending}
+                    onClick={() => run(() => setSuperAdminAction(admin.id, true))}>
+                    <Crown className="h-3.5 w-3.5" aria-hidden /> Make main admin
+                  </Button>
+                  <Button size="sm" variant="outline" disabled={pending}
+                    onClick={() => run(() => setAdminSuspendedAction(admin.id, !admin.isBanned))}>
+                    <Ban className="h-3.5 w-3.5" aria-hidden /> {admin.isBanned ? "Reinstate" : "Suspend"}
+                  </Button>
+                  <Button size="sm" variant="ghost" disabled={pending}
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => run(() => revokeAdminAction(admin.id))}>
+                    Remove
+                  </Button>
+                </>
+              )}
+            </>
+          ) : null}
+        </div>
       </div>
+
+      {showId ? (
+        <div className="mt-4 flex justify-center border-t pt-4">
+          <FundraiserIdCard
+            name={admin.name}
+            verificationCode={admin.adminCode ?? "STAFF"}
+            issued={admin.issued}
+            status="STAFF"
+            subtitle="Official Staff ID"
+            roleLabel={admin.isSuperAdmin ? "Super Administrator" : "Administrator"}
+            qrUrl={siteUrl}
+            photoUrl={admin.idPhotoUrl}
+            approved
+            showDownload
+            fields={[
+              { label: "Role", value: admin.isSuperAdmin ? "Super Administrator" : "Administrator" },
+              { label: "Staff ID", value: admin.adminCode ?? "STAFF" },
+              { label: "Platform", value: "Yewogen Derash" },
+            ]}
+          />
+        </div>
+      ) : null}
 
       {/* Capability toggles (super admins hold all implicitly) */}
       {admin.isSuperAdmin ? (

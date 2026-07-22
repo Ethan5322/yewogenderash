@@ -4,10 +4,11 @@ import {
   ADMIN_PERMISSIONS,
   ADMIN_PERMISSION_KEYS,
   ROLE_PRESETS,
-  requirePermission,
+  requireSuperAdmin,
   permsFrom,
   type AdminPermission,
 } from "@/lib/admin/permissions";
+import { appUrl } from "@/lib/env";
 import {
   CreateAdminForm,
   AdminRow,
@@ -18,7 +19,7 @@ import { PageHeader, SectionCard } from "@/components/admin/ui";
 export const metadata = { title: "Admin · Roles & Team" };
 
 export default async function AdminTeamPage() {
-  const me = await requirePermission("admins");
+  const me = await requireSuperAdmin();
 
   const admins = await db.user.findMany({
     where: { role: "ADMIN" },
@@ -28,12 +29,16 @@ export default async function AdminTeamPage() {
       email: true,
       adminCode: true,
       isSuperAdmin: true,
+      isBanned: true,
+      idPhotoUrl: true,
       adminPermissions: true,
+      createdAt: true,
     },
     orderBy: [{ isSuperAdmin: "desc" }, { createdAt: "asc" }],
   });
 
   const permissionDefs = Object.entries(ADMIN_PERMISSIONS) as [string, string][];
+  const siteUrl = appUrl();
 
   const rows: AdminRowData[] = admins.map((a) => ({
     id: a.id,
@@ -41,6 +46,9 @@ export default async function AdminTeamPage() {
     email: a.email,
     adminCode: a.adminCode,
     isSuperAdmin: a.isSuperAdmin,
+    isBanned: a.isBanned,
+    idPhotoUrl: a.idPhotoUrl,
+    issued: a.createdAt.toISOString().slice(0, 10),
     permissions: permsFrom(a.adminPermissions) as Record<string, boolean>,
   }));
 
@@ -114,6 +122,7 @@ export default async function AdminTeamPage() {
             rolePresets={ROLE_PRESETS}
             currentAdminId={me.id}
             currentIsSuper={me.isSuperAdmin}
+            siteUrl={siteUrl}
           />
         ))}
       </div>

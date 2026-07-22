@@ -10,7 +10,6 @@ import { writeAudit } from "@/lib/audit";
 import {
   ADMIN_PERMISSION_KEYS,
   currentAdmin,
-  requirePermission,
   type PermMap,
 } from "@/lib/admin/permissions";
 
@@ -36,12 +35,15 @@ const createSchema = z.object({
     .regex(/[0-9]/, "Must include a number"),
 });
 
-/** Create a new sub-admin with a chosen set of capabilities. */
+/** Create a new sub-admin with a chosen set of capabilities. Main admin only. */
 export async function createSubAdminAction(
   _prev: ActionResult | null,
   formData: FormData
 ): Promise<ActionResult> {
-  const admin = await requirePermission("admins");
+  const admin = await currentAdmin();
+  if (!admin.isSuperAdmin) {
+    return { ok: false, error: "Only the main admin can create sub-admins." };
+  }
 
   const parsed = createSchema.safeParse({
     name: formData.get("name"),
@@ -87,12 +89,15 @@ export async function createSubAdminAction(
   return { ok: true };
 }
 
-/** Update a sub-admin's capability toggles. Super admins can't be edited here. */
+/** Update a sub-admin's capability toggles. Main admin only. */
 export async function updatePermissionsAction(
   _prev: ActionResult | null,
   formData: FormData
 ): Promise<ActionResult> {
-  const admin = await requirePermission("admins");
+  const admin = await currentAdmin();
+  if (!admin.isSuperAdmin) {
+    return { ok: false, error: "Only the main admin can change capabilities." };
+  }
   const targetId = String(formData.get("targetId") ?? "");
   if (!targetId) return { ok: false, error: "Missing target" };
 
@@ -164,6 +169,43 @@ export async function setSuperAdminAction(
   await writeAudit({
     actorId: admin.id,
     action: makeSuper ? "ADMIN_PROMOTED_SUPER" : "ADMIN_DEMOTED_SUPER",
+    entityType: "User",
+    entityId: targetId,
+    detail: { email: target.email },
+  });
+
+  revalidatePath("/admin/team");
+  return { ok: true };
+}
+
+/** Suspend or reinstate an admin (blocks all sign-in). Main admin only. */
+export async function setAdminSuspendedAction(
+  targetId: string,
+  suspend: boolean
+): Promise<ActionResult> {
+  const admin = await currentAdmin();
+  if (!admin.isSuperAdmin) {
+    return { ok: false, error: "Only the main admin can suspend admins." };
+  }
+  if (targetId === admin.id) {
+    return { ok: false, error: "You can't suspend your own account." };
+  }
+
+  const target = await db.user.findUnique({
+    where: { id: targetId },
+    select: { role: true, isSuperAdmin: true, email: true },
+  });
+  if (!target || target.role !== "ADMIN") {
+    return { ok: false, error: "Admin not found." };
+  }
+  if (target.isSuperAdmin) {
+    return { ok: false, error: "Step this main admin down before suspending them." };
+  }
+
+  await db.user.update({ where: { id: targetId }, data: { isBanned: suspend } });
+  await writeAudit({
+    actorId: admin.id,
+    action: suspend ? "ADMIN_SUSPENDED" : "ADMIN_REINSTATED",
     entityType: "User",
     entityId: targetId,
     detail: { email: target.email },
