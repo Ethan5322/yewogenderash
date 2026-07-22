@@ -11,6 +11,7 @@ import {
   FileText,
   Newspaper,
   MessageSquare,
+  LifeBuoy,
   Users,
   ScrollText,
   LogOut,
@@ -27,6 +28,7 @@ const ICONS = {
   content: FileText,
   blog: Newspaper,
   messages: MessageSquare,
+  support: LifeBuoy,
   admins: Users,
   audit: ScrollText,
 } as const;

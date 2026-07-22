@@ -483,6 +483,25 @@ model SiteContent {
   @@map("yd_site_content")
 }
 
+/// Public contact messages and abuse reports, reviewed by admins in the
+/// Support inbox. `type` = "CONTACT" | "REPORT"; `status` = "OPEN" | "RESOLVED".
+model SupportMessage {
+  id        String   @id @default(cuid())
+  type      String   @default("CONTACT")
+  name      String
+  email     String
+  /// For reports: the campaign querycode or link being reported.
+  code      String?
+  reason    String?
+  message   String
+  status    String   @default("OPEN")
+  adminNote String?
+  createdAt DateTime @default(now())
+
+  @@index([type, status, createdAt])
+  @@map("yd_support_messages")
+}
+
 // ── Money ledger & balances ──────────────────────────────────────
 
 /// One row per SUCCESS donation recording the exact fee split. Append-only
