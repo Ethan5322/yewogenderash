@@ -26,21 +26,25 @@ export function OwnerTrust({
   mulesooVerified,
   authorCode,
   className,
+  byLabel = "by",
+  verifiedLabel = "Verified owner",
 }: {
   ownerName: string;
   mulesooVerified: boolean;
   authorCode?: string | null;
   className?: string;
+  byLabel?: string;
+  verifiedLabel?: string;
 }) {
   const badge = (
     <Badge variant="verified" className="gap-1">
       <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
-      Verified owner
+      {verifiedLabel}
     </Badge>
   );
   return (
     <div className={cn("flex items-center gap-2 text-sm", className)}>
-      <span className="text-muted-foreground">by</span>
+      <span className="text-muted-foreground">{byLabel}</span>
       <span className="font-medium text-foreground">{ownerName}</span>
       {mulesooVerified ? (
         authorCode ? (

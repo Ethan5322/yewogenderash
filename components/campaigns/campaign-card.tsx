@@ -3,10 +3,12 @@ import { MapPin, ImageIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ProgressBar } from "@/components/campaigns/progress-bar";
 import { MulesooStamp } from "@/components/campaigns/verified-badges";
-import { CATEGORY_LABELS, type CampaignCard as CampaignCardData } from "@/lib/campaign-types";
+import { type CampaignCard as CampaignCardData } from "@/lib/campaign-types";
 import { formatETB, progressPercent } from "@/lib/format";
+import { getDictionary } from "@/lib/i18n";
 
-export function CampaignCard({ campaign }: { campaign: CampaignCardData }) {
+export async function CampaignCard({ campaign }: { campaign: CampaignCardData }) {
+  const dict = await getDictionary();
   const pct = progressPercent(campaign.currentAmount, campaign.targetAmount);
 
   return (
@@ -29,9 +31,9 @@ export function CampaignCard({ campaign }: { campaign: CampaignCardData }) {
           </div>
         )}
         <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
-          <Badge variant="secondary">{CATEGORY_LABELS[campaign.category]}</Badge>
+          <Badge variant="secondary">{dict.categories[campaign.category]}</Badge>
           {campaign.status === "COMPLETED" ? (
-            <Badge variant="verified">Fully funded</Badge>
+            <Badge variant="verified">{dict.campaign.fullyFunded}</Badge>
           ) : null}
         </div>
         {campaign.mulesooVerified ? (
@@ -49,7 +51,7 @@ export function CampaignCard({ campaign }: { campaign: CampaignCardData }) {
         </p>
 
         <div className="mt-auto space-y-2 pt-1">
-          <ProgressBar value={pct} label={`${pct}% funded`} />
+          <ProgressBar value={pct} label={`${pct}% ${dict.campaign.funded}`} />
           <div className="flex items-baseline justify-between text-sm">
             <span className="font-semibold text-foreground">
               {formatETB(campaign.currentAmount, campaign.currency)}
@@ -57,7 +59,7 @@ export function CampaignCard({ campaign }: { campaign: CampaignCardData }) {
             <span className="text-muted-foreground">{pct}%</span>
           </div>
           <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>of {formatETB(campaign.targetAmount, campaign.currency)}</span>
+            <span>{dict.campaign.goal} {formatETB(campaign.targetAmount, campaign.currency)}</span>
             {campaign.location ? (
               <span className="inline-flex items-center gap-1">
                 <MapPin className="h-3 w-3" aria-hidden />

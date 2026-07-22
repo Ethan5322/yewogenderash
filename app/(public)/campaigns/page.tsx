@@ -8,6 +8,7 @@ import {
   CATEGORY_LABELS,
   type CampaignSort,
 } from "@/lib/campaigns";
+import { getDictionary } from "@/lib/i18n";
 
 export const metadata: Metadata = {
   title: "Browse campaigns",
@@ -35,35 +36,31 @@ export default async function CampaignsPage({
   const sort =
     rawSort && VALID_SORTS.has(rawSort) ? (rawSort as CampaignSort) : "newest";
 
-  const campaigns = await listPublicCampaigns({ category, query, sort });
+  const [campaigns, dict] = await Promise.all([
+    listPublicCampaigns({ category, query, sort }),
+    getDictionary(),
+  ]);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
       <header className="mb-8">
         <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">
-          Browse campaigns
+          {dict.list.title}
         </h1>
-        <p className="mt-2 max-w-2xl text-muted-foreground">
-          Every campaign here has a verified owner and its own separated ledger.
-          Support the causes that matter — knowing exactly where your birr lands.
-        </p>
+        <p className="mt-2 max-w-2xl text-muted-foreground">{dict.list.subtitle}</p>
       </header>
 
       <CampaignFilters category={category} query={query} sort={sort} />
 
       <div className="mt-6 text-sm text-muted-foreground">
-        {campaigns.length} {campaigns.length === 1 ? "campaign" : "campaigns"}
-        {category ? ` in ${CATEGORY_LABELS[category]}` : ""}
-        {query ? ` matching “${query}”` : ""}
+        {campaigns.length} · {category ? dict.categories[category] : dict.list.all}
+        {query ? ` · “${query}”` : ""}
       </div>
 
       {campaigns.length === 0 ? (
         <div className="mt-10 flex flex-col items-center justify-center rounded-lg border border-dashed py-20 text-center">
           <SearchX className="h-10 w-10 text-muted-foreground" aria-hidden />
-          <p className="mt-4 font-medium">No campaigns match your filters</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Try a different category or clear your search.
-          </p>
+          <p className="mt-4 font-medium">{dict.list.empty}</p>
         </div>
       ) : (
         <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

@@ -5,7 +5,7 @@ import { ArrowLeft, ImageIcon, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ProgressBar } from "@/components/campaigns/progress-bar";
 import { DonationForm } from "@/components/donate/donation-form";
-import { getPublicCampaignBySlug, CATEGORY_LABELS } from "@/lib/campaigns";
+import { getPublicCampaignBySlug } from "@/lib/campaigns";
 import { formatETB, progressPercent } from "@/lib/format";
 import { getDictionary } from "@/lib/i18n";
 
@@ -63,7 +63,7 @@ export default async function DonatePage({ params }: Params) {
         <div className="relative flex min-h-[240px] flex-col justify-end gap-3 p-6 text-white sm:min-h-[280px] sm:p-8">
           <div>
             <Badge variant="secondary" className="bg-white/15 text-white ring-0 backdrop-blur">
-              {CATEGORY_LABELS[campaign.category]}
+              {dict.categories[campaign.category]}
             </Badge>
           </div>
           <h1 className="font-display text-2xl font-bold leading-tight tracking-tight sm:text-3xl">

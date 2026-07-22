@@ -7,8 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { ProgressBar } from "@/components/campaigns/progress-bar";
 import { OwnerTrust } from "@/components/campaigns/verified-badges";
 import { DonationForm } from "@/components/donate/donation-form";
-import { getPublicCampaignByQueryCode, CATEGORY_LABELS } from "@/lib/campaigns";
+import { getPublicCampaignByQueryCode } from "@/lib/campaigns";
 import { formatETB, progressPercent } from "@/lib/format";
+import { getDictionary } from "@/lib/i18n";
 
 type Params = { params: Promise<{ queryCode: string }> };
 
@@ -23,9 +24,13 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 
 export default async function QuickDonatePage({ params }: Params) {
   const { queryCode } = await params;
-  const campaign = await getPublicCampaignByQueryCode(queryCode);
+  const [campaign, dict] = await Promise.all([
+    getPublicCampaignByQueryCode(queryCode),
+    getDictionary(),
+  ]);
   if (!campaign) notFound();
 
+  const t = dict.campaign;
   const pct = progressPercent(campaign.currentAmount, campaign.targetAmount);
 
   return (
@@ -53,7 +58,7 @@ export default async function QuickDonatePage({ params }: Params) {
               </div>
             )}
             <Badge variant="secondary" className="absolute left-3 top-3">
-              {CATEGORY_LABELS[campaign.category]}
+              {dict.categories[campaign.category]}
             </Badge>
           </div>
 
@@ -66,15 +71,17 @@ export default async function QuickDonatePage({ params }: Params) {
               ownerName={campaign.ownerName}
               mulesooVerified={campaign.mulesooVerified}
               authorCode={campaign.authorCode}
+              byLabel={t.by}
+              verifiedLabel={t.verifiedOwner}
             />
 
-            <ProgressBar value={pct} className="mt-4" label={`${pct}% funded`} />
+            <ProgressBar value={pct} className="mt-4" label={`${pct}% ${t.funded}`} />
             <div className="mt-2 flex items-baseline justify-between text-sm">
               <span className="font-semibold">
                 {formatETB(campaign.currentAmount, campaign.currency)}
               </span>
               <span className="text-muted-foreground">
-                {pct}% of {formatETB(campaign.targetAmount, campaign.currency)}
+                {pct}% · {t.goal} {formatETB(campaign.targetAmount, campaign.currency)}
               </span>
             </div>
 
@@ -88,8 +95,7 @@ export default async function QuickDonatePage({ params }: Params) {
                 />
               ) : (
                 <p className="text-center text-sm text-muted-foreground">
-                  This campaign is fully funded and no longer accepting
-                  donations. Thank you to everyone who contributed!
+                  {dict.donate.closed}
                 </p>
               )}
             </div>
@@ -98,12 +104,12 @@ export default async function QuickDonatePage({ params }: Params) {
 
         <div className="mt-4 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
           <ShieldCheck className="h-3.5 w-3.5 text-success" aria-hidden />
-          This code funds only this campaign — never a shared pool.
+          {t.onlyThis}
         </div>
         <p className="mt-1.5 text-center text-[11px] text-muted-foreground">
-          Secure checkout · a 3% platform fee applies ·{" "}
+          {dict.donate.secureFee}{" "}
           <Link href="/support/fees" className="underline hover:text-foreground">
-            Fees
+            {t.fees}
           </Link>
         </p>
 
@@ -112,7 +118,7 @@ export default async function QuickDonatePage({ params }: Params) {
             href={`/campaigns/${campaign.slug}`}
             className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
           >
-            See full campaign <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+            {t.seeFull} <ExternalLink className="h-3.5 w-3.5" aria-hidden />
           </Link>
         </div>
       </main>

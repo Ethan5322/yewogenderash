@@ -95,6 +95,8 @@ const en = {
     launched: "Launched",
     goal: "Goal",
     verified: "Verified",
+    by: "by",
+    verifiedOwner: "Verified owner",
     theStory: "The story",
     updates: "Updates",
     viewAll: "View all",
@@ -126,6 +128,15 @@ const en = {
     closed:
       "This campaign is fully funded and no longer accepting donations. Thank you to everyone who contributed!",
     secureFee: "Secure checkout · a 3% platform fee applies ·",
+  },
+
+  categories: {
+    MEDICAL: "Medical",
+    EDUCATION: "Education",
+    COMMUNITY: "Community",
+    BUSINESS: "Business",
+    EMERGENCY: "Emergency",
+    OTHER: "Other",
   },
 };
 
@@ -213,6 +224,8 @@ const am: Dict = {
     launched: "የተጀመረበት",
     goal: "ግብ",
     verified: "የተረጋገጠ",
+    by: "በ",
+    verifiedOwner: "የተረጋገጠ አዘጋጅ",
     theStory: "ታሪኩ",
     updates: "ዝማኔዎች",
     viewAll: "ሁሉንም ይመልከቱ",
@@ -244,6 +257,15 @@ const am: Dict = {
     closed:
       "ይህ ዘመቻ ሙሉ በሙሉ ተሸፍኗል፤ ከእንግዲህ ልገሳ አይቀበልም። ላበረከታችሁ ሁሉ እናመሰግናለን!",
     secureFee: "ደህንነቱ የተጠበቀ ክፍያ · 3% የመድረክ ክፍያ ይተገበራል ·",
+  },
+
+  categories: {
+    MEDICAL: "ሕክምና",
+    EDUCATION: "ትምህርት",
+    COMMUNITY: "ማህበረሰብ",
+    BUSINESS: "ንግድ",
+    EMERGENCY: "አደጋ ጊዜ",
+    OTHER: "ሌላ",
   },
 };
 

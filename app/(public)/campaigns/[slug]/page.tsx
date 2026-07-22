@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { ProgressBar } from "@/components/campaigns/progress-bar";
 import { MulesooStamp } from "@/components/campaigns/verified-badges";
 import { MobileDonateBar } from "@/components/campaigns/mobile-donate-bar";
-import { getPublicCampaignBySlug, CATEGORY_LABELS } from "@/lib/campaigns";
+import { getPublicCampaignBySlug } from "@/lib/campaigns";
 import { formatETB, progressPercent, formatDate } from "@/lib/format";
 import { getDictionary } from "@/lib/i18n";
 
@@ -53,7 +53,7 @@ export default async function CampaignDetailPage({ params }: Params) {
           {dict.nav.campaigns}
         </Link>
         <span className="mx-2">/</span>
-        <span className="text-foreground">{CATEGORY_LABELS[campaign.category]}</span>
+        <span className="text-foreground">{dict.categories[campaign.category]}</span>
       </nav>
 
       <div className="grid gap-8 lg:grid-cols-3">
@@ -78,7 +78,7 @@ export default async function CampaignDetailPage({ params }: Params) {
           </div>
 
           <div className="mt-6 flex flex-wrap items-center gap-2">
-            <Badge variant="secondary">{CATEGORY_LABELS[campaign.category]}</Badge>
+            <Badge variant="secondary">{dict.categories[campaign.category]}</Badge>
             {campaign.status === "COMPLETED" ? (
               <Badge variant="verified">{t.fullyFunded}</Badge>
             ) : (
