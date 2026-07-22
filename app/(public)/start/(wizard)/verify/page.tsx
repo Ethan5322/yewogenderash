@@ -47,7 +47,14 @@ export default async function VerifyStep() {
         />
       </div>
 
-      <div className="mt-8 flex justify-end">
+      <div className="mt-8 flex flex-col items-end gap-2">
+        {!done ? (
+          <p className="text-sm text-warning">
+            {!emailVerified
+              ? "Click “Send code”, then enter the 6-digit code we emailed you."
+              : "Add your phone number above to continue."}
+          </p>
+        ) : null}
         {done ? (
           <Button asChild>
             <Link href="/start/terms">
