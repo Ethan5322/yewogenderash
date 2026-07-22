@@ -6,14 +6,9 @@ import { Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CATEGORY_LABELS } from "@/lib/campaign-types";
 import type { CampaignCategory } from "@prisma/client";
+import { useDict } from "@/lib/use-dict";
 
 const CATEGORIES = Object.keys(CATEGORY_LABELS) as CampaignCategory[];
-
-const SORTS = [
-  { value: "newest", label: "Newest" },
-  { value: "most_funded", label: "Most funded" },
-  { value: "ending_soon", label: "Ending soon" },
-] as const;
 
 export function CampaignFilters({
   category,
@@ -27,7 +22,14 @@ export function CampaignFilters({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const dict = useDict();
   const [text, setText] = React.useState(query ?? "");
+
+  const SORTS = [
+    { value: "newest", label: dict.list.sortNewest },
+    { value: "most_funded", label: dict.list.sortMostFunded },
+    { value: "ending_soon", label: dict.list.sortEndingSoon },
+  ];
 
   React.useEffect(() => {
     setText(query ?? "");
@@ -62,8 +64,8 @@ export function CampaignFilters({
             type="search"
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="Search campaigns, causes, locations…"
-            aria-label="Search campaigns"
+            placeholder={dict.list.searchPlaceholder}
+            aria-label={dict.list.search}
             className="h-10 w-full rounded-md border border-input bg-background pl-9 pr-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
         </div>
@@ -83,7 +85,7 @@ export function CampaignFilters({
 
       <div className="flex flex-wrap gap-2">
         <Chip active={!category} onClick={() => setParam("category", null)}>
-          All
+          {dict.list.all}
         </Chip>
         {CATEGORIES.map((c) => (
           <Chip
@@ -91,7 +93,7 @@ export function CampaignFilters({
             active={category === c}
             onClick={() => setParam("category", category === c ? null : c)}
           >
-            {CATEGORY_LABELS[c]}
+            {dict.categories[c]}
           </Chip>
         ))}
         {(category || query) && (
@@ -101,7 +103,7 @@ export function CampaignFilters({
             className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm text-muted-foreground hover:text-foreground"
           >
             <X className="h-3.5 w-3.5" aria-hidden />
-            Clear
+            {dict.list.clear}
           </button>
         )}
       </div>

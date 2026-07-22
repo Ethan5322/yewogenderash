@@ -81,7 +81,12 @@ const en = {
     subtitle: "Verified causes from around the world — each one identity-checked and separately tracked.",
     all: "All",
     search: "Search campaigns…",
+    searchPlaceholder: "Search campaigns, causes, locations…",
     empty: "No campaigns match your filters yet.",
+    sortNewest: "Newest",
+    sortMostFunded: "Most funded",
+    sortEndingSoon: "Ending soon",
+    clear: "Clear",
   },
 
   campaign: {
@@ -275,7 +280,12 @@ const am: Dict = {
     subtitle: "ከመላው ዓለም የተውጣጡ የተረጋገጡ ዓላማዎች — እያንዳንዳቸው ማንነታቸው ተረጋግጦ በተናጠል ይከታተላሉ።",
     all: "ሁሉም",
     search: "ዘመቻዎችን ይፈልጉ…",
+    searchPlaceholder: "ዘመቻዎችን፣ ዓላማዎችን ወይም ቦታዎችን ይፈልጉ…",
     empty: "ከማጣሪያዎችዎ ጋር የሚዛመድ ዘመቻ እስካሁን የለም።",
+    sortNewest: "አዲስ",
+    sortMostFunded: "ብዙ የተሰበሰበ",
+    sortEndingSoon: "በቅርቡ የሚያበቃ",
+    clear: "አጽዳ",
   },
 
   campaign: {
