@@ -33,40 +33,50 @@ const STATUS_ORDER: { status: CampaignStatus; label: string }[] = [
  */
 export async function getAdminAnalytics(days = 30): Promise<{
   donationsByDay: DonationDay[];
+  payoutsByDay: DonationDay[];
   campaignsByStatus: StatusCount[];
 }> {
   const since = new Date(Date.now() - (days - 1) * DAY_MS);
   since.setUTCHours(0, 0, 0, 0);
 
-  const [donations, statusGroups] = await Promise.all([
+  const [donations, payouts, statusGroups] = await Promise.all([
     db.donation.findMany({
       where: { status: "SUCCESS", paidAt: { gte: since } },
       select: { amount: true, paidAt: true },
     }),
+    db.payout.findMany({
+      where: { status: "PAID", paidAt: { gte: since } },
+      select: { amount: true, paidAt: true },
+    }),
     db.campaign.groupBy({ by: ["status"], _count: { _all: true } }),
   ]);
-
-  // Pre-seed every day in the window at 0 so the line has no gaps.
-  const sums = new Map<string, number>();
-  for (let i = 0; i < days; i++) {
-    sums.set(dayKey(new Date(since.getTime() + i * DAY_MS)), 0);
-  }
-  for (const d of donations) {
-    if (!d.paidAt) continue;
-    const key = dayKey(d.paidAt);
-    sums.set(key, (sums.get(key) ?? 0) + Number(d.amount));
-  }
 
   const labelFmt = new Intl.DateTimeFormat("en-US", {
     month: "short",
     day: "numeric",
     timeZone: "UTC",
   });
-  const donationsByDay: DonationDay[] = [...sums.entries()].map(([date, total]) => ({
-    date,
-    label: labelFmt.format(new Date(`${date}T00:00:00Z`)),
-    total,
-  }));
+
+  // Pre-seed every day in the window at 0 so each line has no gaps.
+  const seriesFrom = (rows: { amount: unknown; paidAt: Date | null }[]): DonationDay[] => {
+    const sums = new Map<string, number>();
+    for (let i = 0; i < days; i++) {
+      sums.set(dayKey(new Date(since.getTime() + i * DAY_MS)), 0);
+    }
+    for (const r of rows) {
+      if (!r.paidAt) continue;
+      const key = dayKey(r.paidAt);
+      sums.set(key, (sums.get(key) ?? 0) + Number(r.amount));
+    }
+    return [...sums.entries()].map(([date, total]) => ({
+      date,
+      label: labelFmt.format(new Date(`${date}T00:00:00Z`)),
+      total,
+    }));
+  };
+
+  const donationsByDay = seriesFrom(donations);
+  const payoutsByDay = seriesFrom(payouts);
 
   const counts = new Map(statusGroups.map((g) => [g.status, g._count._all]));
   const campaignsByStatus: StatusCount[] = STATUS_ORDER.map(({ status, label }) => ({
@@ -75,7 +85,7 @@ export async function getAdminAnalytics(days = 30): Promise<{
     count: counts.get(status) ?? 0,
   }));
 
-  return { donationsByDay, campaignsByStatus };
+  return { donationsByDay, payoutsByDay, campaignsByStatus };
 }
 
 const CATEGORY_ORDER: CampaignCategory[] = [
