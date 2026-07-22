@@ -49,7 +49,11 @@ export default async function AdminPayoutsPage({
       owner: {
         select: {
           id: true,
-          payoutAccount: true,
+          payoutAccounts: {
+            where: { isDefault: true, isVerified: true },
+            select: { bankName: true, accountNumber: true, accountName: true },
+            take: 1,
+          },
           user: { select: { name: true, email: true } },
         },
       },
@@ -110,12 +114,7 @@ export default async function AdminPayoutsPage({
               </tr>
             ) : (
               payouts.map((p) => {
-                const account = p.owner.payoutAccount as {
-                  accountType?: string;
-                  accountName?: string;
-                  accountNumber?: string;
-                  bankName?: string | null;
-                } | null;
+                const account = p.owner.payoutAccounts[0] ?? null;
                 return (
                   <tr key={p.id} className="border-b align-top last:border-0">
                     <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
@@ -141,8 +140,8 @@ export default async function AdminPayoutsPage({
                       </Link>
                       <p className="text-xs text-muted-foreground">
                         {account
-                          ? `${account.accountType === "TELEBIRR" ? "Telebirr" : account.bankName || "Bank"} · ${account.accountNumber}`
-                          : "no payout account"}
+                          ? `${account.bankName} · ${account.accountNumber}`
+                          : "no verified payout account"}
                       </p>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap font-semibold">
