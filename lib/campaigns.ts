@@ -191,7 +191,7 @@ export async function getPublicCampaignByQueryCode(
   queryCode: string
 ): Promise<CampaignCard | null> {
   const c = await db.campaign.findFirst({
-    where: { queryCode, status: { in: PUBLIC_STATUSES } },
+    where: { queryCode, queryCodeActive: true, status: { in: PUBLIC_STATUSES } },
     select: cardSelect,
   });
   return c ? toCard(c) : null;

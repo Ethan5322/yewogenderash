@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { QrCode, ExternalLink } from "lucide-react";
 import { db } from "@/lib/db";
 import { requirePermission } from "@/lib/admin/permissions";
 import { appUrl } from "@/lib/env";
@@ -13,7 +12,7 @@ import {
   Th,
   EmptyRow,
 } from "@/components/admin/ui";
-import { CopyButton } from "@/components/admin/copy-button";
+import { QuerycodeControls } from "@/components/admin/querycode-controls";
 import { Pager, pageFrom } from "@/components/admin/pager";
 
 export const metadata = { title: "Admin · Querycodes" };
@@ -56,6 +55,7 @@ export default async function AdminQuerycodesPage({
         slug: true,
         status: true,
         queryCode: true,
+        queryCodeActive: true,
         currentAmount: true,
         _count: { select: { donations: true } },
       },
@@ -95,7 +95,7 @@ export default async function AdminQuerycodesPage({
           ) : (
             rows.map((c) => {
               const donateUrl = `${base}/q/${c.queryCode}`;
-              const active = c.status === "ACTIVE";
+              const live = c.status === "ACTIVE" && c.queryCodeActive;
               return (
                 <tr key={c.id} className="border-b align-middle last:border-0 hover:bg-accent/30">
                   <td className="px-4 py-3">
@@ -104,40 +104,33 @@ export default async function AdminQuerycodesPage({
                     </Link>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="font-mono text-sm">{c.queryCode}</span>
+                    <span className={`font-mono text-sm ${c.queryCodeActive ? "" : "text-muted-foreground line-through"}`}>
+                      {c.queryCode}
+                    </span>
                   </td>
                   <td className="px-4 py-3">
-                    {active ? (
-                      <Chip tone="success">Active</Chip>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5">
-                        <Chip tone="neutral">Inactive</Chip>
-                        <StatusChip status={c.status} />
-                      </span>
-                    )}
+                    <span className="inline-flex items-center gap-1.5">
+                      {!c.queryCodeActive ? (
+                        <Chip tone="danger">Disabled</Chip>
+                      ) : live ? (
+                        <Chip tone="success">Live</Chip>
+                      ) : (
+                        <Chip tone="neutral">Enabled</Chip>
+                      )}
+                      {c.status !== "ACTIVE" ? <StatusChip status={c.status} /> : null}
+                    </span>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{c._count.donations}</td>
                   <td className="px-4 py-3 whitespace-nowrap font-medium">
                     {formatETB(Number(c.currentAmount))}
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-1.5">
-                      <CopyButton value={donateUrl} label="Copy link" />
-                      <Link
-                        href={`/q/${c.queryCode}/qr`}
-                        target="_blank"
-                        className="inline-flex h-8 items-center gap-1.5 rounded-md border border-input bg-background px-2.5 text-xs font-medium shadow-sm transition-colors hover:bg-accent"
-                      >
-                        <QrCode className="h-3.5 w-3.5" aria-hidden /> QR
-                      </Link>
-                      <Link
-                        href={`/q/${c.queryCode}`}
-                        target="_blank"
-                        className="inline-flex h-8 items-center gap-1.5 rounded-md border border-input bg-background px-2.5 text-xs font-medium shadow-sm transition-colors hover:bg-accent"
-                      >
-                        <ExternalLink className="h-3.5 w-3.5" aria-hidden /> Landing
-                      </Link>
-                    </div>
+                    <QuerycodeControls
+                      campaignId={c.id}
+                      queryCode={c.queryCode}
+                      active={c.queryCodeActive}
+                      donateUrl={donateUrl}
+                    />
                   </td>
                 </tr>
               );

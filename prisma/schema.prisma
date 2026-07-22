@@ -300,6 +300,9 @@ model Campaign {
   status        CampaignStatus   @default(DRAFT)
   /// One campaign, one querycode. QR encodes /q/[queryCode].
   queryCode     String           @unique
+  /// Admin can disable a querycode without touching the campaign — the /q link
+  /// and QR stop resolving while it is false.
+  queryCodeActive Boolean        @default(true)
   qrCodeUrl     String?
   heroImageUrl  String?
   location      String?

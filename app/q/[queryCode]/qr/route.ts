@@ -14,15 +14,17 @@ import { PUBLIC_STATUSES } from "@/lib/campaigns";
  * unreviewed campaign must not circulate as if it were live.
  */
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ queryCode: string }> }
 ) {
   const { queryCode } = await params;
+  const download = new URL(req.url).searchParams.has("download");
 
   const campaign = await db.campaign.findUnique({
     where: { queryCode },
     select: {
       status: true,
+      queryCodeActive: true,
       owner: { select: { userId: true } },
     },
   });
@@ -30,8 +32,10 @@ export async function GET(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const isPublic = PUBLIC_STATUSES.includes(campaign.status);
+  const isPublic = PUBLIC_STATUSES.includes(campaign.status) && campaign.queryCodeActive;
   if (!isPublic) {
+    // Disabled or unreviewed codes: only the owner or an admin may still render
+    // the QR (e.g. to print/download it) — it must not circulate publicly.
     const session = await auth();
     const isOwner = session?.user?.id === campaign.owner.userId;
     const isAdmin = session?.user?.role === "ADMIN";
@@ -51,7 +55,7 @@ export async function GET(
   return new Response(new Uint8Array(png), {
     headers: {
       "content-type": "image/png",
-      "content-disposition": `inline; filename="yewogen-${queryCode}.png"`,
+      "content-disposition": `${download ? "attachment" : "inline"}; filename="yewogen-${queryCode}.png"`,
       // Public QRs are immutable per code; private ones must not be cached.
       "cache-control": isPublic ? "public, max-age=86400" : "private, no-store",
     },
