@@ -6,14 +6,10 @@ import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { Menu, X, LogOut } from "lucide-react";
 import { Logo } from "@/components/site/logo";
+import { LanguageSwitcher } from "@/components/site/language-switcher";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-
-const NAV_LINKS = [
-  { href: "/campaigns", label: "Campaigns" },
-  { href: "/start", label: "Start a campaign" },
-  { href: "/support", label: "Support" },
-] as const;
+import type { Dict } from "@/lib/i18n";
 
 type HeaderUser = {
   name?: string | null;
@@ -21,22 +17,38 @@ type HeaderUser = {
   role?: string | null;
 } | null;
 
+// English fallback used when no dictionary is passed (e.g. dashboard header).
+const EN = {
+  campaigns: "Campaigns",
+  start: "Start a campaign",
+  support: "Support",
+  signIn: "Sign in",
+  signOut: "Sign out",
+  dashboard: "Dashboard",
+  adminPanel: "Admin panel",
+};
+
 /** Where a signed-in user's "home" is, by role. */
-function accountHome(role?: string | null): { href: string; label: string } {
-  if (role === "ADMIN") return { href: "/admin", label: "Admin panel" };
-  return { href: "/dashboard", label: "Dashboard" };
+function accountHome(role: string | null | undefined, t: typeof EN): { href: string; label: string } {
+  if (role === "ADMIN") return { href: "/admin", label: t.adminPanel };
+  return { href: "/dashboard", label: t.dashboard };
 }
 
-export function SiteHeader({ user }: { user?: HeaderUser }) {
+export function SiteHeader({ user, dict }: { user?: HeaderUser; dict?: Dict }) {
   const pathname = usePathname();
   const [open, setOpen] = React.useState(false);
 
-  // Close the mobile drawer on navigation.
   React.useEffect(() => {
     setOpen(false);
   }, [pathname]);
 
-  const home = accountHome(user?.role);
+  const t = dict?.nav ?? EN;
+  const navLinks = [
+    { href: "/campaigns", label: t.campaigns },
+    { href: "/start", label: t.start },
+    { href: "/support", label: t.support },
+  ];
+  const home = accountHome(user?.role, t);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
@@ -44,7 +56,7 @@ export function SiteHeader({ user }: { user?: HeaderUser }) {
         <Logo />
 
         <nav className="hidden items-center gap-6 md:flex" aria-label="Main">
-          {NAV_LINKS.map((link) => (
+          {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
@@ -58,48 +70,45 @@ export function SiteHeader({ user }: { user?: HeaderUser }) {
           ))}
         </nav>
 
-        <div className="hidden items-center gap-3 md:flex">
+        <div className="hidden items-center gap-2 md:flex">
+          {dict ? <LanguageSwitcher label={dict.switchLabel} /> : null}
           {user ? (
             <>
-              <span className="max-w-[14rem] truncate text-sm text-muted-foreground">
+              <span className="max-w-[12rem] truncate text-sm text-muted-foreground">
                 {user.name || user.email}
               </span>
               <Button asChild size="sm">
                 <Link href={home.href}>{home.label}</Link>
               </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => signOut({ callbackUrl: "/" })}
-              >
-                <LogOut className="h-4 w-4" aria-hidden /> Sign out
+              <Button variant="ghost" size="sm" onClick={() => signOut({ callbackUrl: "/" })}>
+                <LogOut className="h-4 w-4" aria-hidden /> {t.signOut}
               </Button>
             </>
           ) : (
-            // Public visitors: no owner CTA in the global header — the single
-            // "become a fundraiser" entry lives in the footer (general pages).
-            // Just a donor-facing sign-in for returning users.
             <Button asChild variant="ghost" size="sm">
-              <Link href="/login">Sign in</Link>
+              <Link href="/login">{t.signIn}</Link>
             </Button>
           )}
         </div>
 
-        <button
-          type="button"
-          className="inline-flex h-10 w-10 items-center justify-center rounded-md text-foreground hover:bg-accent md:hidden"
-          aria-expanded={open}
-          aria-label={open ? "Close menu" : "Open menu"}
-          onClick={() => setOpen((v) => !v)}
-        >
-          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
+        <div className="flex items-center gap-1 md:hidden">
+          {dict ? <LanguageSwitcher label={dict.switchLabel} /> : null}
+          <button
+            type="button"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-md text-foreground hover:bg-accent"
+            aria-expanded={open}
+            aria-label={open ? "Close menu" : "Open menu"}
+            onClick={() => setOpen((v) => !v)}
+          >
+            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
       </div>
 
       {open && (
         <div className="border-t bg-background md:hidden">
           <nav className="flex flex-col gap-1 p-4" aria-label="Mobile">
-            {NAV_LINKS.map((link) => (
+            {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
@@ -121,12 +130,12 @@ export function SiteHeader({ user }: { user?: HeaderUser }) {
                   onClick={() => signOut({ callbackUrl: "/" })}
                   className="flex items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
                 >
-                  <LogOut className="h-4 w-4" aria-hidden /> Sign out
+                  <LogOut className="h-4 w-4" aria-hidden /> {t.signOut}
                 </button>
               </>
             ) : (
               <Button asChild variant="outline" className="mt-2">
-                <Link href="/login">Sign in</Link>
+                <Link href="/login">{t.signIn}</Link>
               </Button>
             )}
           </nav>

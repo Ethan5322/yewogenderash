@@ -12,7 +12,7 @@ import {
 export const metadata: Metadata = {
   title: "Browse campaigns",
   description:
-    "Explore verified fundraising campaigns across Ethiopia. Every owner is identity-checked and every campaign has its own separated ledger.",
+    "Explore verified fundraising campaigns from around the world. Every owner is identity-checked and every campaign has its own separated ledger.",
 };
 
 const VALID_CATEGORIES = new Set(Object.keys(CATEGORY_LABELS));

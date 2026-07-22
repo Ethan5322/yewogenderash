@@ -15,16 +15,17 @@ const jakarta = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   title: {
     template: "%s | Yewogen Derash",
-    default: "Yewogen Derash — Verified Crowdfunding for Ethiopia",
+    default: "Yewogen Derash — Verified Crowdfunding, Worldwide",
   },
   description:
-    "Yewogen Derash is a secure, verified crowdfunding platform for Ethiopia. Every campaign is identity-verified, every donation goes to exactly one campaign, and every payout is audited.",
+    "Yewogen Derash is a secure, verified crowdfunding platform for causes worldwide. Every campaign is identity-verified, every donation goes to exactly one campaign, and every payout is audited.",
   keywords: [
-    "crowdfunding Ethiopia",
-    "donate Ethiopia",
+    "crowdfunding",
+    "donate online",
     "verified fundraising",
     "Yewogen Derash",
-    "medical fundraising Ethiopia",
+    "medical fundraising",
+    "global crowdfunding",
   ],
   robots: { index: true, follow: true },
 };

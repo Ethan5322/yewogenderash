@@ -6,7 +6,7 @@ import { formatDate } from "@/lib/format";
 export const metadata: Metadata = {
   title: "Blog",
   description:
-    "Updates, guides, and stories from Yewogen Derash — how verified fundraising works in Ethiopia.",
+    "Updates, guides, and stories from Yewogen Derash — how verified fundraising works worldwide.",
 };
 
 // Public copy should reflect the latest published posts.
@@ -22,8 +22,8 @@ export default async function BlogIndexPage() {
           Blog
         </h1>
         <p className="mt-3 text-muted-foreground">
-          Guides, platform updates, and stories about trusted fundraising in
-          Ethiopia.
+          Guides, platform updates, and stories about trusted fundraising
+          worldwide.
         </p>
       </header>
 

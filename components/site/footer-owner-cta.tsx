@@ -11,7 +11,17 @@ import { usePathname } from "next/navigation";
  */
 const HIDDEN_PREFIXES = ["/start", "/register", "/login", "/admin-login"];
 
-export function FooterOwnerCta() {
+export function FooterOwnerCta({
+  heading = "Are you a campaign owner?",
+  sub = "Sign in to manage your campaigns, or get verified to start raising funds.",
+  signIn = "Sign in",
+  register = "Register as a campaign owner",
+}: {
+  heading?: string;
+  sub?: string;
+  signIn?: string;
+  register?: string;
+} = {}) {
   const pathname = usePathname() ?? "";
   const hidden =
     pathname === "/" || HIDDEN_PREFIXES.some((p) => pathname.startsWith(p));
@@ -20,24 +30,21 @@ export function FooterOwnerCta() {
   return (
     <div className="mt-10 flex flex-col items-center justify-between gap-4 rounded-xl border bg-background p-5 text-center sm:flex-row sm:text-left">
       <div>
-        <p className="font-medium">Are you a campaign owner?</p>
-        <p className="mt-0.5 text-sm text-muted-foreground">
-          Sign in to manage your campaigns, or get verified to start raising
-          funds.
-        </p>
+        <p className="font-medium">{heading}</p>
+        <p className="mt-0.5 text-sm text-muted-foreground">{sub}</p>
       </div>
       <div className="flex shrink-0 gap-3">
         <Link
           href="/login"
           className="inline-flex h-9 items-center rounded-md border border-input px-4 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
         >
-          Sign in
+          {signIn}
         </Link>
         <Link
           href="/start"
           className="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
         >
-          Register as a campaign owner
+          {register}
         </Link>
       </div>
     </div>

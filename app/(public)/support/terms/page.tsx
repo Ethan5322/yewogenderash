@@ -20,7 +20,7 @@ export default function TermsPage() {
           These Terms &amp; Conditions (the &ldquo;Terms&rdquo;) govern your
           access to and use of Yewogen Derash (the &ldquo;Platform&rdquo;), a
           trust-first crowdfunding service operated for donors and campaign
-          owners in Ethiopia. By creating an account, donating, or running a
+          owners worldwide. By creating an account, donating, or running a
           campaign, you agree to these Terms. If you do not agree, please do not
           use the Platform.
         </p>

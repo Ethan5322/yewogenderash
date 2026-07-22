@@ -10,41 +10,27 @@ import {
 } from "@/components/ui/card";
 import { CampaignCard } from "@/components/campaigns/campaign-card";
 import { listPublicCampaigns } from "@/lib/campaigns";
-
-const TRUST_PILLARS = [
-  {
-    icon: ShieldCheck,
-    title: "Verified owners",
-    description:
-      "Every campaign owner passes ID checks, live face verification, and manual review before going live.",
-  },
-  {
-    icon: QrCode,
-    title: "One campaign, one code",
-    description:
-      "Each campaign has its own querycode and QR. Your donation lands on exactly one campaign — never a shared pool.",
-  },
-  {
-    icon: Landmark,
-    title: "Separated ledgers",
-    description:
-      "Funds are never mixed. Each campaign has its own donation ledger and audited payout record.",
-  },
-  {
-    icon: BellRing,
-    title: "Instant confirmation",
-    description:
-      "Payments are confirmed by the payment gateway before they count, and owners are alerted in real time.",
-  },
-] as const;
+import { getDictionary } from "@/lib/i18n";
 
 // Campaign data is live — render per-request.
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   // The homepage leads with ongoing campaigns — no banner, no owner CTA.
-  const campaigns = await listPublicCampaigns({ sort: "newest" });
+  const [campaigns, dict] = await Promise.all([
+    listPublicCampaigns({ sort: "newest" }),
+    getDictionary(),
+  ]);
   const active = campaigns.slice(0, 9);
+  const h = dict.home;
+  const p = h.pillars;
+
+  const TRUST_PILLARS = [
+    { icon: ShieldCheck, title: p.verifiedOwners, description: p.verifiedOwnersDesc },
+    { icon: QrCode, title: p.oneCode, description: p.oneCodeDesc },
+    { icon: Landmark, title: p.ledgers, description: p.ledgersDesc },
+    { icon: BellRing, title: p.instant, description: p.instantDesc },
+  ] as const;
 
   return (
     <div>
@@ -52,13 +38,13 @@ export default async function HomePage() {
       <div className="border-b bg-card">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-center gap-x-8 gap-y-2 px-4 py-3 text-sm font-medium text-muted-foreground sm:flex-row sm:px-6">
           <span className="inline-flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4 text-primary" aria-hidden /> Verified campaigns
+            <ShieldCheck className="h-4 w-4 text-primary" aria-hidden /> {dict.trust.verified}
           </span>
           <span className="inline-flex items-center gap-2">
-            <CreditCard className="h-4 w-4 text-primary" aria-hidden /> Local &amp; international payments
+            <CreditCard className="h-4 w-4 text-primary" aria-hidden /> {dict.trust.payments}
           </span>
           <span className="inline-flex items-center gap-2">
-            <Lock className="h-4 w-4 text-primary" aria-hidden /> Secure checkout
+            <Lock className="h-4 w-4 text-primary" aria-hidden /> {dict.trust.secure}
           </span>
         </div>
       </div>
@@ -68,17 +54,14 @@ export default async function HomePage() {
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">
-              Active campaigns
+              {h.activeTitle}
             </h1>
-            <p className="mt-2 max-w-2xl text-muted-foreground">
-              Verified causes raising funds right now — every owner is
-              identity-checked and every payout is audited.
-            </p>
+            <p className="mt-2 max-w-2xl text-muted-foreground">{h.activeSub}</p>
           </div>
           {active.length > 0 ? (
             <Button asChild variant="outline">
               <Link href="/campaigns">
-                View all campaigns <ArrowRight className="h-4 w-4" aria-hidden />
+                {h.viewAll} <ArrowRight className="h-4 w-4" aria-hidden />
               </Link>
             </Button>
           ) : null}
@@ -92,7 +75,7 @@ export default async function HomePage() {
           </div>
         ) : (
           <div className="mt-8 rounded-xl border bg-card p-10 text-center text-muted-foreground">
-            No active campaigns yet — please check back soon.
+            {h.empty}
           </div>
         )}
       </section>
@@ -101,10 +84,10 @@ export default async function HomePage() {
       <section className="border-t bg-card">
         <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
           <h2 className="text-center text-2xl font-bold tracking-tight sm:text-3xl">
-            Built for trust, end to end
+            {h.trustTitle}
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-center text-sm text-muted-foreground sm:text-base">
-            No mixed funds. No anonymous campaigns. No unverified payouts.
+            {h.trustSub}
           </p>
           <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {TRUST_PILLARS.map((pillar) => (
