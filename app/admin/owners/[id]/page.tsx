@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ExternalLink, Download, FileText, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ExternalLink, Download, FileText, ShieldCheck, MessageSquare } from "lucide-react";
 import { db } from "@/lib/db";
-import { requirePermission } from "@/lib/admin/permissions";
+import { requirePermission, hasPermission } from "@/lib/admin/permissions";
 import { signedKycUrl } from "@/lib/supabase/server";
 import { OwnerDecisionPanel } from "@/components/admin/owner-decision-panel";
 import { FlagControl } from "@/components/admin/flag-control";
@@ -17,7 +17,7 @@ export default async function AdminOwnerDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requirePermission("kyc");
+  const me = await requirePermission("kyc");
   const { id } = await params;
 
   const owner = await db.campaignOwner.findUnique({
@@ -83,6 +83,14 @@ export default async function AdminOwnerDetailPage({
             <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
             Mulesoo verified
           </span>
+        ) : null}
+        {hasPermission(me, "messages") ? (
+          <Link
+            href={`/admin/messages/${owner.id}`}
+            className="ml-auto inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium shadow-sm transition-colors hover:bg-accent"
+          >
+            <MessageSquare className="h-4 w-4" aria-hidden /> Message fundraiser
+          </Link>
         ) : null}
       </div>
       <p className="mt-1 text-sm text-muted-foreground">

@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ExternalLink, FileText, ShieldCheck, Star } from "lucide-react";
+import { ArrowLeft, ExternalLink, Download, FileText, ShieldCheck, Star, MessageSquare } from "lucide-react";
 import { db } from "@/lib/db";
-import { requirePermission } from "@/lib/admin/permissions";
+import { requirePermission, hasPermission } from "@/lib/admin/permissions";
 import { signedKycUrl } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/campaigns/status-badge";
@@ -18,7 +18,7 @@ export default async function AdminCampaignDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requirePermission("campaigns");
+  const me = await requirePermission("campaigns");
   const { id } = await params;
 
   const campaign = await db.campaign.findUnique({
@@ -82,18 +82,29 @@ export default async function AdminCampaignDetailPage({
   const fees = Number(feeAgg._sum.feeAmount ?? 0);
   const net = Number(feeAgg._sum.netAmount ?? 0);
 
-  // Short-lived signed URLs so the reviewer can open each private document.
+  // Short-lived signed URLs so the reviewer can open or download each private
+  // document (download forces a Content-Disposition attachment).
+  const nameFor = (raw: string, type: string, fileUrl: string) => {
+    const ext = fileUrl.split(".").pop()?.split("?")[0] || "file";
+    return `${raw.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-${type.toLowerCase()}.${ext}`;
+  };
   const docs = await Promise.all(
-    owner.documents.map(async (d) => ({
-      ...d,
-      signedUrl: await signedKycUrl(d.fileUrl, 600),
-    }))
+    owner.documents.map(async (d) => {
+      const [signedUrl, downloadUrl] = await Promise.all([
+        signedKycUrl(d.fileUrl, 600),
+        signedKycUrl(d.fileUrl, 600, nameFor(owner.user.name, d.documentType, d.fileUrl)),
+      ]);
+      return { ...d, signedUrl, downloadUrl };
+    })
   );
   const campaignDocs = await Promise.all(
-    campaign.documents.map(async (d) => ({
-      ...d,
-      signedUrl: await signedKycUrl(d.fileUrl, 600),
-    }))
+    campaign.documents.map(async (d) => {
+      const [signedUrl, downloadUrl] = await Promise.all([
+        signedKycUrl(d.fileUrl, 600),
+        signedKycUrl(d.fileUrl, 600, nameFor(campaign.title, d.documentType, d.fileUrl)),
+      ]);
+      return { ...d, signedUrl, downloadUrl };
+    })
   );
 
   return (
@@ -205,18 +216,29 @@ export default async function AdminCampaignDetailPage({
                         </p>
                       </div>
                     </div>
-                    {d.signedUrl ? (
-                      <a
-                        href={d.signedUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-primary hover:underline"
-                      >
-                        Open <ExternalLink className="h-3.5 w-3.5" aria-hidden />
-                      </a>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">unavailable</span>
-                    )}
+                    <div className="flex shrink-0 items-center gap-2">
+                      {d.signedUrl ? (
+                        <a
+                          href={d.signedUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-medium shadow-sm transition-colors hover:bg-accent"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" aria-hidden /> Open
+                        </a>
+                      ) : null}
+                      {d.downloadUrl ? (
+                        <a
+                          href={d.downloadUrl}
+                          className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-medium shadow-sm transition-colors hover:bg-accent"
+                        >
+                          <Download className="h-3.5 w-3.5" aria-hidden /> Download
+                        </a>
+                      ) : null}
+                      {!d.signedUrl && !d.downloadUrl ? (
+                        <span className="text-xs text-muted-foreground">unavailable</span>
+                      ) : null}
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -249,18 +271,29 @@ export default async function AdminCampaignDetailPage({
                         </p>
                       </div>
                     </div>
-                    {d.signedUrl ? (
-                      <a
-                        href={d.signedUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-primary hover:underline"
-                      >
-                        Open <ExternalLink className="h-3.5 w-3.5" aria-hidden />
-                      </a>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">unavailable</span>
-                    )}
+                    <div className="flex shrink-0 items-center gap-2">
+                      {d.signedUrl ? (
+                        <a
+                          href={d.signedUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-medium shadow-sm transition-colors hover:bg-accent"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" aria-hidden /> Open
+                        </a>
+                      ) : null}
+                      {d.downloadUrl ? (
+                        <a
+                          href={d.downloadUrl}
+                          className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-medium shadow-sm transition-colors hover:bg-accent"
+                        >
+                          <Download className="h-3.5 w-3.5" aria-hidden /> Download
+                        </a>
+                      ) : null}
+                      {!d.signedUrl && !d.downloadUrl ? (
+                        <span className="text-xs text-muted-foreground">unavailable</span>
+                      ) : null}
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -395,6 +428,22 @@ export default async function AdminCampaignDetailPage({
                 This user is banned.
               </p>
             ) : null}
+            <div className="mt-4 flex flex-wrap gap-2 border-t pt-4">
+              <Link
+                href={`/admin/owners/${owner.id}`}
+                className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium shadow-sm transition-colors hover:bg-accent"
+              >
+                <ShieldCheck className="h-4 w-4" aria-hidden /> Owner / KYC
+              </Link>
+              {hasPermission(me, "messages") ? (
+                <Link
+                  href={`/admin/messages/${owner.id}`}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium shadow-sm transition-colors hover:bg-accent"
+                >
+                  <MessageSquare className="h-4 w-4" aria-hidden /> Message
+                </Link>
+              ) : null}
+            </div>
           </section>
 
           <section className="rounded-xl border bg-card p-6 shadow-sm">
