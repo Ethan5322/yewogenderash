@@ -221,6 +221,29 @@ export default async function AdminOwnerDetailPage({
         </div>
 
         <div className="space-y-6">
+          {/* Decision — the allow / disallow switch, first and prominent */}
+          <section className="overflow-hidden rounded-xl border-2 border-primary/30 bg-card shadow-sm">
+            <div className="flex items-center justify-between gap-3 border-b bg-primary/5 px-6 py-3">
+              <h2 className="font-display text-base font-semibold text-primary">
+                Allow / Disallow this fundraiser
+              </h2>
+              <span className="rounded-full bg-background px-2 py-0.5 text-xs font-semibold">
+                {owner.user.verificationStatus}
+              </span>
+            </div>
+            <div className="p-6">
+              <p className="mb-4 text-xs text-muted-foreground">
+                <strong>Allow</strong> grants the Mulesoo seal, issues the author
+                code, and unlocks the Fundraiser ID. <strong>Reject / Revoke</strong>{" "}
+                denies or withdraws it. A note is required for anything but Allow.
+              </p>
+              <OwnerDecisionPanel
+                ownerId={owner.id}
+                status={owner.user.verificationStatus}
+              />
+            </div>
+          </section>
+
           {/* Issued Fundraiser ID (verified owners) */}
           {owner.mulesooVerified && owner.authorCode ? (
             <section className="rounded-xl border bg-card p-6 shadow-sm">
@@ -255,26 +278,6 @@ export default async function AdminOwnerDetailPage({
               flagged={owner.flagged}
               reason={owner.flagReason}
             />
-          </section>
-
-          {/* Decision */}
-          <section className="rounded-xl border bg-card p-6 shadow-sm">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="font-display text-base font-semibold">KYC decision</h2>
-              <span className="text-xs font-medium text-muted-foreground">
-                Status: {owner.user.verificationStatus}
-              </span>
-            </div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Allow or deny this fundraiser. Approving grants the Mulesoo seal and
-              unlocks their Fundraiser ID; revoking pulls it back.
-            </p>
-            <div className="mt-4">
-              <OwnerDecisionPanel
-                ownerId={owner.id}
-                status={owner.user.verificationStatus}
-              />
-            </div>
           </section>
 
           {/* Campaigns */}
