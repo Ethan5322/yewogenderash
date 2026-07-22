@@ -7,8 +7,12 @@ import { StatusBadge } from "@/components/campaigns/status-badge";
 import { CATEGORY_LABELS } from "@/lib/campaign-types";
 import { formatETB, formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/admin/ui";
+import { Pager, pageFrom } from "@/components/admin/pager";
 
 export const metadata = { title: "Admin · Campaigns" };
+
+const PAGE_SIZE = 50;
 
 const STATUS_FILTERS: { value: CampaignStatus | "ALL"; label: string }[] = [
   { value: "ALL", label: "All" },
@@ -61,6 +65,7 @@ export default async function AdminCampaignsPage({
     : "ALL") as CampaignCategory | "ALL";
 
   const q = (typeof sp.q === "string" ? sp.q : "").trim().slice(0, 100);
+  const page = pageFrom(sp.page);
   const filters: Filters = { status, category, q };
 
   const where: Prisma.CampaignWhereInput = {};
@@ -75,44 +80,50 @@ export default async function AdminCampaignsPage({
     ];
   }
 
-  const campaigns = await db.campaign.findMany({
-    where,
-    orderBy: [{ status: "asc" }, { createdAt: "desc" }],
-    take: 100,
-    select: {
-      id: true,
-      title: true,
-      status: true,
-      category: true,
-      targetAmount: true,
-      currentAmount: true,
-      currency: true,
-      queryCode: true,
-      isFeatured: true,
-      createdAt: true,
-      owner: { select: { user: { select: { name: true, email: true } } } },
-    },
-  });
+  const [campaigns, matchCount] = await Promise.all([
+    db.campaign.findMany({
+      where,
+      orderBy: [{ status: "asc" }, { createdAt: "desc" }],
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        category: true,
+        targetAmount: true,
+        currentAmount: true,
+        currency: true,
+        queryCode: true,
+        isFeatured: true,
+        createdAt: true,
+        owner: { select: { user: { select: { name: true, email: true } } } },
+      },
+    }),
+    db.campaign.count({ where }),
+  ]);
 
   return (
     <div>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-display text-2xl font-bold tracking-tight">Campaigns</h1>
-        {/* Search (preserves the active filters) */}
-        <form action="/admin/campaigns" className="flex items-center gap-2">
-          {status !== "ALL" ? <input type="hidden" name="status" value={status} /> : null}
-          {category !== "ALL" ? <input type="hidden" name="category" value={category} /> : null}
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-            <input
-              name="q"
-              defaultValue={q}
-              placeholder="Search title, querycode, owner…"
-              className="h-9 w-64 rounded-md border border-input bg-background pl-8 pr-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            />
-          </div>
-        </form>
-      </div>
+      <PageHeader
+        title="Campaigns"
+        description="Every campaign from creation through approval to payout."
+        actions={
+          <form action="/admin/campaigns" className="flex items-center gap-2">
+            {status !== "ALL" ? <input type="hidden" name="status" value={status} /> : null}
+            {category !== "ALL" ? <input type="hidden" name="category" value={category} /> : null}
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+              <input
+                name="q"
+                defaultValue={q}
+                placeholder="Search title, querycode, owner…"
+                className="h-9 w-64 rounded-md border border-input bg-background pl-8 pr-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              />
+            </div>
+          </form>
+        }
+      />
 
       <div className="mt-4 flex flex-wrap gap-2">
         {STATUS_FILTERS.map((f) => (
@@ -150,7 +161,7 @@ export default async function AdminCampaignsPage({
 
       {q ? (
         <p className="mt-3 text-sm text-muted-foreground">
-          {campaigns.length} result{campaigns.length === 1 ? "" : "s"} for
+          {matchCount} result{matchCount === 1 ? "" : "s"} for
           &ldquo;{q}&rdquo; ·{" "}
           <Link href={hrefFor(filters, { q: "" })} className="text-primary hover:underline">
             clear search
@@ -219,6 +230,18 @@ export default async function AdminCampaignsPage({
           </tbody>
         </table>
       </div>
+
+      <Pager
+        basePath="/admin/campaigns"
+        baseParams={{
+          status: status === "ALL" ? undefined : status,
+          category: category === "ALL" ? undefined : category,
+          q: q || undefined,
+        }}
+        page={page}
+        pageSize={PAGE_SIZE}
+        total={matchCount}
+      />
     </div>
   );
 }

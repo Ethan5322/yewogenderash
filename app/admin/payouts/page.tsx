@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { requirePermission } from "@/lib/admin/permissions";
 import { PayoutDecisionPanel } from "@/components/admin/payout-decision-panel";
 import { Pager, pageFrom } from "@/components/admin/pager";
+import { PageHeader, StatusChip } from "@/components/admin/ui";
 import { formatETB, formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -71,13 +72,12 @@ export default async function AdminPayoutsPage({
 
   return (
     <div>
-      <h1 className="font-display text-2xl font-bold tracking-tight">Payouts</h1>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Every release requires approval here, then a recorded transfer
-        reference. Owners can never self-release funds.
-      </p>
+      <PageHeader
+        title="Payouts"
+        description="Every release requires approval here, then a recorded transfer reference. Owners can never self-release funds."
+      />
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-2">
           {FILTERS.map((f) => (
             <Link
@@ -157,7 +157,7 @@ export default async function AdminPayoutsPage({
                       {formatETB(Number(p.amount), p.currency)}
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-xs font-semibold">{p.status}</span>
+                      <StatusChip status={p.status} />
                       {p.payoutReference ? (
                         <p className="mt-0.5 font-mono text-xs text-muted-foreground">
                           {p.payoutReference}

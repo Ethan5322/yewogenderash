@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { requirePermission } from "@/lib/admin/permissions";
 import { DonationActions } from "@/components/admin/donation-actions";
 import { Pager, pageFrom } from "@/components/admin/pager";
+import { PageHeader, StatusChip } from "@/components/admin/ui";
 import { formatETB, formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -21,15 +22,6 @@ const FILTERS: { value: DonationStatus | "ALL"; label: string }[] = [
   { value: "ALL", label: "All" },
 ];
 const VALID = new Set(FILTERS.map((f) => f.value));
-
-const STATUS_STYLE: Record<string, string> = {
-  SUCCESS: "text-success",
-  REFUNDED: "text-warning",
-  DISPUTED: "text-destructive",
-  PENDING: "text-muted-foreground",
-  FAILED: "text-muted-foreground",
-  CANCELLED: "text-muted-foreground",
-};
 
 export default async function AdminDonationsPage({
   searchParams,
@@ -74,13 +66,12 @@ export default async function AdminDonationsPage({
 
   return (
     <div>
-      <h1 className="font-display text-2xl font-bold tracking-tight">Donations</h1>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Every transaction across all campaigns. Refunds and disputes are recorded
-        here and reverse the campaign balance.
-      </p>
+      <PageHeader
+        title="Donations"
+        description="Every transaction across all campaigns. Refunds and disputes are recorded here and reverse the campaign balance."
+      />
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-3">
         <Tile label="Successful donations" value={String(totals._count)} />
         <Tile label="Gross received" value={formatETB(Number(totals._sum.amount ?? 0))} />
         <Tile label="Net to campaigns" value={formatETB(Number(totals._sum.netAmount ?? 0))} />
@@ -144,7 +135,7 @@ export default async function AdminDonationsPage({
                     <span className="font-semibold">{formatETB(Number(d.amount), d.currency)}</span>
                     <span className="text-xs text-muted-foreground"> · {formatETB(Number(d.platformFee), d.currency)} · {formatETB(Number(d.netAmount), d.currency)}</span>
                   </td>
-                  <td className={cn("px-4 py-3 text-xs font-semibold", STATUS_STYLE[d.status])}>{d.status}</td>
+                  <td className="px-4 py-3"><StatusChip status={d.status} /></td>
                   <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{d.txRef}</td>
                   <td className="px-4 py-3"><DonationActions id={d.id} status={d.status} /></td>
                 </tr>
