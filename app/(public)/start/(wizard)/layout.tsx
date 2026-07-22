@@ -17,7 +17,7 @@ export default async function WizardLayout({
 
   const state = computeOnboardingState(ctx);
   const flags: WizardFlags = {
-    verifyDone: state.emailVerified && state.phoneVerified,
+    verifyDone: state.emailVerified && state.phonePresent,
     termsDone: state.consentDone,
     documentsDone: state.documentsDone,
     reviewDone: state.submitted,

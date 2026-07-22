@@ -37,7 +37,7 @@ export default async function ReviewStep() {
   if (!ctx) redirect("/login?callbackUrl=/start/verify");
 
   const state = computeOnboardingState(ctx);
-  if (!state.emailVerified || !state.phoneVerified) redirect("/start/verify");
+  if (!state.emailVerified || !state.phonePresent) redirect("/start/verify");
   if (!state.consentDone) redirect("/start/terms");
   if (!state.documentsDone) redirect("/start/documents");
 

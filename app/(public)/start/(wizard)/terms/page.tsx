@@ -15,7 +15,7 @@ export default async function TermsStep() {
 
   // Enforce step order — contact must be verified first.
   const state = computeOnboardingState(ctx);
-  if (!state.emailVerified || !state.phoneVerified) redirect("/start/verify");
+  if (!state.emailVerified || !state.phonePresent) redirect("/start/verify");
 
   return (
     <section>
