@@ -5,10 +5,12 @@ import { db } from "@/lib/db";
 /** Hard defaults — also the fallback if the singleton row is somehow missing. */
 export const DEFAULT_FEE_RATE = 0.03;
 export const DEFAULT_AUTO_APPROVE_MAX_ETB = 5000;
+export const DEFAULT_MIN_PAYOUT_ETB = 100;
 
 export type PlatformSettings = {
   feeRate: number;
   autoApproveMaxEtb: number;
+  minPayoutEtb: number;
 };
 
 /**
@@ -21,7 +23,7 @@ export const getPlatformSettings = cache(async (): Promise<PlatformSettings> => 
     where: { id: "singleton" },
     create: { id: "singleton" },
     update: {},
-    select: { feeRate: true, autoApproveMaxEtb: true },
+    select: { feeRate: true, autoApproveMaxEtb: true, minPayoutEtb: true },
   });
   return row;
 });
@@ -30,20 +32,18 @@ export const getPlatformSettings = cache(async (): Promise<PlatformSettings> => 
 export async function updatePlatformSettings(input: {
   feeRate: number;
   autoApproveMaxEtb: number;
+  minPayoutEtb: number;
   updatedById: string;
 }): Promise<void> {
+  const data = {
+    feeRate: input.feeRate,
+    autoApproveMaxEtb: input.autoApproveMaxEtb,
+    minPayoutEtb: input.minPayoutEtb,
+    updatedById: input.updatedById,
+  };
   await db.platformSettings.upsert({
     where: { id: "singleton" },
-    create: {
-      id: "singleton",
-      feeRate: input.feeRate,
-      autoApproveMaxEtb: input.autoApproveMaxEtb,
-      updatedById: input.updatedById,
-    },
-    update: {
-      feeRate: input.feeRate,
-      autoApproveMaxEtb: input.autoApproveMaxEtb,
-      updatedById: input.updatedById,
-    },
+    create: { id: "singleton", ...data },
+    update: data,
   });
 }

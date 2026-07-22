@@ -491,6 +491,7 @@ model PlatformSettings {
   id                String   @id @default("singleton")
   feeRate           Float    @default(0.03)
   autoApproveMaxEtb Int      @default(5000)
+  minPayoutEtb      Int      @default(100)
   updatedById       String?
   updatedAt         DateTime @updatedAt
 

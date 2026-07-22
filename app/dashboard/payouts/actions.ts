@@ -9,17 +9,14 @@ import { writeAudit } from "@/lib/audit";
 import {
   campaignAvailableBalance,
   evaluateWithdrawalApproval,
-  MIN_PAYOUT_ETB,
 } from "@/lib/payouts";
+import { getPlatformSettings } from "@/lib/settings";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
 const requestSchema = z.object({
   campaignId: z.string().min(1),
-  amount: z.coerce
-    .number()
-    .int("Whole birr only")
-    .min(MIN_PAYOUT_ETB, `Minimum payout is ETB ${MIN_PAYOUT_ETB}`),
+  amount: z.coerce.number().int("Whole birr only").min(1, "Enter a valid amount"),
 });
 
 async function requireOwner() {
@@ -59,6 +56,10 @@ export async function requestPayoutAction(
   });
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the amount" };
+  }
+  const { minPayoutEtb } = await getPlatformSettings();
+  if (parsed.data.amount < minPayoutEtb) {
+    return { ok: false, error: `Minimum payout is ETB ${minPayoutEtb.toLocaleString()}.` };
   }
   const account = owner.payoutAccounts[0];
   if (!account) {

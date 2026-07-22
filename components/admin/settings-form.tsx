@@ -7,9 +7,11 @@ import { updatePlatformSettingsAction } from "@/app/admin/settings/actions";
 export function SettingsForm({
   feePercent,
   autoApproveMaxEtb,
+  minPayoutEtb,
 }: {
   feePercent: number;
   autoApproveMaxEtb: number;
+  minPayoutEtb: number;
 }) {
   const [state, action, pending] = useActionState(updatePlatformSettingsAction, null);
 
@@ -60,6 +62,28 @@ export function SettingsForm({
         <p className="mt-1.5 text-xs text-muted-foreground">
           Withdrawals at or below this amount can auto-approve for established,
           fully-verified owners. Anything larger always routes to manual review.
+        </p>
+      </div>
+
+      <div>
+        <label htmlFor="minPayoutEtb" className="block text-sm font-medium">
+          Minimum payout threshold
+        </label>
+        <div className="mt-1 flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">ETB</span>
+          <input
+            id="minPayoutEtb"
+            name="minPayoutEtb"
+            type="number"
+            step="1"
+            min="1"
+            defaultValue={minPayoutEtb}
+            required
+            className="h-10 w-40 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          />
+        </div>
+        <p className="mt-1.5 text-xs text-muted-foreground">
+          The smallest amount a fundraiser can withdraw in a single request.
         </p>
       </div>
 

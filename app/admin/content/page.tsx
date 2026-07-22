@@ -2,23 +2,20 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { contentMeta } from "@/lib/content";
 import { requirePermission } from "@/lib/admin/permissions";
+import { PageHeader } from "@/components/admin/ui";
 
-export const metadata = { title: "Site content" };
+export const metadata = { title: "CMS / Pages" };
 
 export default async function AdminContentPage() {
   await requirePermission("content");
   const blocks = contentMeta();
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="font-display text-2xl font-bold tracking-tight">
-          Site content
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Edit copy shown on the public site. Changes take effect immediately.
-        </p>
-      </div>
+    <div>
+      <PageHeader
+        title="CMS / Pages"
+        description="Edit copy shown on the public site (home, about, FAQ, fees, terms, privacy, contact and more). Changes take effect immediately."
+      />
 
       <ul className="divide-y rounded-lg border bg-card">
         {blocks.map((block) => (
