@@ -156,6 +156,48 @@ const en = {
     emailPlaceholder: "you@example.com",
     phonePlaceholder: "+1 555 123 4567 (any country)",
   },
+
+  start: {
+    badge: "For fundraisers (campaign owners)",
+    title: "Are you a fundraiser?",
+    introGuest:
+      "Sign in if you already have an account, or register as a fundraiser to get verified. After you submit your documents, our team evaluates them within 24 hours and contacts you by email or phone — then you sign in and receive your Fundraiser ID.",
+    introDonor:
+      "Continue your verification. After you submit, our team evaluates everything within 24 hours and contacts you by email or phone — then you can receive your Fundraiser ID.",
+    introOwner: "You're a verified fundraiser. Manage your campaigns from your dashboard.",
+    introAdmin:
+      "You're signed in as an administrator. To register as a fundraiser, sign out first, then choose “Register as fundraiser”.",
+    registerFundraiser: "Register as fundraiser",
+    signIn: "Sign in",
+    continueVerification: "Continue verification",
+    yourDashboard: "Your dashboard",
+    goDashboard: "Go to your dashboard",
+    goAdmin: "Go to admin panel",
+    browse: "Browse campaigns",
+    howTitle: "How verification works",
+    howSub: "Six steps stand between an idea and a live, verified campaign.",
+    needTitle: "What you'll need",
+    needDesc:
+      "Have these ready to move through verification quickly. Everything you upload is stored privately and seen only by authorised administrators.",
+    needPrivate: "Documents are never shown publicly or shared.",
+    readyTitle: "Ready to begin?",
+    readyDesc:
+      "Register as a fundraiser and continue straight through every verification step — email, terms, documents, and a live face check — then submit. Our team evaluates within 24 hours and contacts you.",
+    steps: [
+      { title: "Create your account", desc: "Sign up with your email and phone number, then verify both with a one-time code." },
+      { title: "Accept terms & fees", desc: "Review and accept the platform terms, fee policy, and consent notices." },
+      { title: "Upload your identity", desc: "Provide a national ID or passport, plus a supporting document for your cause." },
+      { title: "Verify your face", desc: "Complete a quick live face capture so we can match it to your ID." },
+      { title: "Admin review", desc: "Our team reviews your submission. This protects donors and keeps the platform trusted." },
+      { title: "Launch your campaign", desc: "Once approved, you receive the Mulesoo seal and can create campaigns with their own querycodes." },
+    ],
+    requirements: [
+      "National ID or passport",
+      "Live face capture",
+      "Payout account details",
+      "Supporting document for your cause",
+    ],
+  },
 };
 
 export type Dict = typeof en;
@@ -307,6 +349,48 @@ const am: Dict = {
     genericError: "የሆነ ስህተት ተከስቷል። እባክዎ እንደገና ይሞክሩ።",
     emailPlaceholder: "you@example.com",
     phonePlaceholder: "+251 91 234 5678 (ማንኛውም አገር)",
+  },
+
+  start: {
+    badge: "ለዘመቻ አዘጋጆች",
+    title: "ዘመቻ አዘጋጅ ነዎት?",
+    introGuest:
+      "አስቀድሞ መለያ ካለዎት ይግቡ፣ ወይም ለመረጋገጥ እንደ ዘመቻ አዘጋጅ ይመዝገቡ። ሰነዶችዎን ካስገቡ በኋላ ቡድናችን በ24 ሰዓት ውስጥ ገምግሞ በኢሜይል ወይም በስልክ ያገኝዎታል — ከዚያም ገብተው የአዘጋጅ መታወቂያዎን ይቀበላሉ።",
+    introDonor:
+      "ማረጋገጫዎን ይቀጥሉ። ካስገቡ በኋላ ቡድናችን ሁሉንም በ24 ሰዓት ውስጥ ገምግሞ በኢሜይል ወይም በስልክ ያገኝዎታል — ከዚያም የአዘጋጅ መታወቂያዎን መቀበል ይችላሉ።",
+    introOwner: "የተረጋገጡ ዘመቻ አዘጋጅ ነዎት። ዘመቻዎችዎን ከዳሽቦርድዎ ያስተዳድሩ።",
+    introAdmin:
+      "እንደ አስተዳዳሪ ገብተዋል። እንደ ዘመቻ አዘጋጅ ለመመዝገብ በመጀመሪያ ይውጡ፣ ከዚያም “እንደ አዘጋጅ ይመዝገቡ”ን ይምረጡ።",
+    registerFundraiser: "እንደ አዘጋጅ ይመዝገቡ",
+    signIn: "ይግቡ",
+    continueVerification: "ማረጋገጫ ይቀጥሉ",
+    yourDashboard: "የእርስዎ ዳሽቦርድ",
+    goDashboard: "ወደ ዳሽቦርድዎ ይሂዱ",
+    goAdmin: "ወደ አስተዳዳሪ ክፍል ይሂዱ",
+    browse: "ዘመቻዎችን ያስሱ",
+    howTitle: "ማረጋገጫው እንዴት እንደሚሠራ",
+    howSub: "ከሐሳብ እስከ ቀጥታ የተረጋገጠ ዘመቻ መካከል ስድስት ደረጃዎች አሉ።",
+    needTitle: "የሚያስፈልግዎት ነገር",
+    needDesc:
+      "ማረጋገጫውን በፍጥነት ለማለፍ እነዚህን ዝግጁ ያድርጉ። የሚጭኑት ሁሉ በግል ተጠብቆ የሚቀመጥ ሲሆን በተፈቀደላቸው አስተዳዳሪዎች ብቻ ይታያል።",
+    needPrivate: "ሰነዶች ፈጽሞ በይፋ አይታዩም ወይም አይጋሩም።",
+    readyTitle: "ለመጀመር ዝግጁ ነዎት?",
+    readyDesc:
+      "እንደ ዘመቻ አዘጋጅ ይመዝገቡና ሁሉንም የማረጋገጫ ደረጃዎች — ኢሜይል፣ ውሎች፣ ሰነዶችና የቀጥታ የፊት ማረጋገጫ — በቀጥታ ያልፉ፣ ከዚያም ያስገቡ። ቡድናችን በ24 ሰዓት ውስጥ ገምግሞ ያገኝዎታል።",
+    steps: [
+      { title: "መለያዎን ይፍጠሩ", desc: "በኢሜይልዎና በስልክ ቁጥርዎ ይመዝገቡ፣ ከዚያም ሁለቱንም ባንድ ጊዜ በሚላክ ኮድ ያረጋግጡ።" },
+      { title: "ውሎችና ክፍያዎችን ይቀበሉ", desc: "የመድረኩን ውሎች፣ የክፍያ ፖሊሲና የስምምነት ማሳወቂያዎችን ገምግመው ይቀበሉ።" },
+      { title: "ማንነትዎን ይጫኑ", desc: "ብሔራዊ መታወቂያ ወይም ፓስፖርት፣ እንዲሁም ለዓላማዎ ማስረጃ ሰነድ ያቅርቡ።" },
+      { title: "ፊትዎን ያረጋግጡ", desc: "ከመታወቂያዎ ጋር እንዲዛመድ ፈጣን የቀጥታ የፊት ቀረጻ ያድርጉ።" },
+      { title: "የአስተዳዳሪ ግምገማ", desc: "ቡድናችን ማመልከቻዎን ይገመግማል። ይህ ለጋሾችን ይጠብቃል፣ መድረኩንም የታመነ ያደርገዋል።" },
+      { title: "ዘመቻዎን ያስጀምሩ", desc: "ከጸደቁ በኋላ የሙሌሶ ማህተም ይቀበላሉ፣ የየራሳቸው መለያ ኮድ ያላቸው ዘመቻዎችን መፍጠር ይችላሉ።" },
+    ],
+    requirements: [
+      "ብሔራዊ መታወቂያ ወይም ፓስፖርት",
+      "የቀጥታ የፊት ቀረጻ",
+      "የክፍያ መቀበያ መለያ ዝርዝሮች",
+      "ለዓላማዎ ማስረጃ ሰነድ",
+    ],
   },
 };
 
