@@ -18,6 +18,7 @@ import { MulesooStamp } from "@/components/campaigns/verified-badges";
 import { MobileDonateBar } from "@/components/campaigns/mobile-donate-bar";
 import { getPublicCampaignBySlug, CATEGORY_LABELS } from "@/lib/campaigns";
 import { formatETB, progressPercent, formatDate } from "@/lib/format";
+import { getDictionary } from "@/lib/i18n";
 
 type Params = { params: Promise<{ slug: string }> };
 
@@ -33,9 +34,13 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 
 export default async function CampaignDetailPage({ params }: Params) {
   const { slug } = await params;
-  const campaign = await getPublicCampaignBySlug(slug);
+  const [campaign, dict] = await Promise.all([
+    getPublicCampaignBySlug(slug),
+    getDictionary(),
+  ]);
   if (!campaign) notFound();
 
+  const t = dict.campaign;
   const pct = progressPercent(campaign.currentAmount, campaign.targetAmount);
   const remaining = Math.max(0, campaign.targetAmount - campaign.currentAmount);
 
@@ -45,7 +50,7 @@ export default async function CampaignDetailPage({ params }: Params) {
     <div className="mx-auto max-w-6xl px-4 py-8 pb-28 sm:px-6 sm:py-12 lg:pb-12">
       <nav className="mb-6 text-sm text-muted-foreground" aria-label="Breadcrumb">
         <Link href="/campaigns" className="hover:text-foreground">
-          Campaigns
+          {dict.nav.campaigns}
         </Link>
         <span className="mx-2">/</span>
         <span className="text-foreground">{CATEGORY_LABELS[campaign.category]}</span>
@@ -75,9 +80,9 @@ export default async function CampaignDetailPage({ params }: Params) {
           <div className="mt-6 flex flex-wrap items-center gap-2">
             <Badge variant="secondary">{CATEGORY_LABELS[campaign.category]}</Badge>
             {campaign.status === "COMPLETED" ? (
-              <Badge variant="verified">Fully funded</Badge>
+              <Badge variant="verified">{t.fullyFunded}</Badge>
             ) : (
-              <Badge variant="outline">Active</Badge>
+              <Badge variant="outline">{t.active}</Badge>
             )}
             {campaign.location ? (
               <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
@@ -111,7 +116,7 @@ export default async function CampaignDetailPage({ params }: Params) {
                         title="View verification profile"
                       >
                         <Badge variant="verified" className="gap-1">
-                          <ShieldCheck className="h-3.5 w-3.5" aria-hidden /> Verified
+                          <ShieldCheck className="h-3.5 w-3.5" aria-hidden /> {t.verified}
                         </Badge>
                       </Link>
                     ) : (
@@ -122,12 +127,12 @@ export default async function CampaignDetailPage({ params }: Params) {
                   ) : null}
                 </div>
                 <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                  Launched {formatDate(campaign.reviewedAt ?? campaign.createdAt)}
+                  {t.launched} {formatDate(campaign.reviewedAt ?? campaign.createdAt)}
                 </p>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Goal</p>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">{t.goal}</p>
               <p className="font-display text-lg font-bold leading-tight">
                 {formatETB(campaign.targetAmount, campaign.currency)}
               </p>
@@ -141,7 +146,7 @@ export default async function CampaignDetailPage({ params }: Params) {
           {campaign.story ? (
             <div className="mt-8">
               <h2 className="font-display text-xl font-semibold tracking-tight">
-                The story
+                {t.theStory}
               </h2>
               <div className="mt-3 space-y-4 whitespace-pre-line leading-relaxed text-foreground/90">
                 {campaign.story}
@@ -153,20 +158,20 @@ export default async function CampaignDetailPage({ params }: Params) {
           <div className="mt-10 border-t pt-8">
             <div className="flex items-center justify-between">
               <h2 className="font-display text-xl font-semibold tracking-tight">
-                Updates
+                {t.updates}
               </h2>
               {campaign.updates.length > 0 ? (
                 <Link
                   href={`/campaigns/${campaign.slug}/updates`}
                   className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
                 >
-                  View all <ArrowRight className="h-4 w-4" aria-hidden />
+                  {t.viewAll} <ArrowRight className="h-4 w-4" aria-hidden />
                 </Link>
               ) : null}
             </div>
             {campaign.updates.length === 0 ? (
               <p className="mt-3 text-sm text-muted-foreground">
-                No updates yet. The owner will post progress here.
+                {t.noUpdates}
               </p>
             ) : (
               <ul className="mt-4 space-y-4">
@@ -199,22 +204,22 @@ export default async function CampaignDetailPage({ params }: Params) {
                 <span className="text-sm text-muted-foreground">{pct}%</span>
               </div>
               <p className="mt-1 text-sm text-muted-foreground">
-                raised of {formatETB(campaign.targetAmount, campaign.currency)} goal
+                {t.raisedOfGoal(formatETB(campaign.targetAmount, campaign.currency))}
               </p>
-              <ProgressBar value={pct} className="mt-4" label={`${pct}% funded`} />
+              <ProgressBar value={pct} className="mt-4" label={`${pct}% ${t.funded}`} />
 
               <dl className="mt-5 grid grid-cols-2 gap-4 text-sm">
                 <div className="flex items-center gap-2">
                   <Users className="h-4 w-4 text-muted-foreground" aria-hidden />
                   <div>
-                    <dt className="text-muted-foreground">Supporters</dt>
+                    <dt className="text-muted-foreground">{t.supporters}</dt>
                     <dd className="font-semibold">{campaign.supporterCount}</dd>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <HeartHandshake className="h-4 w-4 text-muted-foreground" aria-hidden />
                   <div>
-                    <dt className="text-muted-foreground">Still needed</dt>
+                    <dt className="text-muted-foreground">{t.stillNeeded}</dt>
                     <dd className="font-semibold">
                       {formatETB(remaining, campaign.currency)}
                     </dd>
@@ -223,23 +228,21 @@ export default async function CampaignDetailPage({ params }: Params) {
               </dl>
 
               <Button asChild size="lg" className="mt-6 w-full">
-                <Link href={`/campaigns/${campaign.slug}/donate`}>
-                  Donate securely
-                </Link>
+                <Link href={`/campaigns/${campaign.slug}/donate`}>{t.donate}</Link>
               </Button>
 
               <div className="mt-3 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
                 <ShieldCheck className="h-3.5 w-3.5 text-success" aria-hidden />
-                Secure checkout · funds isolated to this campaign
+                {t.secureLine}
               </div>
               <p className="mt-2 text-center text-[11px] leading-relaxed text-muted-foreground">
-                A 3% platform fee applies.{" "}
+                {t.feeApplies}{" "}
                 <Link href="/support/fees" className="underline hover:text-foreground">
-                  Fees &amp; payouts
+                  {t.fees}
                 </Link>{" "}
                 ·{" "}
                 <Link href="/support/terms" className="underline hover:text-foreground">
-                  Terms
+                  {t.terms}
                 </Link>
               </p>
             </div>
@@ -248,7 +251,7 @@ export default async function CampaignDetailPage({ params }: Params) {
             <div className="rounded-xl border bg-card p-6 shadow-sm">
               <div className="flex items-center gap-2 text-sm font-medium">
                 <QrCode className="h-4 w-4" aria-hidden />
-                Campaign querycode
+                {t.querycode}
               </div>
               <div className="mt-3 flex items-center gap-4">
                 {/* eslint-disable-next-line @next/next/no-img-element -- dynamic PNG route */}
@@ -264,23 +267,22 @@ export default async function CampaignDetailPage({ params }: Params) {
                     {campaign.queryCode}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Scan or enter this code to donate to this exact campaign —
-                    it never points anywhere else.
+                    {t.querycodeHint}
                   </p>
                 </div>
               </div>
               <Button asChild variant="outline" size="sm" className="mt-4 w-full">
-                <Link href={`/q/${campaign.queryCode}`}>Quick donate</Link>
+                <Link href={`/q/${campaign.queryCode}`}>{t.quickDonate}</Link>
               </Button>
             </div>
 
             <div className="rounded-xl border bg-muted/40 p-4 text-xs text-muted-foreground">
               <p>
-                Reviewed{" "}
+                {t.reviewedLabel}{" "}
                 {campaign.reviewedAt
                   ? formatDate(campaign.reviewedAt)
                   : formatDate(campaign.createdAt)}
-                . Owner code:{" "}
+                . {t.ownerCodeLabel}:{" "}
                 <span className="font-mono">{campaign.authorCode ?? "—"}</span>
               </p>
               <Link
@@ -288,7 +290,7 @@ export default async function CampaignDetailPage({ params }: Params) {
                 className="mt-2 inline-flex items-center gap-1 text-muted-foreground hover:text-destructive"
               >
                 <Flag className="h-3.5 w-3.5" aria-hidden />
-                Report this campaign
+                {t.report}
               </Link>
             </div>
           </div>
@@ -301,6 +303,7 @@ export default async function CampaignDetailPage({ params }: Params) {
           raised={campaign.currentAmount}
           currency={campaign.currency}
           pct={pct}
+          donateLabel={t.donate}
         />
       ) : null}
     </div>

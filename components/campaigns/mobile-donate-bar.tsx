@@ -12,11 +12,13 @@ export function MobileDonateBar({
   raised,
   currency,
   pct,
+  donateLabel = "Donate securely",
 }: {
   slug: string;
   raised: number;
   currency: string;
   pct: number;
+  donateLabel?: string;
 }) {
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-card/95 backdrop-blur shadow-[0_-4px_20px_rgba(0,0,0,0.07)] lg:hidden">
@@ -30,7 +32,7 @@ export function MobileDonateBar({
             <p className="text-xs leading-tight text-muted-foreground">{pct}% funded</p>
           </div>
           <Button asChild size="sm" className="shrink-0">
-            <Link href={`/campaigns/${slug}/donate`}>Donate securely</Link>
+            <Link href={`/campaigns/${slug}/donate`}>{donateLabel}</Link>
           </Button>
         </div>
       </div>

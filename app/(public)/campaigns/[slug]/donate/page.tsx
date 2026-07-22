@@ -7,6 +7,7 @@ import { ProgressBar } from "@/components/campaigns/progress-bar";
 import { DonationForm } from "@/components/donate/donation-form";
 import { getPublicCampaignBySlug, CATEGORY_LABELS } from "@/lib/campaigns";
 import { formatETB, progressPercent } from "@/lib/format";
+import { getDictionary } from "@/lib/i18n";
 
 type Params = { params: Promise<{ slug: string }> };
 
@@ -20,9 +21,13 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 
 export default async function DonatePage({ params }: Params) {
   const { slug } = await params;
-  const campaign = await getPublicCampaignBySlug(slug);
+  const [campaign, dict] = await Promise.all([
+    getPublicCampaignBySlug(slug),
+    getDictionary(),
+  ]);
   if (!campaign) notFound();
 
+  const t = dict.donate;
   const pct = progressPercent(campaign.currentAmount, campaign.targetAmount);
 
   return (
@@ -32,7 +37,7 @@ export default async function DonatePage({ params }: Params) {
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4" aria-hidden />
-        Back to campaign
+        {t.back}
       </Link>
 
       {/* Campaign statement — the fundraiser's uploaded picture as the backdrop */}
@@ -72,11 +77,11 @@ export default async function DonatePage({ params }: Params) {
                   href={`/a/${campaign.authorCode}`}
                   className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2 py-0.5 text-xs font-semibold backdrop-blur hover:bg-white/25"
                 >
-                  <ShieldCheck className="h-3.5 w-3.5" aria-hidden /> Verified owner
+                  <ShieldCheck className="h-3.5 w-3.5" aria-hidden /> {dict.campaign.verified}
                 </Link>
               ) : (
                 <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2 py-0.5 text-xs font-semibold backdrop-blur">
-                  <ShieldCheck className="h-3.5 w-3.5" aria-hidden /> Verified owner
+                  <ShieldCheck className="h-3.5 w-3.5" aria-hidden /> {dict.campaign.verified}
                 </span>
               )
             ) : null}
@@ -100,10 +105,10 @@ export default async function DonatePage({ params }: Params) {
 
       {/* Donation form */}
       <div className="mt-6">
-        <h2 className="font-display text-2xl font-bold tracking-tight">Make a donation</h2>
+        <h2 className="font-display text-2xl font-bold tracking-tight">{t.title}</h2>
         <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
           <ShieldCheck className="h-4 w-4 text-success" aria-hidden />
-          Your gift is isolated to this campaign — funds are never pooled.
+          {t.isolated}
         </p>
         <div className="mt-4 rounded-xl border bg-card p-6 shadow-sm">
           {campaign.status === "ACTIVE" ? (
@@ -113,20 +118,17 @@ export default async function DonatePage({ params }: Params) {
               currency={campaign.currency}
             />
           ) : (
-            <p className="text-center text-sm text-muted-foreground">
-              This campaign is fully funded and no longer accepting donations.
-              Thank you to everyone who contributed!
-            </p>
+            <p className="text-center text-sm text-muted-foreground">{t.closed}</p>
           )}
         </div>
         <p className="mt-3 text-center text-xs text-muted-foreground">
-          Secure checkout · a 3% platform fee applies ·{" "}
+          {t.secureFee}{" "}
           <Link href="/support/fees" className="underline hover:text-foreground">
-            Fees &amp; payouts
+            {dict.campaign.fees}
           </Link>{" "}
           ·{" "}
           <Link href="/support/terms" className="underline hover:text-foreground">
-            Terms
+            {dict.campaign.terms}
           </Link>
         </p>
       </div>

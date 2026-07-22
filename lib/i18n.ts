@@ -80,6 +80,53 @@ const en = {
         "Payments are confirmed by the payment gateway before they count, and owners are alerted in real time.",
     },
   },
+
+  list: {
+    title: "Campaigns",
+    subtitle: "Verified causes from around the world — each one identity-checked and separately tracked.",
+    all: "All",
+    search: "Search campaigns…",
+    empty: "No campaigns match your filters yet.",
+  },
+
+  campaign: {
+    active: "Active",
+    fullyFunded: "Fully funded",
+    launched: "Launched",
+    goal: "Goal",
+    verified: "Verified",
+    theStory: "The story",
+    updates: "Updates",
+    viewAll: "View all",
+    noUpdates: "No updates yet. The owner will post progress here.",
+    raisedOfGoal: (goal: string) => `raised of ${goal} goal`,
+    supporters: "Supporters",
+    stillNeeded: "Still needed",
+    donate: "Donate securely",
+    secureLine: "Secure checkout · funds isolated to this campaign",
+    feeApplies: "A 3% platform fee applies.",
+    fees: "Fees & payouts",
+    terms: "Terms",
+    querycode: "Campaign querycode",
+    querycodeHint:
+      "Scan or enter this code to donate to this exact campaign — it never points anywhere else.",
+    quickDonate: "Quick donate",
+    reviewedLabel: "Reviewed",
+    ownerCodeLabel: "Owner code",
+    report: "Report this campaign",
+    funded: "funded",
+    onlyThis: "This code funds only this campaign — never a shared pool.",
+    seeFull: "See full campaign",
+  },
+
+  donate: {
+    back: "Back to campaign",
+    title: "Make a donation",
+    isolated: "Your gift is isolated to this campaign — funds are never pooled.",
+    closed:
+      "This campaign is fully funded and no longer accepting donations. Thank you to everyone who contributed!",
+    secureFee: "Secure checkout · a 3% platform fee applies ·",
+  },
 };
 
 export type Dict = typeof en;
@@ -150,6 +197,53 @@ const am: Dict = {
       instantDesc:
         "ክፍያዎች ከመቆጠራቸው በፊት በክፍያ አገልግሎቱ ይረጋገጣሉ፣ አዘጋጆችም ወዲያውኑ ማሳወቂያ ይደርሳቸዋል።",
     },
+  },
+
+  list: {
+    title: "ዘመቻዎች",
+    subtitle: "ከመላው ዓለም የተውጣጡ የተረጋገጡ ዓላማዎች — እያንዳንዳቸው ማንነታቸው ተረጋግጦ በተናጠል ይከታተላሉ።",
+    all: "ሁሉም",
+    search: "ዘመቻዎችን ይፈልጉ…",
+    empty: "ከማጣሪያዎችዎ ጋር የሚዛመድ ዘመቻ እስካሁን የለም።",
+  },
+
+  campaign: {
+    active: "ንቁ",
+    fullyFunded: "ሙሉ በሙሉ ተሸፍኗል",
+    launched: "የተጀመረበት",
+    goal: "ግብ",
+    verified: "የተረጋገጠ",
+    theStory: "ታሪኩ",
+    updates: "ዝማኔዎች",
+    viewAll: "ሁሉንም ይመልከቱ",
+    noUpdates: "እስካሁን ዝማኔ የለም። አዘጋጁ የሥራውን እድገት እዚህ ላይ ይለጥፋል።",
+    raisedOfGoal: (goal: string) => `ከ${goal} ግብ ውስጥ ተሰብስቧል`,
+    supporters: "ደጋፊዎች",
+    stillNeeded: "ቀሪ የሚያስፈልግ",
+    donate: "በደህንነት ይለግሱ",
+    secureLine: "ደህንነቱ የተጠበቀ ክፍያ · ገንዘቡ ለዚህ ዘመቻ ብቻ ተለይቷል",
+    feeApplies: "3% የመድረክ ክፍያ ይተገበራል።",
+    fees: "ክፍያዎችና ወጪዎች",
+    terms: "ውሎች",
+    querycode: "የዘመቻ መለያ ኮድ",
+    querycodeHint:
+      "ለዚህ ዘመቻ ብቻ ለመለገስ ይህን ኮድ ይቃኙ ወይም ያስገቡ — ፈጽሞ ወደ ሌላ ቦታ አይመራም።",
+    quickDonate: "ፈጣን ልገሳ",
+    reviewedLabel: "ተገምግሟል",
+    ownerCodeLabel: "የአዘጋጅ ኮድ",
+    report: "ይህን ዘመቻ ሪፖርት ያድርጉ",
+    funded: "ተሸፍኗል",
+    onlyThis: "ይህ ኮድ ለዚህ ዘመቻ ብቻ ገንዘብ ያሰባስባል — ፈጽሞ ወደ ጋራ ገንዘብ አይገባም።",
+    seeFull: "ሙሉ ዘመቻውን ይመልከቱ",
+  },
+
+  donate: {
+    back: "ወደ ዘመቻው ተመለስ",
+    title: "ልገሳ ያድርጉ",
+    isolated: "ስጦታዎ ለዚህ ዘመቻ ብቻ የተለየ ነው — ገንዘቦች ፈጽሞ አይቀላቀሉም።",
+    closed:
+      "ይህ ዘመቻ ሙሉ በሙሉ ተሸፍኗል፤ ከእንግዲህ ልገሳ አይቀበልም። ላበረከታችሁ ሁሉ እናመሰግናለን!",
+    secureFee: "ደህንነቱ የተጠበቀ ክፍያ · 3% የመድረክ ክፍያ ይተገበራል ·",
   },
 };
 
