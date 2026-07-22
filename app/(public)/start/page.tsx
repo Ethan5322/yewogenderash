@@ -64,19 +64,34 @@ const REQUIREMENTS = [
 
 export default async function StartPage() {
   const session = await auth();
-  const isOwner = session?.user?.role === "OWNER";
-  const loggedIn = !!session?.user;
+  const role = session?.user?.role;
 
-  // The two clear choices: register as a fundraiser, or sign in. Adapts to
-  // whoever is (or isn't) already signed in.
-  const primary = isOwner
-    ? { href: "/dashboard", label: "Go to your dashboard" }
-    : loggedIn
-      ? { href: "/start/verify", label: "Continue verification" }
-      : { href: "/register?next=/start/verify", label: "Register as fundraiser" };
-  const secondary = loggedIn
-    ? { href: "/dashboard", label: "Your dashboard" }
-    : { href: "/login", label: "Sign in" };
+  // The gate adapts to who's here. Admins are staff (not fundraisers); verified
+  // owners already are fundraisers; donors continue verification; guests
+  // register or sign in.
+  let primary: { href: string; label: string };
+  let secondary: { href: string; label: string };
+  let intro: string;
+  if (role === "ADMIN") {
+    primary = { href: "/admin", label: "Go to admin panel" };
+    secondary = { href: "/campaigns", label: "Browse campaigns" };
+    intro =
+      "You're signed in as an administrator. To register as a fundraiser, sign out first, then choose “Register as fundraiser”.";
+  } else if (role === "OWNER") {
+    primary = { href: "/dashboard", label: "Go to your dashboard" };
+    secondary = { href: "/campaigns", label: "Browse campaigns" };
+    intro = "You're a verified fundraiser. Manage your campaigns from your dashboard.";
+  } else if (session?.user) {
+    primary = { href: "/start/verify", label: "Continue verification" };
+    secondary = { href: "/dashboard", label: "Your dashboard" };
+    intro =
+      "Continue your verification. After you submit, our team evaluates everything within 24 hours and contacts you by email or phone — then you can receive your Fundraiser ID.";
+  } else {
+    primary = { href: "/register?next=/start/verify", label: "Register as fundraiser" };
+    secondary = { href: "/login", label: "Sign in" };
+    intro =
+      "Sign in if you already have an account, or register as a fundraiser to get verified. After you submit your documents, our team evaluates them within 24 hours and contacts you by email or phone — then you sign in and receive your Fundraiser ID.";
+  }
 
   return (
     <div>
@@ -91,9 +106,7 @@ export default async function StartPage() {
             Are you a fundraiser?
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-muted-foreground sm:text-lg">
-            {isOwner
-              ? "You're a verified fundraiser. Head to your dashboard to manage campaigns."
-              : "Sign in if you already have an account, or register as a fundraiser to get verified. After you submit your documents, our team evaluates them within 24 hours and contacts you by email or phone — then you can sign in and receive your Fundraiser ID."}
+            {intro}
           </p>
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             <Button asChild size="lg">
