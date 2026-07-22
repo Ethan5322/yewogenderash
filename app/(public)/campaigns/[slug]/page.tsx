@@ -204,7 +204,7 @@ export default async function CampaignDetailPage({ params }: Params) {
                 <span className="text-sm text-muted-foreground">{pct}%</span>
               </div>
               <p className="mt-1 text-sm text-muted-foreground">
-                {t.raisedOfGoal(formatETB(campaign.targetAmount, campaign.currency))}
+                {t.raisedOfGoal.replace("{goal}", formatETB(campaign.targetAmount, campaign.currency))}
               </p>
               <ProgressBar value={pct} className="mt-4" label={`${pct}% ${t.funded}`} />
 
