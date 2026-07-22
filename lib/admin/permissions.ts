@@ -96,3 +96,13 @@ export async function requirePermission(
   if (!hasPermission(admin, key)) redirect(`/admin?denied=${key}`);
   return admin;
 }
+
+/**
+ * Guard reserved for the main admin only — sensitive platform config (fee rate,
+ * payout ceilings) is never delegable to a sub-admin. Redirects otherwise.
+ */
+export async function requireSuperAdmin(): Promise<CurrentAdmin> {
+  const admin = await currentAdmin();
+  if (!admin.isSuperAdmin) redirect("/admin?denied=super");
+  return admin;
+}

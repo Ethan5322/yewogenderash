@@ -483,6 +483,20 @@ model SiteContent {
   @@map("yd_site_content")
 }
 
+/// Editable platform policy — a single "singleton" row. Super-admin only.
+/// `feeRate` governs the split baked into NEW Chapa subaccounts (each account
+/// also records the rate it was created with, so ledgers always reconcile);
+/// `autoApproveMaxEtb` is the ceiling for automated payout approval.
+model PlatformSettings {
+  id                String   @id @default("singleton")
+  feeRate           Float    @default(0.03)
+  autoApproveMaxEtb Int      @default(5000)
+  updatedById       String?
+  updatedAt         DateTime @updatedAt
+
+  @@map("yd_platform_settings")
+}
+
 /// Public contact messages and abuse reports, reviewed by admins in the
 /// Support inbox. `type` = "CONTACT" | "REPORT"; `status` = "OPEN" | "RESOLVED".
 model SupportMessage {
@@ -564,6 +578,10 @@ model PayoutAccount {
   accountNumber     String
   /// Chapa subaccount id — the split target for this owner's donations.
   chapaSubaccountId String?
+  /// Platform fee rate baked into this subaccount's Chapa split at creation.
+  /// Settle uses THIS rate (not the current global) so the ledger always
+  /// reconciles with what Chapa actually routed, even after the fee changes.
+  feeRate           Float?
   isVerified        Boolean       @default(false)
   verifiedAt        DateTime?
   /// The owner's currently active payout account (only one should be true).

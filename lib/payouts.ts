@@ -1,12 +1,14 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { toNumber } from "@/lib/format";
+import { getPlatformSettings } from "@/lib/settings";
 
 export const MIN_PAYOUT_ETB = 100;
 
 /**
- * Ceiling for automated approval. Requests at or below this settle through the
- * auto-approval rules; larger ones always go to a human reviewer.
+ * Fallback ceiling for automated approval. The live value is editable by the
+ * main admin (Settings) and read via getPlatformSettings(); this constant is
+ * only the default the settings row seeds with.
  */
 export const AUTO_APPROVE_MAX_ETB = 5000;
 
@@ -32,10 +34,11 @@ export async function evaluateWithdrawalApproval(params: {
   if (!params.hasVerifiedAccount) {
     return { autoApprove: false, reason: "No verified payout account — manual review" };
   }
-  if (params.amount > AUTO_APPROVE_MAX_ETB) {
+  const { autoApproveMaxEtb } = await getPlatformSettings();
+  if (params.amount > autoApproveMaxEtb) {
     return {
       autoApprove: false,
-      reason: `Amount over auto-approval limit (ETB ${AUTO_APPROVE_MAX_ETB.toLocaleString()}) — manual review`,
+      reason: `Amount over auto-approval limit (ETB ${autoApproveMaxEtb.toLocaleString()}) — manual review`,
     };
   }
   const priorPaid = await db.payout.count({
@@ -46,7 +49,7 @@ export async function evaluateWithdrawalApproval(params: {
   }
   return {
     autoApprove: true,
-    reason: `Auto-approved: verified owner, ${priorPaid} prior payout(s), amount within ETB ${AUTO_APPROVE_MAX_ETB.toLocaleString()} limit`,
+    reason: `Auto-approved: verified owner, ${priorPaid} prior payout(s), amount within ETB ${autoApproveMaxEtb.toLocaleString()} limit`,
   };
 }
 

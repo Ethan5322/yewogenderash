@@ -45,7 +45,7 @@ export async function settleDonation(
             select: {
               payoutAccounts: {
                 where: { isDefault: true, isVerified: true },
-                select: { chapaSubaccountId: true },
+                select: { chapaSubaccountId: true, feeRate: true },
                 take: 1,
               },
             },
@@ -88,11 +88,13 @@ export async function settleDonation(
     return { outcome: "amount_mismatch", detail };
   }
 
-  // The 3% platform fee split. Chapa moves the money via the subaccount split;
-  // we record the exact figures here so the ledger is authoritative regardless.
-  const split = computeFeeSplit(expected);
-  const subaccountId =
-    donation.campaign.owner?.payoutAccounts[0]?.chapaSubaccountId ?? null;
+  // The platform fee split. Chapa moves the money via the subaccount split; we
+  // record the exact figures here so the ledger is authoritative regardless.
+  // Use the rate baked into THIS owner's subaccount (falling back to the current
+  // default) so the ledger always reconciles with what Chapa actually routed.
+  const account = donation.campaign.owner?.payoutAccounts[0];
+  const split = computeFeeSplit(expected, account?.feeRate ?? undefined);
+  const subaccountId = account?.chapaSubaccountId ?? null;
 
   const settled = await db.$transaction(async (tx) => {
     // Guarded flip — a concurrent settle (webhook + thanks page racing)

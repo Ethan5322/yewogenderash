@@ -16,6 +16,7 @@ import {
   LifeBuoy,
   Users,
   ScrollText,
+  Settings,
   LogOut,
   ExternalLink,
 } from "lucide-react";
@@ -35,6 +36,7 @@ const ICONS = {
   support: LifeBuoy,
   admins: Users,
   audit: ScrollText,
+  settings: Settings,
 } as const;
 
 export type AdminNavItem = {

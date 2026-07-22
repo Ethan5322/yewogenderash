@@ -7,7 +7,7 @@ import { db } from "@/lib/db";
 import { adminUnreadTotal } from "@/lib/messages";
 import { AdminShell, type AdminNavItem } from "@/components/admin/admin-shell";
 
-const ADMIN_NAV: (AdminNavItem & { perm?: AdminPermission })[] = [
+const ADMIN_NAV: (AdminNavItem & { perm?: AdminPermission; superOnly?: boolean })[] = [
   { href: "/admin", label: "Overview", key: "overview" },
   { href: "/admin/campaigns", label: "Campaigns", key: "campaigns", perm: "campaigns" },
   { href: "/admin/owners", label: "Owners (KYC)", key: "kyc", perm: "kyc" },
@@ -20,6 +20,7 @@ const ADMIN_NAV: (AdminNavItem & { perm?: AdminPermission })[] = [
   { href: "/admin/support", label: "Support", key: "support", perm: "messages" },
   { href: "/admin/team", label: "Team", key: "admins", perm: "admins" },
   { href: "/admin/audit", label: "Audit", key: "audit", perm: "admins" },
+  { href: "/admin/settings", label: "Settings", key: "settings", superOnly: true },
 ];
 
 export const metadata = { title: "Admin" };
@@ -54,7 +55,9 @@ export default async function AdminLayout({
   };
 
   const nav: AdminNavItem[] = ADMIN_NAV.filter(
-    (item) => !item.perm || hasPermission(me, item.perm)
+    (item) =>
+      (item.superOnly ? me.isSuperAdmin : true) &&
+      (!item.perm || hasPermission(me, item.perm))
   ).map(({ href, label, key }) => ({ href, label, key, badge: badgeFor[key] || undefined }));
 
   return (

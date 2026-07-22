@@ -7,7 +7,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { writeAudit } from "@/lib/audit";
 import { createChapaSubaccount } from "@/lib/chapa";
-import { PLATFORM_FEE_RATE } from "@/lib/fees";
+import { getPlatformSettings } from "@/lib/settings";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -53,13 +53,17 @@ export async function savePayoutAccountAction(
   }
   const data = parsed.data;
 
+  // Current platform fee rate — baked into this subaccount's Chapa split and
+  // recorded on the account so settle reconciles even if the rate later changes.
+  const { feeRate } = await getPlatformSettings();
+
   // Register the split target with Chapa.
   const sub = await createChapaSubaccount({
     businessName: `Yewogen Derash — ${owner.user.name}`,
     bankCode: data.bankCode,
     accountNumber: data.accountNumber,
     accountName: data.accountName,
-    splitValue: PLATFORM_FEE_RATE,
+    splitValue: feeRate,
   });
   if (!sub.ok) {
     return { ok: false, error: `Bank could not be verified with the payment provider: ${sub.error}` };
@@ -79,6 +83,7 @@ export async function savePayoutAccountAction(
         bankCode: data.bankCode,
         accountNumber: data.accountNumber,
         chapaSubaccountId: sub.subaccountId,
+        feeRate,
         isVerified: true,
         verifiedAt: new Date(),
         isDefault: true,
