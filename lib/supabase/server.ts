@@ -49,14 +49,19 @@ export async function uploadKycFile(
   return { ok: true, path };
 }
 
-/** Short-lived signed URL for an admin to view a private KYC document. */
+/**
+ * Short-lived signed URL for an admin to view a private KYC document. Pass a
+ * `download` filename to force a browser download (Content-Disposition:
+ * attachment) instead of opening the file inline.
+ */
 export async function signedKycUrl(
   path: string,
-  expiresInSeconds = 300
+  expiresInSeconds = 300,
+  download?: string
 ): Promise<string | null> {
   const { data, error } = await supabaseAdmin()
     .storage.from(KYC_BUCKET)
-    .createSignedUrl(path, expiresInSeconds);
+    .createSignedUrl(path, expiresInSeconds, download ? { download } : undefined);
   if (error || !data) return null;
   return data.signedUrl;
 }

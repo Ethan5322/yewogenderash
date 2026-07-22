@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ExternalLink, FileText, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ExternalLink, Download, FileText, ShieldCheck } from "lucide-react";
 import { db } from "@/lib/db";
 import { requirePermission } from "@/lib/admin/permissions";
 import { signedKycUrl } from "@/lib/supabase/server";
@@ -40,23 +40,29 @@ export default async function AdminOwnerDetailPage({
         orderBy: { createdAt: "desc" },
         select: { id: true, title: true, status: true },
       },
+      payoutAccounts: {
+        where: { isDefault: true, isVerified: true },
+        take: 1,
+        select: { accountName: true, accountNumber: true, bankName: true },
+      },
     },
   });
   if (!owner) notFound();
 
+  const safeName = owner.user.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
   const docs = await Promise.all(
-    owner.documents.map(async (d) => ({
-      ...d,
-      signedUrl: await signedKycUrl(d.fileUrl, 600),
-    }))
+    owner.documents.map(async (d) => {
+      const ext = d.fileUrl.split(".").pop()?.split("?")[0] || "file";
+      const filename = `${safeName}-${d.documentType.toLowerCase()}.${ext}`;
+      const [signedUrl, downloadUrl] = await Promise.all([
+        signedKycUrl(d.fileUrl, 600),
+        signedKycUrl(d.fileUrl, 600, filename),
+      ]);
+      return { ...d, signedUrl, downloadUrl };
+    })
   );
 
-  const payout = owner.payoutAccount as {
-    accountType?: string;
-    accountName?: string;
-    accountNumber?: string;
-    bankName?: string | null;
-  } | null;
+  const payout = owner.payoutAccounts[0] ?? null;
 
   return (
     <div>
@@ -164,9 +170,7 @@ export default async function AdminOwnerDetailPage({
               <div className="mt-4 border-t pt-4 text-sm">
                 <h3 className="font-medium">Payout account (admin-only)</h3>
                 <p className="mt-1 text-muted-foreground">
-                  {payout.accountType === "TELEBIRR" ? "Telebirr" : "Bank"} ·{" "}
-                  {payout.accountName} · {payout.accountNumber}
-                  {payout.bankName ? ` · ${payout.bankName}` : ""}
+                  {payout.bankName} · {payout.accountName} · {payout.accountNumber}
                 </p>
               </div>
             ) : null}
@@ -198,18 +202,29 @@ export default async function AdminOwnerDetailPage({
                         </p>
                       </div>
                     </div>
-                    {d.signedUrl ? (
-                      <a
-                        href={d.signedUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-primary hover:underline"
-                      >
-                        Open <ExternalLink className="h-3.5 w-3.5" aria-hidden />
-                      </a>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">unavailable</span>
-                    )}
+                    <div className="flex shrink-0 items-center gap-2">
+                      {d.signedUrl ? (
+                        <a
+                          href={d.signedUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-medium shadow-sm transition-colors hover:bg-accent"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" aria-hidden /> Open
+                        </a>
+                      ) : null}
+                      {d.downloadUrl ? (
+                        <a
+                          href={d.downloadUrl}
+                          className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-medium shadow-sm transition-colors hover:bg-accent"
+                        >
+                          <Download className="h-3.5 w-3.5" aria-hidden /> Download
+                        </a>
+                      ) : null}
+                      {!d.signedUrl && !d.downloadUrl ? (
+                        <span className="text-xs text-muted-foreground">unavailable</span>
+                      ) : null}
+                    </div>
                   </li>
                 ))}
               </ul>
