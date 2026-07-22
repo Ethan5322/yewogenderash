@@ -13,6 +13,7 @@ import {
 import { SelfieCapture } from "@/components/onboarding/selfie-capture";
 import { SubmitReview } from "@/components/onboarding/submit-review";
 import { IdPhotoUpload } from "@/components/owner/id-photo-upload";
+import { createCaptureToken } from "@/lib/capture-token";
 
 export const metadata: Metadata = { title: "Face & submit · Owner verification" };
 
@@ -113,7 +114,11 @@ export default async function ReviewStep() {
               </div>
             </div>
           ) : (
-            <SelfieCapture />
+            <SelfieCapture
+              captureToken={
+                ctx.ownerProfile ? createCaptureToken(ctx.ownerProfile.id) : undefined
+              }
+            />
           )}
         </div>
       </div>

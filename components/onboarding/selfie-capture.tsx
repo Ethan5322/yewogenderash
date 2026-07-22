@@ -2,12 +2,13 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { RefreshCw, Loader2, Upload, ScanFace, Check } from "lucide-react";
+import { RefreshCw, Loader2, Upload, ScanFace, Check, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FileDropzone } from "@/components/onboarding/file-dropzone";
 import { captureBiometricAction } from "@/app/(public)/start/(wizard)/actions";
 import { describeFace, detectLiveness } from "@/lib/face/faceapi";
 import { assessImageQuality } from "@/lib/face/quality";
+import { realtimeClient, captureChannelName } from "@/lib/supabase/realtime";
 
 // Liveness thresholds.
 const TURN_RANGE = 0.28; // left+right head-turn spread (normalised nose offset)
@@ -30,7 +31,7 @@ function fileToImage(file: File): Promise<HTMLImageElement> {
   });
 }
 
-export function SelfieCapture() {
+export function SelfieCapture({ captureToken }: { captureToken?: string }) {
   const router = useRouter();
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const streamRef = React.useRef<MediaStream | null>(null);
@@ -39,7 +40,8 @@ export function SelfieCapture() {
   // stale React state.
   const live = React.useRef({ minX: 1, maxX: -1, armed: false, turnOk: false, blinkOk: false });
 
-  const [mode, setMode] = React.useState<"idle" | "camera" | "captured" | "upload">("idle");
+  const [mode, setMode] = React.useState<"idle" | "camera" | "captured" | "upload" | "phone">("idle");
+  const [qrDataUrl, setQrDataUrl] = React.useState<string | null>(null);
   const [turnOk, setTurnOk] = React.useState(false);
   const [blinkOk, setBlinkOk] = React.useState(false);
   const [prompt, setPrompt] = React.useState("Position your face in the frame");
@@ -115,10 +117,44 @@ export function SelfieCapture() {
       });
       loopRef.current = setInterval(sample, 150);
     } catch {
-      setError("Couldn't access the camera. You can upload a selfie instead.");
-      setMode("upload");
+      // No camera on this device → offer the phone-QR handoff (or upload).
+      if (captureToken) {
+        setError(null);
+        setMode("phone");
+      } else {
+        setError("Couldn't access the camera. You can upload a selfie instead.");
+        setMode("upload");
+      }
     }
   }
+
+  // Phone handoff: show a QR to the mobile capture page and listen for the
+  // "done" broadcast so this page advances the moment the phone uploads.
+  React.useEffect(() => {
+    if (mode !== "phone" || !captureToken) return;
+    const url = `${window.location.origin}/capture/${captureToken}`;
+    let channel: ReturnType<ReturnType<typeof realtimeClient>["channel"]> | null = null;
+
+    (async () => {
+      try {
+        const QRCode = (await import("qrcode")).default;
+        setQrDataUrl(await QRCode.toDataURL(url, { width: 240, margin: 1 }));
+      } catch {
+        /* fall back to the plain link below */
+      }
+      try {
+        channel = realtimeClient().channel(captureChannelName(captureToken));
+        channel.on("broadcast", { event: "done" }, () => router.refresh());
+        channel.subscribe();
+      } catch {
+        /* realtime unavailable — the manual "I've finished" button still works */
+      }
+    })();
+
+    return () => {
+      if (channel) realtimeClient().removeChannel(channel);
+    };
+  }, [mode, captureToken, router]);
 
   async function sample() {
     const video = videoRef.current;
@@ -286,6 +322,44 @@ export function SelfieCapture() {
     );
   }
 
+  // Phone handoff — scan the QR, capture on the phone, this page auto-advances
+  if (mode === "phone") {
+    return (
+      <div className="space-y-4 text-center">
+        <div className="flex items-center justify-center gap-2 text-sm font-medium">
+          <Smartphone className="h-4 w-4 text-primary" aria-hidden /> No camera on
+          this device? Use your phone.
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Scan this QR code with your phone. It opens the camera, you take a
+          selfie, and this page continues automatically — nothing to download.
+        </p>
+        <div className="flex justify-center">
+          {qrDataUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element -- generated data URL
+            <img src={qrDataUrl} alt="Scan to capture on your phone" className="h-56 w-56 rounded-lg border bg-white p-2" />
+          ) : (
+            <div className="flex h-56 w-56 items-center justify-center rounded-lg border">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" aria-hidden />
+            </div>
+          )}
+        </div>
+        <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> Waiting for
+          your phone…
+        </p>
+        <div className="flex flex-wrap justify-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => router.refresh()}>
+            <RefreshCw className="h-4 w-4" aria-hidden /> I&apos;ve finished on my phone
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => { setError(null); setMode("upload"); }}>
+            <Upload className="h-4 w-4" aria-hidden /> Upload a photo instead
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   // Idle
   return (
     <div className="space-y-3">
@@ -297,6 +371,11 @@ export function SelfieCapture() {
         <Button onClick={startCamera}>
           <ScanFace className="h-4 w-4" aria-hidden /> Start live check
         </Button>
+        {captureToken ? (
+          <Button variant="outline" onClick={() => { setError(null); setMode("phone"); }}>
+            <Smartphone className="h-4 w-4" aria-hidden /> No camera? Use your phone
+          </Button>
+        ) : null}
         <Button variant="outline" onClick={() => setMode("upload")}>
           <Upload className="h-4 w-4" aria-hidden /> Upload instead
         </Button>
