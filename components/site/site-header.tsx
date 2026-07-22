@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 
 const NAV_LINKS = [
   { href: "/campaigns", label: "Campaigns" },
+  { href: "/start", label: "Start a campaign" },
   { href: "/support", label: "Support" },
 ] as const;
 
