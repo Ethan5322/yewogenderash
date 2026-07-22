@@ -48,7 +48,7 @@ export async function POST(req: Request) {
     );
   }
 
-  await deliverOtp({
+  const delivery = await deliverOtp({
     purpose,
     email: user.email,
     phone: user.phone,
@@ -59,6 +59,16 @@ export async function POST(req: Request) {
   // console digging. Never included in production builds.
   const devCode =
     process.env.NODE_ENV === "development" ? result.code : undefined;
+
+  // In production, if email is configured but delivery failed (e.g. the sending
+  // domain isn't verified yet, so Resend only allows the account address), tell
+  // the user instead of leaving them waiting for a code that never arrives.
+  if (!devCode && delivery.emailConfigured && !delivery.emailSent) {
+    return NextResponse.json(
+      { error: "We couldn't send your code right now. Please try again shortly or contact support." },
+      { status: 502 }
+    );
+  }
 
   return NextResponse.json(devCode ? { ok: true, devCode } : { ok: true });
 }

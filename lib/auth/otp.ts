@@ -95,23 +95,26 @@ export async function deliverOtp(params: {
   email?: string | null;
   phone?: string | null;
   code: string;
-}) {
+}): Promise<{ emailConfigured: boolean; emailSent: boolean; error?: string }> {
   console.log(
     `[otp] ${params.purpose} code for ${params.email ?? params.phone}: ${params.code}`
   );
 
-  if (params.email && emailConfigured()) {
-    const res = await sendEmail({
-      to: params.email,
-      subject: `Your Yewogen Derash verification code: ${params.code}`,
-      text: `Your verification code is ${params.code}. It expires in 10 minutes.\n\nIf you did not request this, you can ignore this email.`,
-      html:
-        `<div style="font-family:system-ui,Arial,sans-serif">` +
-        `<p>Your Yewogen Derash verification code is:</p>` +
-        `<p style="font-size:28px;font-weight:700;letter-spacing:4px">${params.code}</p>` +
-        `<p style="color:#555">It expires in 10 minutes. If you didn't request this, ignore this email.</p>` +
-        `</div>`,
-    });
-    if (!res.ok) console.error("[otp] email delivery failed:", res.error);
+  if (!params.email || !emailConfigured()) {
+    return { emailConfigured: emailConfigured(), emailSent: false };
   }
+
+  const res = await sendEmail({
+    to: params.email,
+    subject: `Your Yewogen Derash verification code: ${params.code}`,
+    text: `Your verification code is ${params.code}. It expires in 10 minutes.\n\nIf you did not request this, you can ignore this email.`,
+    html:
+      `<div style="font-family:system-ui,Arial,sans-serif">` +
+      `<p>Your Yewogen Derash verification code is:</p>` +
+      `<p style="font-size:28px;font-weight:700;letter-spacing:4px">${params.code}</p>` +
+      `<p style="color:#555">It expires in 10 minutes. If you didn't request this, ignore this email.</p>` +
+      `</div>`,
+  });
+  if (!res.ok) console.error("[otp] email delivery failed:", res.error);
+  return { emailConfigured: true, emailSent: res.ok, error: res.ok ? undefined : res.error };
 }
