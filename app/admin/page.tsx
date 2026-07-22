@@ -6,11 +6,12 @@ import {
   Landmark,
   Percent,
   Flag,
-  ClipboardList,
   ArrowRight,
+  CheckCircle2,
 } from "lucide-react";
 import { db } from "@/lib/db";
 import { formatETB } from "@/lib/format";
+import { adminUnreadTotal } from "@/lib/messages";
 import { getAdminAnalytics } from "@/lib/analytics";
 import {
   DonationsTrendChart,
@@ -52,6 +53,24 @@ export default async function AdminOverviewPage() {
     db.campaign.count({ where: { flagged: true } }),
     db.campaignOwner.count({ where: { flagged: true } }),
   ]);
+
+  const [pendingPayouts, unreadMessages, openReports, rejectedKyc] = await Promise.all([
+    db.payout.count({ where: { status: { in: ["REQUESTED", "APPROVED"] } } }),
+    adminUnreadTotal(),
+    db.supportMessage.count({ where: { type: "REPORT", status: "OPEN" } }),
+    db.user.count({ where: { verificationStatus: "REJECTED" } }),
+  ]);
+
+  // Everything that needs a human decision, surfaced up top.
+  const actions = [
+    { label: "KYC applications to review", count: pendingOwners, href: "/admin/owners" },
+    { label: "Campaigns awaiting approval", count: pendingCampaigns, href: "/admin/campaigns?status=PENDING_REVIEW" },
+    { label: "Payouts to release", count: pendingPayouts, href: "/admin/payouts" },
+    { label: "Unread fundraiser messages", count: unreadMessages, href: "/admin/messages" },
+    { label: "Open abuse reports", count: openReports, href: "/admin/support?f=REPORT" },
+    { label: "Fraud flags open", count: flaggedCampaigns + flaggedOwners, href: "/admin/campaigns" },
+    { label: "Failed verifications", count: rejectedKyc, href: "/admin/owners" },
+  ].filter((a) => a.count > 0);
 
   const { donationsByDay, campaignsByStatus } = await getAdminAnalytics(30);
 
@@ -98,6 +117,35 @@ export default async function AdminOverviewPage() {
     <div>
       <h1 className="font-display text-2xl font-bold tracking-tight">Overview</h1>
 
+      {/* Action required — everything needing a human decision */}
+      <section className="mt-6 rounded-xl border bg-card p-5 shadow-sm">
+        <h2 className="text-sm font-semibold">Action required</h2>
+        {actions.length === 0 ? (
+          <p className="mt-3 flex items-center gap-2 text-sm text-success">
+            <CheckCircle2 className="h-4 w-4" aria-hidden /> All clear — nothing
+            awaiting review.
+          </p>
+        ) : (
+          <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {actions.map((a) => (
+              <Link
+                key={a.label}
+                href={a.href}
+                className="group flex items-center justify-between rounded-lg border bg-background p-3 transition-colors hover:border-primary/40"
+              >
+                <span className="text-sm">{a.label}</span>
+                <span className="flex items-center gap-2">
+                  <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-primary px-2 text-xs font-bold text-primary-foreground">
+                    {a.count}
+                  </span>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" aria-hidden />
+                </span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {stats.map((s) => (
           <div key={s.label} className="rounded-xl border bg-card p-5 shadow-sm">
@@ -129,49 +177,6 @@ export default async function AdminOverviewPage() {
         </section>
       </div>
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-2">
-        <Link
-          href="/admin/campaigns?status=PENDING_REVIEW"
-          className="group flex items-center justify-between rounded-xl border bg-card p-5 shadow-sm transition-colors hover:border-primary/40"
-        >
-          <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-md bg-warning/15 text-warning">
-              <ClipboardList className="h-5 w-5" aria-hidden />
-            </span>
-            <div>
-              <p className="font-medium">Campaign review queue</p>
-              <p className="text-sm text-muted-foreground">
-                {pendingCampaigns} awaiting decision
-              </p>
-            </div>
-          </div>
-          <ArrowRight
-            className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-0.5"
-            aria-hidden
-          />
-        </Link>
-
-        <Link
-          href="/admin/campaigns"
-          className="group flex items-center justify-between rounded-xl border bg-card p-5 shadow-sm transition-colors hover:border-primary/40"
-        >
-          <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-md bg-accent text-accent-foreground">
-              <Megaphone className="h-5 w-5" aria-hidden />
-            </span>
-            <div>
-              <p className="font-medium">All campaigns</p>
-              <p className="text-sm text-muted-foreground">
-                Full list with filters and decisions
-              </p>
-            </div>
-          </div>
-          <ArrowRight
-            className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-0.5"
-            aria-hidden
-          />
-        </Link>
-      </div>
     </div>
   );
 }

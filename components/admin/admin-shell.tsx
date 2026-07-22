@@ -9,6 +9,7 @@ import {
   BadgeCheck,
   Landmark,
   Receipt,
+  CreditCard,
   FileText,
   Newspaper,
   MessageSquare,
@@ -27,6 +28,7 @@ const ICONS = {
   kyc: BadgeCheck,
   payouts: Landmark,
   donations: Receipt,
+  payments: CreditCard,
   content: FileText,
   blog: Newspaper,
   messages: MessageSquare,
@@ -39,6 +41,7 @@ export type AdminNavItem = {
   href: string;
   label: string;
   key: keyof typeof ICONS;
+  badge?: number;
 };
 
 export function AdminShell({
@@ -87,7 +90,12 @@ export function AdminShell({
                 )}
               >
                 <Icon className="h-4 w-4 shrink-0" aria-hidden />
-                {item.label}
+                <span className="flex-1">{item.label}</span>
+                {item.badge ? (
+                  <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-semibold text-primary-foreground">
+                    {item.badge}
+                  </span>
+                ) : null}
               </Link>
             );
           })}
@@ -148,6 +156,11 @@ export function AdminShell({
               )}
             >
               {item.label}
+              {item.badge ? (
+                <span className="ml-1 rounded-full bg-primary px-1.5 text-xs font-semibold text-primary-foreground">
+                  {item.badge}
+                </span>
+              ) : null}
             </Link>
           ))}
         </nav>
