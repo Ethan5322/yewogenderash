@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Download } from "lucide-react";
 import type { PayoutStatus } from "@prisma/client";
 import { db } from "@/lib/db";
 import { requirePermission } from "@/lib/admin/permissions";
@@ -63,21 +64,29 @@ export default async function AdminPayoutsPage({
         reference. Owners can never self-release funds.
       </p>
 
-      <div className="mt-4 flex flex-wrap gap-2">
-        {FILTERS.map((f) => (
-          <Link
-            key={f.value}
-            href={`/admin/payouts?status=${f.value}`}
-            className={cn(
-              "rounded-full border px-3 py-1 text-sm font-medium transition-colors",
-              status === f.value
-                ? "border-transparent bg-primary text-primary-foreground"
-                : "border-input text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-            )}
-          >
-            {f.label}
-          </Link>
-        ))}
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap gap-2">
+          {FILTERS.map((f) => (
+            <Link
+              key={f.value}
+              href={`/admin/payouts?status=${f.value}`}
+              className={cn(
+                "rounded-full border px-3 py-1 text-sm font-medium transition-colors",
+                status === f.value
+                  ? "border-transparent bg-primary text-primary-foreground"
+                  : "border-input text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              )}
+            >
+              {f.label}
+            </Link>
+          ))}
+        </div>
+        <a
+          href={`/admin/payouts/export?status=${status}`}
+          className="inline-flex h-9 items-center gap-1.5 rounded-md border border-input bg-background px-3 text-sm font-medium shadow-sm transition-colors hover:bg-accent"
+        >
+          <Download className="h-4 w-4" aria-hidden /> Export CSV
+        </a>
       </div>
 
       <div className="mt-6 overflow-x-auto rounded-xl border bg-card shadow-sm">

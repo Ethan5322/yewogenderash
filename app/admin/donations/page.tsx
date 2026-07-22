@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Search } from "lucide-react";
+import { Search, Download } from "lucide-react";
 import type { DonationStatus, Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { requirePermission } from "@/lib/admin/permissions";
@@ -95,11 +95,19 @@ export default async function AdminDonationsPage({
             </Link>
           ))}
         </div>
-        <form action="/admin/donations" className="relative">
-          <input type="hidden" name="status" value={status} />
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-          <input name="q" defaultValue={q} placeholder="Donor, reference, campaign…" className="h-9 w-60 rounded-md border border-input bg-background pl-8 pr-3 text-sm shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring" />
-        </form>
+        <div className="flex items-center gap-2">
+          <form action="/admin/donations" className="relative">
+            <input type="hidden" name="status" value={status} />
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+            <input name="q" defaultValue={q} placeholder="Donor, reference, campaign…" className="h-9 w-60 rounded-md border border-input bg-background pl-8 pr-3 text-sm shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring" />
+          </form>
+          <a
+            href={`/admin/donations/export?status=${status}`}
+            className="inline-flex h-9 items-center gap-1.5 rounded-md border border-input bg-background px-3 text-sm font-medium shadow-sm transition-colors hover:bg-accent"
+          >
+            <Download className="h-4 w-4" aria-hidden /> Export CSV
+          </a>
+        </div>
       </div>
 
       <div className="mt-4 overflow-x-auto rounded-xl border bg-card shadow-sm">
