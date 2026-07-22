@@ -12,7 +12,11 @@ import {
   type AdminAlert,
 } from "@/components/admin/admin-shell";
 
-type NavDef = AdminNavItem & { perm?: AdminPermission; superOnly?: boolean };
+type NavDef = AdminNavItem & {
+  perm?: AdminPermission;
+  anyPerm?: AdminPermission[];
+  superOnly?: boolean;
+};
 type GroupDef = { label: string; items: NavDef[] };
 
 /**
@@ -56,7 +60,7 @@ const NAV_GROUPS: GroupDef[] = [
     label: "Governance",
     items: [
       { href: "/admin/team", label: "Roles & Team", key: "admins", perm: "admins" },
-      { href: "/admin/audit", label: "Audit log", key: "audit", perm: "admins" },
+      { href: "/admin/audit", label: "Audit log", key: "audit", anyPerm: ["audit", "admins"] },
       { href: "/admin/system", label: "System status", key: "system", superOnly: true },
       { href: "/admin/settings", label: "Fees / Settings", key: "settings", superOnly: true },
     ],
@@ -75,8 +79,10 @@ export default async function AdminLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const me = await currentAdmin();
-  const can = (perm?: AdminPermission, superOnly?: boolean) =>
-    (superOnly ? me.isSuperAdmin : true) && (!perm || hasPermission(me, perm));
+  const can = (item: NavDef) =>
+    (item.superOnly ? me.isSuperAdmin : true) &&
+    (!item.perm || hasPermission(me, item.perm)) &&
+    (!item.anyPerm || item.anyPerm.some((p) => hasPermission(me, p)));
 
   const [pendingKyc, pendingCampaigns, pendingPayouts, unreadMessages, openSupport] =
     await Promise.all([
@@ -97,7 +103,7 @@ export default async function AdminLayout({
   const groups: AdminNavGroup[] = NAV_GROUPS.map((g) => ({
     label: g.label,
     items: g.items
-      .filter((item) => can(item.perm, item.superOnly))
+      .filter((item) => can(item))
       .map(({ href, label, key }) => ({ href, label, key, badge: badgeFor[key] || undefined })),
   })).filter((g) => g.items.length > 0);
 

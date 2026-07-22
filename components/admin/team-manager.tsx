@@ -14,6 +14,7 @@ import {
 } from "@/app/admin/team/actions";
 
 type PermDef = [key: string, label: string];
+export type RolePreset = { key: string; label: string; description: string; perms: string[] };
 
 export type AdminRowData = {
   id: string;
@@ -24,16 +25,55 @@ export type AdminRowData = {
   permissions: Record<string, boolean>;
 };
 
-export function CreateAdminForm({ permissionDefs }: { permissionDefs: PermDef[] }) {
+/** Quick-apply buttons that set the capability set to a named role preset. */
+function PresetBar({
+  rolePresets,
+  onApply,
+}: {
+  rolePresets: RolePreset[];
+  onApply: (perms: string[]) => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className="text-xs font-medium text-muted-foreground">Apply role:</span>
+      {rolePresets.map((r) => (
+        <button
+          key={r.key}
+          type="button"
+          onClick={() => onApply(r.perms)}
+          title={r.description}
+          className="rounded-full border border-input bg-background px-2.5 py-0.5 text-xs font-medium shadow-sm transition-colors hover:bg-accent"
+        >
+          {r.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export function CreateAdminForm({
+  permissionDefs,
+  rolePresets,
+}: {
+  permissionDefs: PermDef[];
+  rolePresets: RolePreset[];
+}) {
   const [state, action, pending] = useActionState<ActionResult | null, FormData>(
     createSubAdminAction,
     null
   );
   const formRef = React.useRef<HTMLFormElement>(null);
+  const [perms, setPerms] = React.useState<Record<string, boolean>>({});
 
   React.useEffect(() => {
-    if (state?.ok) formRef.current?.reset();
+    if (state?.ok) {
+      formRef.current?.reset();
+      setPerms({});
+    }
   }, [state]);
+
+  const applyPreset = (keys: string[]) =>
+    setPerms(Object.fromEntries(keys.map((k) => [k, true])));
 
   return (
     <form ref={formRef} action={action} className="space-y-4">
@@ -53,11 +93,20 @@ export function CreateAdminForm({ permissionDefs }: { permissionDefs: PermDef[] 
       </div>
 
       <fieldset>
-        <legend className="text-sm font-medium">Capabilities</legend>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <legend className="text-sm font-medium">Capabilities</legend>
+          <PresetBar rolePresets={rolePresets} onApply={applyPreset} />
+        </div>
         <div className="mt-2 grid gap-2 sm:grid-cols-2">
           {permissionDefs.map(([key, label]) => (
             <label key={key} className="flex items-center gap-2 rounded-md border p-2.5 text-sm">
-              <input type="checkbox" name={`perm_${key}`} className="h-4 w-4 accent-primary" />
+              <input
+                type="checkbox"
+                name={`perm_${key}`}
+                className="h-4 w-4 accent-primary"
+                checked={!!perms[key]}
+                onChange={(e) => setPerms((p) => ({ ...p, [key]: e.target.checked }))}
+              />
               {label}
             </label>
           ))}
@@ -84,11 +133,13 @@ export function CreateAdminForm({ permissionDefs }: { permissionDefs: PermDef[] 
 export function AdminRow({
   admin,
   permissionDefs,
+  rolePresets,
   currentAdminId,
   currentIsSuper,
 }: {
   admin: AdminRowData;
   permissionDefs: PermDef[];
+  rolePresets: RolePreset[];
   currentAdminId: string;
   currentIsSuper: boolean;
 }) {
@@ -166,6 +217,12 @@ export function AdminRow({
         </p>
       ) : (
         <div className="mt-4">
+          <div className="mb-2">
+            <PresetBar
+              rolePresets={rolePresets}
+              onApply={(keys) => setPerms(Object.fromEntries(keys.map((k) => [k, true])))}
+            />
+          </div>
           <div className="grid gap-2 sm:grid-cols-2">
             {permissionDefs.map(([key, label]) => (
               <label key={key} className="flex items-center gap-2 rounded-md border p-2.5 text-sm">

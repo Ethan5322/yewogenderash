@@ -1,7 +1,7 @@
 import { Search } from "lucide-react";
 import { db } from "@/lib/db";
 import type { Prisma } from "@prisma/client";
-import { requirePermission } from "@/lib/admin/permissions";
+import { requireAnyPermission } from "@/lib/admin/permissions";
 import { Pager, pageFrom } from "@/components/admin/pager";
 
 const PAGE_SIZE = 75;
@@ -36,7 +36,7 @@ export default async function AdminAuditPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requirePermission("admins");
+  await requireAnyPermission(["audit", "admins"]);
   const sp = await searchParams;
   const q = (typeof sp.q === "string" ? sp.q : "").trim().slice(0, 60);
   const page = pageFrom(sp.page);

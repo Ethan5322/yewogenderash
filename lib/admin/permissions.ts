@@ -14,6 +14,7 @@ export const ADMIN_PERMISSIONS = {
   payouts: "Payout approval & processing",
   content: "Site content editing",
   messages: "Fundraiser messages & notices",
+  audit: "Audit log (read-only)",
   admins: "Manage admins & permissions",
 } as const;
 
@@ -21,6 +22,25 @@ export type AdminPermission = keyof typeof ADMIN_PERMISSIONS;
 export const ADMIN_PERMISSION_KEYS = Object.keys(
   ADMIN_PERMISSIONS
 ) as AdminPermission[];
+
+/**
+ * Named role presets — a corporate label mapped onto the underlying capability
+ * set. Storage stays the per-capability map (so custom mixes still work); these
+ * are the standard bundles offered in the team UI and shown in the access
+ * matrix. "Super admin" is separate (holds everything, manages admins).
+ */
+export const ROLE_PRESETS: {
+  key: string;
+  label: string;
+  description: string;
+  perms: AdminPermission[];
+}[] = [
+  { key: "compliance", label: "Compliance admin", description: "KYC & campaign review", perms: ["kyc", "campaigns"] },
+  { key: "finance", label: "Finance admin", description: "Donations, payments & payouts", perms: ["payouts"] },
+  { key: "support", label: "Support agent", description: "Messages, notices & disputes", perms: ["messages"] },
+  { key: "content", label: "Content admin", description: "CMS pages & blog", perms: ["content"] },
+  { key: "auditor", label: "Read-only auditor", description: "Audit log access only", perms: ["audit"] },
+];
 
 export type PermMap = Partial<Record<AdminPermission, boolean>>;
 
@@ -94,6 +114,15 @@ export async function requirePermission(
 ): Promise<CurrentAdmin> {
   const admin = await currentAdmin();
   if (!hasPermission(admin, key)) redirect(`/admin?denied=${key}`);
+  return admin;
+}
+
+/** Guard a page/action that any ONE of several capabilities may open. */
+export async function requireAnyPermission(
+  keys: AdminPermission[]
+): Promise<CurrentAdmin> {
+  const admin = await currentAdmin();
+  if (!keys.some((k) => hasPermission(admin, k))) redirect(`/admin?denied=${keys[0]}`);
   return admin;
 }
 
