@@ -4,8 +4,11 @@ import type { PayoutStatus } from "@prisma/client";
 import { db } from "@/lib/db";
 import { requirePermission } from "@/lib/admin/permissions";
 import { PayoutDecisionPanel } from "@/components/admin/payout-decision-panel";
+import { Pager, pageFrom } from "@/components/admin/pager";
 import { formatETB, formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
+
+const PAGE_SIZE = 50;
 
 export const metadata = { title: "Admin · Payouts" };
 
@@ -30,11 +33,15 @@ export default async function AdminPayoutsPage({
   const status = (VALID.has(raw as PayoutStatus | "ALL") ? raw : "REQUESTED") as
     | PayoutStatus
     | "ALL";
+  const page = pageFrom(sp.page);
+  const where = status === "ALL" ? {} : { status };
 
-  const payouts = await db.payout.findMany({
-    where: status === "ALL" ? {} : { status },
+  const [payouts, matchCount] = await Promise.all([
+    db.payout.findMany({
+    where,
     orderBy: { createdAt: "desc" },
-    take: 100,
+    skip: (page - 1) * PAGE_SIZE,
+    take: PAGE_SIZE,
     select: {
       id: true,
       amount: true,
@@ -58,7 +65,9 @@ export default async function AdminPayoutsPage({
         },
       },
     },
-  });
+    }),
+    db.payout.count({ where }),
+  ]);
 
   return (
     <div>
@@ -170,6 +179,14 @@ export default async function AdminPayoutsPage({
           </tbody>
         </table>
       </div>
+
+      <Pager
+        basePath="/admin/payouts"
+        baseParams={{ status }}
+        page={page}
+        pageSize={PAGE_SIZE}
+        total={matchCount}
+      />
     </div>
   );
 }

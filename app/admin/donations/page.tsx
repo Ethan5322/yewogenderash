@@ -4,8 +4,11 @@ import type { DonationStatus, Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { requirePermission } from "@/lib/admin/permissions";
 import { DonationActions } from "@/components/admin/donation-actions";
+import { Pager, pageFrom } from "@/components/admin/pager";
 import { formatETB, formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
+
+const PAGE_SIZE = 50;
 
 export const metadata = { title: "Admin · Donations" };
 
@@ -38,6 +41,7 @@ export default async function AdminDonationsPage({
   const raw = typeof sp.status === "string" ? sp.status : "SUCCESS";
   const status = (VALID.has(raw as DonationStatus | "ALL") ? raw : "SUCCESS") as DonationStatus | "ALL";
   const q = (typeof sp.q === "string" ? sp.q : "").trim().slice(0, 60);
+  const page = pageFrom(sp.page);
 
   const where: Prisma.DonationWhereInput = {
     ...(status === "ALL" ? {} : { status }),
@@ -52,17 +56,19 @@ export default async function AdminDonationsPage({
       : {}),
   };
 
-  const [donations, totals] = await Promise.all([
+  const [donations, matchCount, totals] = await Promise.all([
     db.donation.findMany({
       where,
       orderBy: { createdAt: "desc" },
-      take: 100,
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
       select: {
         id: true, amount: true, platformFee: true, netAmount: true, currency: true,
         status: true, donorName: true, txRef: true, paidAt: true, createdAt: true,
         campaign: { select: { id: true, title: true } },
       },
     }),
+    db.donation.count({ where }),
     db.donation.aggregate({ where: { status: "SUCCESS" }, _sum: { amount: true, platformFee: true, netAmount: true }, _count: true }),
   ]);
 
@@ -147,6 +153,14 @@ export default async function AdminDonationsPage({
           </tbody>
         </table>
       </div>
+
+      <Pager
+        basePath="/admin/donations"
+        baseParams={{ status, q: q || undefined }}
+        page={page}
+        pageSize={PAGE_SIZE}
+        total={matchCount}
+      />
     </div>
   );
 }

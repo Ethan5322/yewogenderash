@@ -2,6 +2,9 @@ import { Search } from "lucide-react";
 import { db } from "@/lib/db";
 import type { Prisma } from "@prisma/client";
 import { requirePermission } from "@/lib/admin/permissions";
+import { Pager, pageFrom } from "@/components/admin/pager";
+
+const PAGE_SIZE = 75;
 
 export const metadata = { title: "Admin · Audit log" };
 
@@ -36,6 +39,7 @@ export default async function AdminAuditPage({
   await requirePermission("admins");
   const sp = await searchParams;
   const q = (typeof sp.q === "string" ? sp.q : "").trim().slice(0, 60);
+  const page = pageFrom(sp.page);
 
   const where: Prisma.AuditLogWhereInput = q
     ? {
@@ -48,21 +52,25 @@ export default async function AdminAuditPage({
       }
     : {};
 
-  const logs = await db.auditLog.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
-    take: 150,
-    select: {
-      id: true,
-      action: true,
-      entityType: true,
-      entityId: true,
-      detail: true,
-      ipAddress: true,
-      createdAt: true,
-      actor: { select: { name: true, email: true } },
-    },
-  });
+  const [logs, matchCount] = await Promise.all([
+    db.auditLog.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+      select: {
+        id: true,
+        action: true,
+        entityType: true,
+        entityId: true,
+        detail: true,
+        ipAddress: true,
+        createdAt: true,
+        actor: { select: { name: true, email: true } },
+      },
+    }),
+    db.auditLog.count({ where }),
+  ]);
 
   return (
     <div>
@@ -138,9 +146,14 @@ export default async function AdminAuditPage({
           </tbody>
         </table>
       </div>
-      <p className="mt-3 text-xs text-muted-foreground">
-        Showing the {logs.length} most recent entries.
-      </p>
+
+      <Pager
+        basePath="/admin/audit"
+        baseParams={{ q: q || undefined }}
+        page={page}
+        pageSize={PAGE_SIZE}
+        total={matchCount}
+      />
     </div>
   );
 }
