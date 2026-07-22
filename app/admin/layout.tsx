@@ -5,22 +5,58 @@ import {
 } from "@/lib/admin/permissions";
 import { db } from "@/lib/db";
 import { adminUnreadTotal } from "@/lib/messages";
-import { AdminShell, type AdminNavItem } from "@/components/admin/admin-shell";
+import {
+  AdminShell,
+  type AdminNavGroup,
+  type AdminNavItem,
+  type AdminAlert,
+} from "@/components/admin/admin-shell";
 
-const ADMIN_NAV: (AdminNavItem & { perm?: AdminPermission; superOnly?: boolean })[] = [
-  { href: "/admin", label: "Overview", key: "overview" },
-  { href: "/admin/campaigns", label: "Campaigns", key: "campaigns", perm: "campaigns" },
-  { href: "/admin/owners", label: "Owners (KYC)", key: "kyc", perm: "kyc" },
-  { href: "/admin/payouts", label: "Payouts", key: "payouts", perm: "payouts" },
-  { href: "/admin/donations", label: "Donations", key: "donations", perm: "payouts" },
-  { href: "/admin/payments", label: "Payments", key: "payments", perm: "payouts" },
-  { href: "/admin/content", label: "Content", key: "content", perm: "content" },
-  { href: "/admin/blog", label: "Blog", key: "blog", perm: "content" },
-  { href: "/admin/messages", label: "Messages", key: "messages", perm: "messages" },
-  { href: "/admin/support", label: "Support", key: "support", perm: "messages" },
-  { href: "/admin/team", label: "Team", key: "admins", perm: "admins" },
-  { href: "/admin/audit", label: "Audit", key: "audit", perm: "admins" },
-  { href: "/admin/settings", label: "Settings", key: "settings", superOnly: true },
+type NavDef = AdminNavItem & { perm?: AdminPermission; superOnly?: boolean };
+type GroupDef = { label: string; items: NavDef[] };
+
+/**
+ * Corporate module map. Each item declares the capability it needs; the sidebar
+ * only renders sections this admin is authorised for. Grouped like a finance
+ * back office (Operations / Finance / Content / Governance).
+ */
+const NAV_GROUPS: GroupDef[] = [
+  {
+    label: "Overview",
+    items: [{ href: "/admin", label: "Dashboard", key: "overview" }],
+  },
+  {
+    label: "Operations",
+    items: [
+      { href: "/admin/campaigns", label: "Campaigns", key: "campaigns", perm: "campaigns" },
+      { href: "/admin/owners", label: "Owners / KYC", key: "kyc", perm: "kyc" },
+      { href: "/admin/messages", label: "Notices", key: "messages", perm: "messages" },
+      { href: "/admin/support", label: "Support / Disputes", key: "support", perm: "messages" },
+    ],
+  },
+  {
+    label: "Finance",
+    items: [
+      { href: "/admin/donations", label: "Donations", key: "donations", perm: "payouts" },
+      { href: "/admin/payments", label: "Payments", key: "payments", perm: "payouts" },
+      { href: "/admin/payouts", label: "Payouts", key: "payouts", perm: "payouts" },
+    ],
+  },
+  {
+    label: "Content",
+    items: [
+      { href: "/admin/content", label: "CMS / Pages", key: "content", perm: "content" },
+      { href: "/admin/blog", label: "Blog", key: "blog", perm: "content" },
+    ],
+  },
+  {
+    label: "Governance",
+    items: [
+      { href: "/admin/team", label: "Roles & Team", key: "admins", perm: "admins" },
+      { href: "/admin/audit", label: "Audit log", key: "audit", perm: "admins" },
+      { href: "/admin/settings", label: "Fees / Settings", key: "settings", superOnly: true },
+    ],
+  },
 ];
 
 export const metadata = { title: "Admin" };
@@ -28,16 +64,16 @@ export const metadata = { title: "Admin" };
 /**
  * Admin shell. Role and per-capability permissions are re-verified SERVER-SIDE
  * here on every request (currentAdmin loads fresh from the DB) — middleware/JWT
- * alone is never trusted for the financial control room. The sidebar shows only
- * the sections this admin is allowed to use.
+ * alone is never trusted for the financial control room. The sidebar and the
+ * alert feed show only the sections this admin is allowed to use.
  */
 export default async function AdminLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const me = await currentAdmin();
+  const can = (perm?: AdminPermission, superOnly?: boolean) =>
+    (superOnly ? me.isSuperAdmin : true) && (!perm || hasPermission(me, perm));
 
-  // Pending-work counts drive the sidebar badges (only the sections this admin
-  // can act on need a number).
   const [pendingKyc, pendingCampaigns, pendingPayouts, unreadMessages, openSupport] =
     await Promise.all([
       db.user.count({ where: { verificationStatus: "PENDING", ownerProfile: { isNot: null } } }),
@@ -54,18 +90,35 @@ export default async function AdminLayout({
     support: openSupport,
   };
 
-  const nav: AdminNavItem[] = ADMIN_NAV.filter(
-    (item) =>
-      (item.superOnly ? me.isSuperAdmin : true) &&
-      (!item.perm || hasPermission(me, item.perm))
-  ).map(({ href, label, key }) => ({ href, label, key, badge: badgeFor[key] || undefined }));
+  const groups: AdminNavGroup[] = NAV_GROUPS.map((g) => ({
+    label: g.label,
+    items: g.items
+      .filter((item) => can(item.perm, item.superOnly))
+      .map(({ href, label, key }) => ({ href, label, key, badge: badgeFor[key] || undefined })),
+  })).filter((g) => g.items.length > 0);
+
+  // Alert feed (top-header bell) — only queues this admin can act on, non-zero.
+  const alerts: AdminAlert[] = [
+    { label: "KYC to review", href: "/admin/owners", count: pendingKyc, perm: "kyc" as const },
+    { label: "Campaigns awaiting approval", href: "/admin/campaigns?status=PENDING_REVIEW", count: pendingCampaigns, perm: "campaigns" as const },
+    { label: "Payouts to release", href: "/admin/payouts", count: pendingPayouts, perm: "payouts" as const },
+    { label: "Unread messages", href: "/admin/messages", count: unreadMessages, perm: "messages" as const },
+    { label: "Open support cases", href: "/admin/support", count: openSupport, perm: "messages" as const },
+  ]
+    .filter((a) => a.count > 0 && hasPermission(me, a.perm))
+    .map(({ label, href, count }) => ({ label, href, count }));
+
+  const roleLabel = me.isSuperAdmin ? "Super admin" : "Delegated admin";
 
   return (
     <AdminShell
-      nav={nav}
+      groups={groups}
       email={me.email}
+      name={me.name}
       adminCode={me.adminCode}
       isSuper={me.isSuperAdmin}
+      roleLabel={roleLabel}
+      alerts={alerts}
     >
       {children}
     </AdminShell>
