@@ -8,6 +8,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, ShieldCheck } from "lucide-react";
 import { registerSchema, type RegisterInput } from "@/lib/validators/auth";
+import { useDict } from "@/lib/use-dict";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,6 +29,7 @@ function safeNext(next: string | null): string | null {
 function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useDict().register;
   const next = safeNext(searchParams.get("next"));
   // Registering to become a campaign owner (came from /start) → continue
   // straight into the verification wizard, and require a phone (it must be
@@ -47,7 +49,7 @@ function RegisterForm() {
     setServerError(null);
     // Fundraisers must supply a phone — it's verified by OTP in the next step.
     if (isFundraiser && !values.phone?.trim()) {
-      setServerError("A phone number is required to become a campaign owner.");
+      setServerError(t.phoneRequired);
       return;
     }
 
@@ -58,7 +60,7 @@ function RegisterForm() {
     });
     if (!res.ok) {
       const data = await res.json().catch(() => null);
-      setServerError(data?.error ?? "Something went wrong. Please try again.");
+      setServerError(data?.error ?? t.genericError);
       return;
     }
 
@@ -81,12 +83,10 @@ function RegisterForm() {
     <Card className="w-full max-w-md">
       <CardHeader>
         <CardTitle className="text-2xl">
-          {isFundraiser ? "Become a campaign owner" : "Create your account"}
+          {isFundraiser ? t.ownerTitle : t.donorTitle}
         </CardTitle>
         <CardDescription>
-          {isFundraiser
-            ? "Step 1 of verification. After this you'll verify your phone & email, accept the terms, and upload your documents — all in one continuous flow."
-            : "Donate to verified campaigns, or start your own"}
+          {isFundraiser ? t.ownerDesc : t.donorDesc}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -106,7 +106,7 @@ function RegisterForm() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="name">Full name</Label>
+            <Label htmlFor="name">{t.name}</Label>
             <Input id="name" autoComplete="name" {...register("name")} />
             {errors.name && (
               <p className="text-xs text-destructive">{errors.name.message}</p>
@@ -114,12 +114,12 @@ function RegisterForm() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{t.email}</Label>
             <Input
               id="email"
               type="email"
               autoComplete="email"
-              placeholder="you@example.com"
+              placeholder={t.emailPlaceholder}
               {...register("email")}
             />
             {errors.email && (
@@ -129,18 +129,18 @@ function RegisterForm() {
 
           <div className="space-y-2">
             <Label htmlFor="phone">
-              Phone{" "}
+              {t.phone}{" "}
               {isFundraiser ? (
                 <span className="text-destructive">*</span>
               ) : (
-                <span className="text-muted-foreground">(optional)</span>
+                <span className="text-muted-foreground">{t.optional}</span>
               )}
             </Label>
             <Input
               id="phone"
               type="tel"
               autoComplete="tel"
-              placeholder="+27 82 123 4567 (any country)"
+              placeholder={t.phonePlaceholder}
               {...register("phone")}
             />
             {errors.phone && (
@@ -149,7 +149,7 @@ function RegisterForm() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">{t.password}</Label>
             <Input
               id="password"
               type="password"
@@ -169,25 +169,24 @@ function RegisterForm() {
 
           <Button type="submit" className="w-full" disabled={isSubmitting}>
             {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-            {isFundraiser ? "Create account & continue" : "Create account"}
+            {isFundraiser ? t.createContinue : t.create}
           </Button>
         </form>
 
         {isFundraiser ? (
           <p className="mt-4 flex items-start gap-1.5 text-xs text-muted-foreground">
             <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" aria-hidden />
-            You can only create campaigns after completing every verification step
-            and being approved by an administrator.
+            {t.ownerNote}
           </p>
         ) : null}
 
         <p className="mt-4 text-center text-sm text-muted-foreground">
-          Already have an account?{" "}
+          {t.haveAccount}{" "}
           <Link
             href={next ? `/login?callbackUrl=${encodeURIComponent(next)}` : "/login"}
             className="font-medium text-primary hover:underline"
           >
-            Sign in
+            {t.signIn}
           </Link>
         </p>
       </CardContent>
