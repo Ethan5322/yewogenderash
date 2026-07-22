@@ -62,11 +62,13 @@ export default async function ReviewStep() {
         ) : (
           <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
             Your documents have been saved and sent to our administrators. We
-            will evaluate them and{" "}
+            will evaluate everything{" "}
+            <span className="font-medium text-foreground">within 24 hours</span>{" "}
+            and contact you by email or{" "}
             <span className="font-medium text-foreground">
               call you on {ctx.phone ?? "the number you provided"}
-            </span>{" "}
-            to complete your verification.
+            </span>
+            . Once approved, sign in to receive your Fundraiser ID.
           </p>
         )}
         <div className="mt-6">

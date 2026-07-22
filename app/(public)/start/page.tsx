@@ -63,37 +63,44 @@ const REQUIREMENTS = [
 ] as const;
 
 export default async function StartPage() {
-  // Logged-in users continue straight into the wizard; guests register first
-  // (the wizard is the next stop after account creation).
   const session = await auth();
-  const beginHref = session?.user
-    ? "/start/verify"
-    : "/register?next=/start/verify";
+  const isOwner = session?.user?.role === "OWNER";
+  const loggedIn = !!session?.user;
+
+  // The two clear choices: register as a fundraiser, or sign in. Adapts to
+  // whoever is (or isn't) already signed in.
+  const primary = isOwner
+    ? { href: "/dashboard", label: "Go to your dashboard" }
+    : loggedIn
+      ? { href: "/start/verify", label: "Continue verification" }
+      : { href: "/register?next=/start/verify", label: "Register as fundraiser" };
+  const secondary = loggedIn
+    ? { href: "/dashboard", label: "Your dashboard" }
+    : { href: "/login", label: "Sign in" };
 
   return (
     <div>
-      {/* Hero */}
+      {/* Hero — the fundraiser gate */}
       <section className="border-b bg-[radial-gradient(ellipse_at_top,color-mix(in_oklab,var(--primary)_9%,transparent)_0%,transparent_60%)]">
         <div className="mx-auto max-w-4xl px-4 py-20 text-center sm:px-6 sm:py-28">
           <Badge variant="gold" className="mb-6">
             <BadgeCheck className="h-3.5 w-3.5" aria-hidden />
-            Verified campaign owners only
+            For fundraisers (campaign owners)
           </Badge>
           <h1 className="mx-auto max-w-3xl font-display text-4xl font-bold tracking-tight sm:text-5xl">
-            Raise funds people can{" "}
-            <span className="text-primary">trust</span>.
+            Are you a fundraiser?
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-muted-foreground sm:text-lg">
-            Yewogen Derash campaigns are for verified owners only. That verification
-            is exactly why donors give with confidence — and why your campaign
-            stands out.
+            {isOwner
+              ? "You're a verified fundraiser. Head to your dashboard to manage campaigns."
+              : "Sign in if you already have an account, or register as a fundraiser to get verified. After you submit your documents, our team evaluates them within 24 hours and contacts you by email or phone — then you can sign in and receive your Fundraiser ID."}
           </p>
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             <Button asChild size="lg">
-              <Link href={beginHref}>Begin verification</Link>
+              <Link href={primary.href}>{primary.label}</Link>
             </Button>
             <Button asChild size="lg" variant="outline">
-              <Link href="/support/fees">See fees & payouts</Link>
+              <Link href={secondary.href}>{secondary.label}</Link>
             </Button>
           </div>
         </div>
@@ -156,12 +163,12 @@ export default async function StartPage() {
           <div className="mt-12 flex flex-col items-center gap-4 rounded-xl border bg-background p-8 text-center">
             <h3 className="font-display text-xl font-semibold">Ready to begin?</h3>
             <p className="max-w-lg text-sm text-muted-foreground">
-              Create your account and continue straight through every
-              verification step — phone &amp; email, terms, documents, and a live
-              face check — then submit for admin review.
+              Register as a fundraiser and continue straight through every
+              verification step — email, terms, documents, and a live face check —
+              then submit. Our team evaluates within 24 hours and contacts you.
             </p>
             <Button asChild size="lg">
-              <Link href={beginHref}>Begin verification</Link>
+              <Link href={primary.href}>{primary.label}</Link>
             </Button>
           </div>
         </div>
