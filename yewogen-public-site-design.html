@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Yewogen Derash — Public Site Design Specification</title>
+<style>
+  :root{
+    --primary:#0f7a4d; --primary-2:#12a05f; --accent:#e6f2ec; --accent-fg:#0f5a3a;
+    --gold:#C8922A; --ink:#0b1620; --muted:#5b6b66; --line:#e1e8e4;
+    --bg:#f7faf8; --card:#ffffff; --danger:#dc2626; --warn:#b45309;
+  }
+  *{box-sizing:border-box;}
+  html{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  body{
+    font-family:"Inter","Segoe UI",Arial,sans-serif; color:var(--ink);
+    margin:0; background:#fff; font-size:12px; line-height:1.55;
+  }
+  h1,h2,h3,h4{font-family:"Plus Jakarta Sans","Inter",Arial,sans-serif; letter-spacing:-.01em; margin:0;}
+  .page{padding:26mm 20mm; max-width:210mm; margin:0 auto; page-break-after:always;}
+  .page:last-child{page-break-after:auto;}
+  @page{size:A4; margin:0;}
+
+  /* Logo */
+  .logo{display:inline-flex; align-items:center; gap:9px;}
+  .logo .mark{width:34px;height:34px;border-radius:9px;background:var(--primary);
+    display:inline-flex;align-items:center;justify-content:center;}
+  .logo .word{font-family:"Plus Jakarta Sans";font-weight:800;font-size:20px;letter-spacing:-.02em;color:var(--ink);}
+  .logo .word em{color:var(--primary);font-style:normal;}
+
+  /* Cover */
+  .cover{display:flex;flex-direction:column;justify-content:center;min-height:247mm;}
+  .cover .kicker{color:var(--primary);font-weight:700;text-transform:uppercase;letter-spacing:.16em;font-size:11px;margin-top:40px;}
+  .cover h1{font-size:40px;line-height:1.08;margin-top:10px;max-width:15ch;}
+  .cover .sub{color:var(--muted);font-size:15px;margin-top:16px;max-width:52ch;}
+  .cover .meta{margin-top:auto;border-top:1px solid var(--line);padding-top:16px;color:var(--muted);font-size:11px;display:flex;justify-content:space-between;}
+
+  .eyebrow{color:var(--primary);font-weight:700;text-transform:uppercase;letter-spacing:.14em;font-size:10px;}
+  h2.sec{font-size:24px;margin:6px 0 4px;}
+  .lead{color:var(--muted);font-size:12.5px;margin:0 0 18px;max-width:70ch;}
+  h3.sub{font-size:15px;margin:22px 0 8px;padding-bottom:6px;border-bottom:2px solid var(--accent);}
+  h4.mini{font-size:12.5px;margin:14px 0 4px;color:var(--primary);}
+  p{margin:0 0 9px;}
+  ul{margin:0 0 10px;padding-left:18px;} li{margin:2px 0;}
+  .muted{color:var(--muted);}
+  strong{font-weight:700;}
+  code{font-family:"Courier New",monospace;background:var(--accent);color:var(--accent-fg);padding:1px 5px;border-radius:4px;font-size:11px;}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .card{border:1px solid var(--line);border-radius:10px;padding:14px;background:var(--card);}
+  .card h4{margin:0 0 4px;font-size:12.5px;}
+  .card .r{color:var(--muted);font-size:11px;font-family:"Courier New",monospace;}
+
+  .swatches{display:flex;flex-wrap:wrap;gap:10px;margin:8px 0 4px;}
+  .sw{width:104px;}
+  .sw .chip{height:44px;border-radius:8px;border:1px solid rgba(0,0,0,.08);}
+  .sw .n{font-size:10.5px;margin-top:4px;font-weight:600;}
+  .sw .h{font-size:10px;color:var(--muted);font-family:"Courier New",monospace;}
+
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0;}
+  .badge{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:2px 9px;font-size:10.5px;font-weight:700;}
+  .b-green{background:var(--accent);color:var(--accent-fg);}
+  .b-gold{background:rgba(200,146,42,.16);color:#8a5f14;}
+  .b-mut{background:#eef2f1;color:var(--muted);}
+
+  .btn{display:inline-flex;align-items:center;gap:6px;border-radius:8px;padding:7px 14px;font-size:11px;font-weight:600;}
+  .btn-primary{background:var(--primary);color:#fff;}
+  .btn-outline{border:1px solid var(--line);color:var(--ink);background:#fff;}
+
+  .mock{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:10px 0 6px;background:#fff;}
+  .mock .bar{background:var(--bg);border-bottom:1px solid var(--line);padding:8px 12px;display:flex;align-items:center;justify-content:space-between;}
+  .mock .bar .nav{display:flex;gap:14px;color:var(--muted);font-size:10.5px;}
+  .mock .body{padding:14px;}
+  .row{display:flex;gap:10px;}
+  .col{flex:1;}
+  .imgbox{aspect-ratio:16/9;background:linear-gradient(135deg,#eaf5ee,#dbeee2);border-radius:7px;display:flex;align-items:center;justify-content:center;color:#8fb9a3;font-size:20px;}
+  .barfill{height:7px;border-radius:6px;background:#eef2f1;overflow:hidden;margin:7px 0;}
+  .barfill i{display:block;height:100%;background:var(--primary);}
+  .ph{height:8px;border-radius:5px;background:#eef2f1;margin:5px 0;}
+  .ph.s{width:55%;} .ph.m{width:80%;} .ph.t{width:35%;}
+  .note{border-left:3px solid var(--gold);background:rgba(200,146,42,.07);padding:8px 12px;border-radius:0 8px 8px 0;font-size:11px;margin:10px 0;}
+  .footnote{margin-top:26px;border-top:1px solid var(--line);padding-top:8px;color:var(--muted);font-size:10px;display:flex;justify-content:space-between;}
+  table{width:100%;border-collapse:collapse;font-size:11px;margin:8px 0;}
+  th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top;}
+  th{color:var(--muted);text-transform:uppercase;font-size:9.5px;letter-spacing:.06em;}
+  .fill{border:1px dashed #cfd8d3;border-radius:8px;min-height:52px;padding:8px 10px;color:#aeb9b4;font-size:11px;font-style:italic;margin:6px 0;}
+</style>
+</head>
+<body>
+
+<!-- ============ COVER ============ -->
+<section class="page cover">
+  <div class="logo">
+    <span class="mark">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M11 14h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 16"/>
+        <path d="m7 20 1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a2 2 0 0 0-2.75-2.91l-4.2 3.9"/>
+        <path d="m2 15 6 6"/>
+        <path d="M19.5 8.5c.7-.7 1.5-1.6 1.5-2.7A2.73 2.73 0 0 0 16 4a2.78 2.78 0 0 0-5 1.8c0 1.2.8 2 1.5 2.8L16 12Z"/>
+      </svg>
+    </span>
+    <span class="word">Yewogen <em>Derash</em></span>
+  </div>
+
+  <div class="kicker">Public Website · Design Specification</div>
+  <h1>The Public Site, Page by Page</h1>
+  <p class="sub">A complete walkthrough of every visitor-facing screen of Yewogen Derash — layout, sections, components, colours, and the logo — prepared so you can evaluate the current look and mark exactly how you want it to appear.</p>
+
+  <div class="meta">
+    <span>Yewogen Derash — Verified crowdfunding for Ethiopia</span>
+    <span>Scope: public site only (admin panel excluded)</span>
+  </div>
+</section>
+
+<!-- ============ 1. DESIGN SYSTEM ============ -->
+<section class="page">
+  <div class="eyebrow">01 — Foundations</div>
+  <h2 class="sec">The design system</h2>
+  <p class="lead">Everything on the public site is built from one small, consistent kit. If you want to change the “feel”, these are the levers.</p>
+
+  <h3 class="sub">Brand logo</h3>
+  <div class="row" style="align-items:center;gap:20px;">
+    <div class="logo" style="transform:scale(1.15);transform-origin:left;">
+      <span class="mark">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M11 14h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 16"/>
+          <path d="m7 20 1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a2 2 0 0 0-2.75-2.91l-4.2 3.9"/>
+          <path d="m2 15 6 6"/>
+          <path d="M19.5 8.5c.7-.7 1.5-1.6 1.5-2.7A2.73 2.73 0 0 0 16 4a2.78 2.78 0 0 0-5 1.8c0 1.2.8 2 1.5 2.8L16 12Z"/>
+        </svg>
+      </span>
+      <span class="word">Yewogen <em>Derash</em></span>
+    </div>
+    <div style="flex:1;">
+      <p class="muted" style="margin:0;">A <strong>hand-holding-a-heart</strong> glyph in white, on a green rounded square, next to the wordmark. “Yewogen” is ink-black; “<span style="color:var(--primary);font-weight:700;">Derash</span>” is brand green. Always links home. Used in the header, footer, and on the ID cards.</p>
+    </div>
+  </div>
+
+  <h3 class="sub">Colour</h3>
+  <div class="swatches">
+    <div class="sw"><div class="chip" style="background:#0f7a4d;"></div><div class="n">Primary green</div><div class="h">#0F7A4D</div></div>
+    <div class="sw"><div class="chip" style="background:#e6f2ec;"></div><div class="n">Accent mint</div><div class="h">#E6F2EC</div></div>
+    <div class="sw"><div class="chip" style="background:#C8922A;"></div><div class="n">Gold (trust)</div><div class="h">#C8922A</div></div>
+    <div class="sw"><div class="chip" style="background:#0b1620;"></div><div class="n">Ink</div><div class="h">#0B1620</div></div>
+    <div class="sw"><div class="chip" style="background:#f7faf8;"></div><div class="n">Page bg</div><div class="h">#F7FAF8</div></div>
+    <div class="sw"><div class="chip" style="background:#ffffff;"></div><div class="n">Card</div><div class="h">#FFFFFF</div></div>
+    <div class="sw"><div class="chip" style="background:#16a34a;"></div><div class="n">Success</div><div class="h">#16A34A</div></div>
+    <div class="sw"><div class="chip" style="background:#dc2626;"></div><div class="n">Danger</div><div class="h">#DC2626</div></div>
+  </div>
+  <div class="note">A full <strong>dark mode</strong> exists too (near-black backgrounds, brighter green <code>#22A56B</code>). The whole site is theme-aware.</div>
+
+  <h3 class="sub">Typography</h3>
+  <table>
+    <tr><th>Role</th><th>Typeface</th><th>Usage</th></tr>
+    <tr><td><strong>Display / headings</strong></td><td>Plus Jakarta Sans (700–800)</td><td>Page titles, campaign titles, section headers — tight tracking.</td></tr>
+    <tr><td><strong>Body / UI</strong></td><td>Inter (400–600)</td><td>Paragraphs, labels, buttons, navigation.</td></tr>
+    <tr><td><strong>Mono / codes</strong></td><td>Courier</td><td>Querycodes, verification codes, references.</td></tr>
+  </table>
+
+  <h3 class="sub">Core components</h3>
+  <div class="chips">
+    <span class="btn btn-primary">Primary button</span>
+    <span class="btn btn-outline">Outline button</span>
+    <span class="badge b-green">Category</span>
+    <span class="badge b-gold">◆ Mulesoo verified</span>
+    <span class="badge b-mut">Status</span>
+  </div>
+  <div class="barfill" style="max-width:240px;"><i style="width:64%"></i></div>
+  <p class="muted" style="margin-top:2px;">Rounded cards with soft shadows, pill badges, a green progress bar, and a gold “Mulesoo verified” stamp are the repeating building blocks.</p>
+
+  <div class="footnote"><span>Yewogen Derash — Public Site Design Spec</span><span>01 · Foundations</span></div>
+</section>
+
+<!-- ============ 2. GLOBAL CHROME ============ -->
+<section class="page">
+  <div class="eyebrow">02 — Global chrome</div>
+  <h2 class="sec">Header &amp; footer (every page)</h2>
+  <p class="lead">The same slim header and rich footer wrap every public page, so the frame feels consistent everywhere.</p>
+
+  <h3 class="sub">Header — sticky, translucent</h3>
+  <div class="mock">
+    <div class="bar">
+      <div class="logo" style="transform:scale(.8);transform-origin:left;">
+        <span class="mark"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M19.5 8.5c.7-.7 1.5-1.6 1.5-2.7A2.73 2.73 0 0 0 16 4a2.78 2.78 0 0 0-5 1.8c0 1.2.8 2 1.5 2.8L16 12Z"/><path d="m2 15 6 6"/><path d="M11 14h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 16"/></svg></span>
+        <span class="word" style="font-size:14px;">Yewogen <em>Derash</em></span>
+      </div>
+      <div class="nav"><span>Campaigns</span><span>Support</span><span style="color:var(--primary);font-weight:700;">Sign in</span></div>
+    </div>
+    <div class="body" style="padding:10px 12px;color:var(--muted);font-size:10.5px;">Sticky, blurred/translucent background · max width 1152px · collapses to a hamburger drawer on phones.</div>
+  </div>
+  <ul>
+    <li>Left: <strong>logo</strong> (home). Center/right: <code>Campaigns</code>, <code>Support</code>.</li>
+    <li>Signed-out visitors see only a quiet <strong>Sign in</strong> — there is deliberately <em>no</em> “become a fundraiser” button up here (kept calm and donor-first).</li>
+    <li>Signed-in: name + a button to their <code>Dashboard</code> (or <code>Admin panel</code>), plus Sign out.</li>
+  </ul>
+
+  <h3 class="sub">Footer — four columns + credit</h3>
+  <div class="mock"><div class="body">
+    <div class="row">
+      <div class="col">
+        <div class="logo" style="transform:scale(.72);transform-origin:left;"><span class="mark"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M19.5 8.5c.7-.7 1.5-1.6 1.5-2.7A2.73 2.73 0 0 0 16 4a2.78 2.78 0 0 0-5 1.8c0 1.2.8 2 1.5 2.8L16 12Z"/></svg></span><span class="word" style="font-size:12px;">Yewogen <em>Derash</em></span></div>
+        <div class="ph m" style="margin-top:8px;"></div><div class="ph s"></div>
+      </div>
+      <div class="col"><div class="ph t"></div><div class="ph s"></div><div class="ph s"></div><div class="ph s"></div></div>
+      <div class="col"><div class="ph t"></div><div class="ph s"></div><div class="ph s"></div><div class="ph s"></div></div>
+      <div class="col"><div class="ph t"></div><div class="ph s"></div><div class="ph s"></div></div>
+    </div>
+  </div></div>
+  <ul>
+    <li><strong>Brand blurb</strong> + three link groups: <em>Platform</em> (Browse, Blog, Support), <em>Legal</em> (Terms, Privacy, Fees &amp; payouts), <em>Help</em> (FAQ, Contact).</li>
+    <li>A single <strong>“become a fundraiser”</strong> call-to-action lives here (hidden on the homepage &amp; registration).</li>
+    <li>Bottom bar: © year + “Designed &amp; built by <strong>MuleSoo Digital Services</strong>”.</li>
+  </ul>
+
+  <div class="footnote"><span>Yewogen Derash — Public Site Design Spec</span><span>02 · Global chrome</span></div>
+</section>
+
+<!-- ============ 3. HOMEPAGE ============ -->
+<section class="page">
+  <div class="eyebrow">03 — Landing</div>
+  <h2 class="sec">Homepage <span class="muted" style="font-size:13px;font-weight:400;">· /</span></h2>
+  <p class="lead">Deliberately <strong>not</strong> a marketing splash — it opens straight into live campaigns, then explains why the platform is trustworthy. No hero banner, no owner sign-up shouting.</p>
+
+  <div class="mock">
+    <div class="body">
+      <div class="ph t" style="height:12px;width:40%;"></div>
+      <div class="ph s" style="width:60%;"></div>
+      <div class="row" style="margin-top:12px;">
+        <div class="col card" style="padding:0;overflow:hidden;"><div class="imgbox" style="border-radius:0;">▦</div><div style="padding:10px;"><div class="ph m"></div><div class="barfill"><i style="width:48%"></i></div><div class="ph t"></div></div></div>
+        <div class="col card" style="padding:0;overflow:hidden;"><div class="imgbox" style="border-radius:0;">▦</div><div style="padding:10px;"><div class="ph m"></div><div class="barfill"><i style="width:72%"></i></div><div class="ph t"></div></div></div>
+        <div class="col card" style="padding:0;overflow:hidden;"><div class="imgbox" style="border-radius:0;">▦</div><div style="padding:10px;"><div class="ph m"></div><div class="barfill"><i style="width:30%"></i></div><div class="ph t"></div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <h4 class="mini">Section 1 — “Active campaigns”</h4>
+  <p>A heading + one-line reassurance, a <code>View all campaigns →</code> button, then a responsive grid of up to <strong>9 campaign cards</strong> (1 / 2 / 3 columns by screen size). Empty state: a friendly “check back soon” card.</p>
+
+  <h4 class="mini">Section 2 — “Built for trust, end to end”</h4>
+  <p>On a tinted band: four icon cards — <strong>Verified owners</strong>, <strong>One campaign, one code</strong>, <strong>Separated ledgers</strong>, <strong>Instant confirmation</strong>. Purely informational, no CTA.</p>
+
+  <div class="note">Tone: calm, credible, donor-first. The “sell” is trust, not hype.</div>
+  <div class="footnote"><span>Yewogen Derash — Public Site Design Spec</span><span>03 · Homepage</span></div>
+</section>
+
+<!-- ============ 4. CAMPAIGN CARD + BROWSE ============ -->
+<section class="page">
+  <div class="eyebrow">04 — Discovery</div>
+  <h2 class="sec">Browse campaigns <span class="muted" style="font-size:13px;font-weight:400;">· /campaigns</span></h2>
+  <p class="lead">The full catalogue with category filters and sorting, built from the same campaign card used on the homepage.</p>
+
+  <h3 class="sub">The campaign card (used everywhere)</h3>
+  <div style="max-width:230px;">
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div class="imgbox" style="border-radius:0;position:relative;">▦
+        <span class="badge b-mut" style="position:absolute;left:8px;top:8px;">Medical</span>
+        <span class="badge b-gold" style="position:absolute;right:8px;top:8px;">◆ Verified</span>
+      </div>
+      <div style="padding:12px;">
+        <div class="ph m" style="height:9px;"></div><div class="ph s"></div>
+        <div class="barfill" style="margin-top:10px;"><i style="width:62%"></i></div>
+        <div style="display:flex;justify-content:space-between;font-size:10.5px;"><strong>ETB 62,000</strong><span class="muted">62%</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:9.5px;" class="muted"><span>of ETB 100,000</span><span>📍 Addis Ababa</span></div>
+      </div>
+    </div>
+  </div>
+  <ul>
+    <li><strong>16:9 hero image</strong> (or a soft green placeholder), zooms slightly on hover.</li>
+    <li>Overlays: <strong>category</strong> badge (top-left), <strong>Mulesoo verified</strong> gold stamp (top-right), “Fully funded” badge when complete.</li>
+    <li>Body: title (2-line clamp), summary, <strong>green progress bar</strong>, raised / target in ETB, location.</li>
+  </ul>
+
+  <h3 class="sub">Browse page layout</h3>
+  <ul>
+    <li>Page title + count, a row of <strong>category filter pills</strong> and a <strong>sort</strong> control (newest / most funded / ending soon).</li>
+    <li>Responsive grid of cards; clean empty/҂no-results state.</li>
+  </ul>
+
+  <div class="footnote"><span>Yewogen Derash — Public Site Design Spec</span><span>04 · Browse</span></div>
+</section>
+
+<!-- ============ 5. CAMPAIGN DETAIL + DONATE ============ -->
+<section class="page">
+  <div class="eyebrow">05 — Conversion</div>
+  <h2 class="sec">Campaign detail &amp; donate <span class="muted" style="font-size:13px;font-weight:400;">· /campaigns/[slug]</span></h2>
+  <p class="lead">The page that turns a visitor into a donor: the story on the left, a sticky donation panel on the right.</p>
+
+  <div class="mock"><div class="body"><div class="row">
+    <div class="col" style="flex:2;">
+      <div class="imgbox">▦</div>
+      <div class="ph m" style="height:11px;margin-top:10px;"></div>
+      <div class="ph s"></div><div class="ph m"></div><div class="ph m"></div><div class="ph s"></div>
+    </div>
+    <div class="col card" style="align-self:flex-start;">
+      <div class="ph t" style="height:11px;"></div>
+      <div class="barfill"><i style="width:62%"></i></div>
+      <div class="ph s"></div>
+      <div class="btn btn-primary" style="width:100%;justify-content:center;margin-top:6px;">Donate now</div>
+      <div class="ph t" style="margin-top:8px;"></div>
+    </div>
+  </div></div></div>
+
+  <div class="grid2">
+    <div class="card"><h4>Main column</h4>
+      <ul style="margin:0;"><li>Hero image + title + category</li><li>Progress: raised / target / % / donor count</li><li>Full story (rich text)</li><li>Owner trust block — name, <strong>Mulesoo verified</strong>, link to their public ID</li><li>Campaign <strong>Updates</strong> feed</li></ul>
+    </div>
+    <div class="card"><h4>Donation panel</h4>
+      <ul style="margin:0;"><li>Preset amounts + custom ETB entry</li><li>Optional donor name / anonymous</li><li><strong>Donate</strong> → secure Chapa checkout</li><li>Querycode shown for QR sharing</li></ul>
+    </div>
+  </div>
+
+  <h4 class="mini">Quick-donate landing · /q/[queryCode]</h4>
+  <p>The mobile-first page a <strong>QR scan</strong> opens: a compact, single-column card — logo, campaign title, progress, and a donate form. One code → one campaign, always.</p>
+
+  <h4 class="mini">Thank-you · /donate/thanks</h4>
+  <p>Post-payment confirmation: success tick, amount, campaign, and a nudge to share or explore more causes.</p>
+
+  <div class="footnote"><span>Yewogen Derash — Public Site Design Spec</span><span>05 · Detail &amp; donate</span></div>
+</section>
+
+<!-- ============ 6. TRUST + CONTENT ============ -->
+<section class="page">
+  <div class="eyebrow">06 — Trust &amp; content</div>
+  <h2 class="sec">Author profile, blog &amp; support</h2>
+  <p class="lead">The pages that build credibility and answer questions.</p>
+
+  <h3 class="sub">Public fundraiser profile · /a/[authorCode]</h3>
+  <p>A shareable <strong>verification page</strong> for a fundraiser — the same corporate ID card the owner downloads, their verification code, Mulesoo seal, and their campaigns. This is what a donor lands on when they verify who they’re giving to.</p>
+
+  <h3 class="sub">Blog · /blog &amp; /blog/[slug]</h3>
+  <ul><li>List of posts (cover image, title, excerpt, date).</li><li>Article page with a clean reading column, cover, and body.</li></ul>
+
+  <h3 class="sub">Support hub · /support (+ sub-pages)</h3>
+  <table>
+    <tr><th>Page</th><th>What it is</th></tr>
+    <tr><td><code>/support</code></td><td>Help landing — links to everything below.</td></tr>
+    <tr><td><code>/support/faq</code></td><td>Common questions, grouped.</td></tr>
+    <tr><td><code>/support/fees</code></td><td>Fees &amp; payouts explained (the 3% + how money moves).</td></tr>
+    <tr><td><code>/support/contact</code></td><td><strong>Working contact form</strong> → lands in the admin Support inbox.</td></tr>
+    <tr><td><code>/support/report</code></td><td>Report a campaign / fraud.</td></tr>
+    <tr><td><code>/support/terms</code>, <code>/support/privacy</code></td><td>Legal pages.</td></tr>
+  </table>
+
+  <div class="footnote"><span>Yewogen Derash — Public Site Design Spec</span><span>06 · Trust &amp; content</span></div>
+</section>
+
+<!-- ============ 7. ONBOARDING + AUTH ============ -->
+<section class="page">
+  <div class="eyebrow">07 — Become a fundraiser &amp; sign-in</div>
+  <h2 class="sec">Onboarding wizard &amp; auth</h2>
+  <p class="lead">How a new fundraiser is verified, and how people sign in. Public-facing, but gated and serious.</p>
+
+  <h3 class="sub">Get started / KYC wizard · /start → /start/…</h3>
+  <div class="chips">
+    <span class="badge b-green">1 · Terms</span>
+    <span class="badge b-green">2 · Documents</span>
+    <span class="badge b-green">3 · Verify (live face)</span>
+    <span class="badge b-green">4 · Review</span>
+  </div>
+  <ul>
+    <li>Step-by-step, progress-tracked flow: accept terms &amp; fees → upload ID + supporting docs → <strong>live biometric selfie</strong> (with a phone-capture handoff via QR) → review &amp; submit.</li>
+    <li>On submit the applicant becomes <em>Pending</em> and enters the admin KYC queue.</li>
+    <li><strong>Mobile capture · /capture/[token]</strong> — a phone-only page to take the live selfie, linked to the desktop session in real time.</li>
+  </ul>
+
+  <h3 class="sub">Authentication</h3>
+  <table>
+    <tr><th>Page</th><th>Purpose</th></tr>
+    <tr><td><code>/login</code></td><td>Standard email + password sign-in (donors / owners).</td></tr>
+    <tr><td><code>/register</code></td><td>Create an account (name, email, phone, password + email OTP).</td></tr>
+    <tr><td><code>/fundraiser-login</code></td><td>Sign in with the printed <strong>fundraiser code</strong> + password (+ biometric where enrolled).</td></tr>
+  </table>
+  <p class="muted">Auth pages are centered single cards on a soft background, logo at the top — calm and focused.</p>
+
+  <div class="footnote"><span>Yewogen Derash — Public Site Design Spec</span><span>07 · Onboarding &amp; auth</span></div>
+</section>
+
+<!-- ============ 8. RESPONSIVE + YOUR NOTES ============ -->
+<section class="page">
+  <div class="eyebrow">08 — Behaviour &amp; your direction</div>
+  <h2 class="sec">Responsive behaviour</h2>
+  <table>
+    <tr><th>Area</th><th>Laptop</th><th>Phone</th></tr>
+    <tr><td>Header nav</td><td>Inline links</td><td>Hamburger drawer</td></tr>
+    <tr><td>Campaign grid</td><td>3 columns</td><td>1 column, stacked</td></tr>
+    <tr><td>Campaign detail</td><td>Story + sticky donate side-by-side</td><td>Stacked; donate below story</td></tr>
+    <tr><td>Footer</td><td>4 columns</td><td>Stacked groups</td></tr>
+  </table>
+
+  <h2 class="sec" style="margin-top:24px;">Your direction — tell me how it should look</h2>
+  <p class="lead">Mark up anything below; I’ll rebuild the public appearance to match.</p>
+
+  <h4 class="mini">Overall vibe (calm/corporate ↔ bold/vibrant?)</h4>
+  <div class="fill">Your notes…</div>
+  <h4 class="mini">Colours &amp; logo (keep green + gold? new palette? logo tweaks?)</h4>
+  <div class="fill">Your notes…</div>
+  <h4 class="mini">Homepage (add a hero? banner? featured section? keep campaigns-first?)</h4>
+  <div class="fill">Your notes…</div>
+  <h4 class="mini">Campaign cards &amp; detail (imagery, layout, what to emphasise)</h4>
+  <div class="fill">Your notes…</div>
+  <h4 class="mini">Anything to add or remove</h4>
+  <div class="fill">Your notes…</div>
+
+  <div class="footnote"><span>Yewogen Derash — Public Site Design Spec</span><span>08 · Direction</span></div>
+</section>
+
+</body>
+</html>

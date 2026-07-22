@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { settleDonation } from "@/lib/donations";
 import { deliverQueuedNotifications } from "@/lib/notifications";
 import { Button } from "@/components/ui/button";
+import { ReceiptActions } from "@/components/donate/receipt-actions";
 import { formatETB, formatDate } from "@/lib/format";
 
 export const metadata: Metadata = {
@@ -101,7 +102,14 @@ export default async function DonationThanksPage({
           </div>
         </dl>
 
-        <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+        {success ? (
+          <ReceiptActions
+            campaignSlug={donation.campaign.slug}
+            campaignTitle={donation.campaign.title}
+          />
+        ) : null}
+
+        <div className="mt-4 flex flex-col justify-center gap-3 sm:flex-row">
           <Button asChild>
             <Link href={`/campaigns/${donation.campaign.slug}`}>
               Back to campaign <ArrowRight className="h-4 w-4" aria-hidden />

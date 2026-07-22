@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ProgressBar } from "@/components/campaigns/progress-bar";
 import { MulesooStamp, OwnerTrust } from "@/components/campaigns/verified-badges";
+import { MobileDonateBar } from "@/components/campaigns/mobile-donate-bar";
 import { getPublicCampaignBySlug, CATEGORY_LABELS } from "@/lib/campaigns";
 import { formatETB, progressPercent, formatDate } from "@/lib/format";
 
@@ -38,8 +39,10 @@ export default async function CampaignDetailPage({ params }: Params) {
   const pct = progressPercent(campaign.currentAmount, campaign.targetAmount);
   const remaining = Math.max(0, campaign.targetAmount - campaign.currentAmount);
 
+  const isActive = campaign.status === "ACTIVE";
+
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
+    <div className="mx-auto max-w-6xl px-4 py-8 pb-28 sm:px-6 sm:py-12 lg:pb-12">
       <nav className="mb-6 text-sm text-muted-foreground" aria-label="Breadcrumb">
         <Link href="/campaigns" className="hover:text-foreground">
           Campaigns
@@ -91,6 +94,7 @@ export default async function CampaignDetailPage({ params }: Params) {
             className="mt-3"
             ownerName={campaign.ownerName}
             mulesooVerified={campaign.mulesooVerified}
+            authorCode={campaign.authorCode}
           />
 
           <p className="mt-6 text-base leading-relaxed text-foreground/90">
@@ -182,13 +186,25 @@ export default async function CampaignDetailPage({ params }: Params) {
               </dl>
 
               <Button asChild size="lg" className="mt-6 w-full">
-                <Link href={`/campaigns/${campaign.slug}/donate`}>Donate now</Link>
+                <Link href={`/campaigns/${campaign.slug}/donate`}>
+                  Donate securely
+                </Link>
               </Button>
 
               <div className="mt-3 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
                 <ShieldCheck className="h-3.5 w-3.5 text-success" aria-hidden />
-                Secure payment · funds isolated to this campaign
+                Secure checkout · funds isolated to this campaign
               </div>
+              <p className="mt-2 text-center text-[11px] leading-relaxed text-muted-foreground">
+                A 3% platform fee applies.{" "}
+                <Link href="/support/fees" className="underline hover:text-foreground">
+                  Fees &amp; payouts
+                </Link>{" "}
+                ·{" "}
+                <Link href="/support/terms" className="underline hover:text-foreground">
+                  Terms
+                </Link>
+              </p>
             </div>
 
             {/* Querycode card */}
@@ -241,6 +257,15 @@ export default async function CampaignDetailPage({ params }: Params) {
           </div>
         </aside>
       </div>
+
+      {isActive ? (
+        <MobileDonateBar
+          slug={campaign.slug}
+          raised={campaign.currentAmount}
+          currency={campaign.currency}
+          pct={pct}
+        />
+      ) : null}
     </div>
   );
 }

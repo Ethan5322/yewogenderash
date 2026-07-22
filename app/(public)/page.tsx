@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ShieldCheck, QrCode, Landmark, BellRing, ArrowRight } from "lucide-react";
+import { ShieldCheck, QrCode, Landmark, BellRing, ArrowRight, CreditCard, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -48,6 +48,21 @@ export default async function HomePage() {
 
   return (
     <div>
+      {/* Trust strip — reassurance before anything else */}
+      <div className="border-b bg-card">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-center gap-x-8 gap-y-2 px-4 py-3 text-sm font-medium text-muted-foreground sm:flex-row sm:px-6">
+          <span className="inline-flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-primary" aria-hidden /> Verified campaigns
+          </span>
+          <span className="inline-flex items-center gap-2">
+            <CreditCard className="h-4 w-4 text-primary" aria-hidden /> Local &amp; international payments
+          </span>
+          <span className="inline-flex items-center gap-2">
+            <Lock className="h-4 w-4 text-primary" aria-hidden /> Secure checkout
+          </span>
+        </div>
+      </div>
+
       {/* Ongoing campaigns — the first thing every visitor sees */}
       <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
         <div className="flex flex-wrap items-end justify-between gap-4">

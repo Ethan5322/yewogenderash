@@ -65,6 +65,7 @@ export default async function QuickDonatePage({ params }: Params) {
               className="mt-2"
               ownerName={campaign.ownerName}
               mulesooVerified={campaign.mulesooVerified}
+              authorCode={campaign.authorCode}
             />
 
             <ProgressBar value={pct} className="mt-4" label={`${pct}% funded`} />
@@ -99,6 +100,12 @@ export default async function QuickDonatePage({ params }: Params) {
           <ShieldCheck className="h-3.5 w-3.5 text-success" aria-hidden />
           This code funds only this campaign — never a shared pool.
         </div>
+        <p className="mt-1.5 text-center text-[11px] text-muted-foreground">
+          Secure checkout · a 3% platform fee applies ·{" "}
+          <Link href="/support/fees" className="underline hover:text-foreground">
+            Fees
+          </Link>
+        </p>
 
         <div className="mt-4 text-center">
           <Link
