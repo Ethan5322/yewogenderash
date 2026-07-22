@@ -75,10 +75,11 @@ export function SiteHeader({ user }: { user?: HeaderUser }) {
               </Button>
             </>
           ) : (
-            // Public visitors: only the campaign CTA here. Owner sign-in lives
-            // in the footer; admin sign-in is not shown on the public site.
-            <Button asChild size="sm">
-              <Link href="/start">Start a campaign</Link>
+            // Public visitors: no owner CTA in the global header — the single
+            // "become a fundraiser" entry lives in the footer (general pages).
+            // Just a donor-facing sign-in for returning users.
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/login">Sign in</Link>
             </Button>
           )}
         </div>
@@ -123,8 +124,8 @@ export function SiteHeader({ user }: { user?: HeaderUser }) {
                 </button>
               </>
             ) : (
-              <Button asChild className="mt-2">
-                <Link href="/start">Start a campaign</Link>
+              <Button asChild variant="outline" className="mt-2">
+                <Link href="/login">Sign in</Link>
               </Button>
             )}
           </nav>

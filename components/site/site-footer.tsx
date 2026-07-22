@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { Logo } from "@/components/site/logo";
+import { FooterOwnerCta } from "@/components/site/footer-owner-cta";
 
 const FOOTER_GROUPS = [
   {
     heading: "Platform",
     links: [
       { href: "/campaigns", label: "Browse campaigns" },
-      { href: "/start", label: "Start a campaign" },
       { href: "/blog", label: "Blog" },
       { href: "/support", label: "Support" },
     ],
@@ -63,31 +63,8 @@ export function SiteFooter() {
           ))}
         </div>
 
-        {/* Campaign-owner entry point (not admin — admin sign-in is never
-            shown on the public site). */}
-        <div className="mt-10 flex flex-col items-center justify-between gap-4 rounded-xl border bg-background p-5 text-center sm:flex-row sm:text-left">
-          <div>
-            <p className="font-medium">Are you a campaign owner?</p>
-            <p className="mt-0.5 text-sm text-muted-foreground">
-              Sign in to manage your campaigns, or get verified to start raising
-              funds.
-            </p>
-          </div>
-          <div className="flex shrink-0 gap-3">
-            <Link
-              href="/login"
-              className="inline-flex h-9 items-center rounded-md border border-input px-4 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
-            >
-              Sign in
-            </Link>
-            <Link
-              href="/start"
-              className="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
-            >
-              Register as a campaign owner
-            </Link>
-          </div>
-        </div>
+        {/* Single campaign-owner entry — hidden on homepage & registration. */}
+        <FooterOwnerCta />
 
         <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t pt-6 text-xs text-muted-foreground sm:flex-row">
           <p>© {new Date().getFullYear()} Yewogen Derash. All rights reserved.</p>
