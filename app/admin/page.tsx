@@ -12,10 +12,11 @@ import {
 import { db } from "@/lib/db";
 import { formatETB } from "@/lib/format";
 import { adminUnreadTotal } from "@/lib/messages";
-import { getAdminAnalytics } from "@/lib/analytics";
+import { getAdminAnalytics, getBreakdownAnalytics } from "@/lib/analytics";
 import {
   DonationsTrendChart,
   CampaignsByStatusChart,
+  BreakdownBarChart,
 } from "@/components/admin/analytics-charts";
 
 export const metadata = { title: "Admin · Overview" };
@@ -73,6 +74,7 @@ export default async function AdminOverviewPage() {
   ].filter((a) => a.count > 0);
 
   const { donationsByDay, campaignsByStatus } = await getAdminAnalytics(30);
+  const breakdown = await getBreakdownAnalytics();
 
   const stats = [
     {
@@ -177,6 +179,39 @@ export default async function AdminOverviewPage() {
         </section>
       </div>
 
+      {/* Full analytics suite (§12.8) */}
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <ChartCard title="Category performance" sub="Raised by campaign category (ETB)">
+          <BreakdownBarChart data={breakdown.categoryPerformance} money />
+        </ChartCard>
+        <ChartCard title="Owner verification rate" sub="Owner accounts by verification status">
+          <BreakdownBarChart data={breakdown.verificationBreakdown} />
+        </ChartCard>
+        <ChartCard title="Donation outcomes" sub="Refunds & failures across all donations">
+          <BreakdownBarChart data={breakdown.donationOutcomes} />
+        </ChartCard>
+        <ChartCard title="Payout timeline" sub="Payout amount by stage (ETB)">
+          <BreakdownBarChart data={breakdown.payoutTimeline} money />
+        </ChartCard>
+      </div>
     </div>
+  );
+}
+
+function ChartCard({
+  title,
+  sub,
+  children,
+}: {
+  title: string;
+  sub: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-xl border bg-card p-5 shadow-sm">
+      <h2 className="text-sm font-semibold">{title}</h2>
+      <p className="mb-3 text-xs text-muted-foreground">{sub}</p>
+      {children}
+    </section>
   );
 }

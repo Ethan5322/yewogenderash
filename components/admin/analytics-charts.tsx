@@ -13,7 +13,7 @@ import {
   LabelList,
 } from "recharts";
 import { formatETB } from "@/lib/format";
-import type { DonationDay, StatusCount } from "@/lib/analytics";
+import type { DonationDay, StatusCount, Bar as BarDatum } from "@/lib/analytics";
 
 // Theme-aware: these CSS vars flip with light/dark automatically.
 const INK = "var(--muted-foreground)";
@@ -82,6 +82,53 @@ export function DonationsTrendChart({ data }: { data: DonationDay[] }) {
           activeDot={{ r: 4, strokeWidth: 0 }}
         />
       </AreaChart>
+    </ResponsiveContainer>
+  );
+}
+
+/** Generic horizontal bar breakdown for the §12.8 analytics (money or counts). */
+export function BreakdownBarChart({
+  data,
+  money = false,
+}: {
+  data: BarDatum[];
+  money?: boolean;
+}) {
+  const height = Math.max(160, data.length * 34);
+  return (
+    <ResponsiveContainer width="100%" height={height}>
+      <BarChart data={data} layout="vertical" margin={{ top: 4, right: 40, bottom: 4, left: 8 }}>
+        <CartesianGrid horizontal={false} stroke={GRID} strokeOpacity={0.6} />
+        <XAxis
+          type="number"
+          tick={axisTick}
+          tickLine={false}
+          axisLine={false}
+          allowDecimals={false}
+          tickFormatter={money ? compactETB : undefined}
+        />
+        <YAxis type="category" dataKey="label" tick={axisTick} tickLine={false} axisLine={false} width={92} />
+        <Tooltip
+          cursor={{ fill: GRID, fillOpacity: 0.35 }}
+          content={({ active, payload }: any) =>
+            active && payload?.length ? (
+              <TooltipCard
+                title={payload[0].payload.label}
+                value={money ? formatETB(payload[0].value ?? 0) : String(payload[0].value)}
+              />
+            ) : null
+          }
+        />
+        <Bar dataKey="value" fill={PRIMARY} radius={[0, 4, 4, 0]} barSize={16}>
+          <LabelList
+            dataKey="value"
+            position="right"
+            className="fill-muted-foreground"
+            fontSize={12}
+            formatter={money ? (v: any) => compactETB(Number(v)) : undefined}
+          />
+        </Bar>
+      </BarChart>
     </ResponsiveContainer>
   );
 }

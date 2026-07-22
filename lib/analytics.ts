@@ -1,9 +1,11 @@
 import "server-only";
-import type { CampaignStatus } from "@prisma/client";
+import type { CampaignCategory, CampaignStatus } from "@prisma/client";
 import { db } from "@/lib/db";
+import { CATEGORY_LABELS } from "@/lib/campaign-types";
 
 export type DonationDay = { date: string; label: string; total: number };
 export type StatusCount = { status: CampaignStatus; label: string; count: number };
+export type Bar = { label: string; value: number };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -74,4 +76,61 @@ export async function getAdminAnalytics(days = 30): Promise<{
   }));
 
   return { donationsByDay, campaignsByStatus };
+}
+
+const CATEGORY_ORDER: CampaignCategory[] = [
+  "MEDICAL", "EDUCATION", "COMMUNITY", "BUSINESS", "EMERGENCY", "OTHER",
+];
+const VERIFICATION_ORDER: { key: string; label: string }[] = [
+  { key: "VERIFIED", label: "Verified" },
+  { key: "PENDING", label: "Pending" },
+  { key: "REJECTED", label: "Rejected" },
+  { key: "RESUBMIT", label: "Resubmit" },
+  { key: "UNVERIFIED", label: "Unverified" },
+];
+const DONATION_OUTCOME_ORDER: { key: string; label: string }[] = [
+  { key: "SUCCESS", label: "Successful" },
+  { key: "PENDING", label: "Pending" },
+  { key: "FAILED", label: "Failed" },
+  { key: "REFUNDED", label: "Refunded" },
+  { key: "DISPUTED", label: "Disputed" },
+  { key: "CANCELLED", label: "Cancelled" },
+];
+const PAYOUT_ORDER: { key: string; label: string }[] = [
+  { key: "REQUESTED", label: "Requested" },
+  { key: "APPROVED", label: "Approved" },
+  { key: "PAID", label: "Paid" },
+  { key: "REJECTED", label: "Rejected" },
+  { key: "CANCELLED", label: "Cancelled" },
+];
+
+/**
+ * The rest of the §12.8 analytics suite: category performance, owner
+ * verification rate, donation outcomes (refunds & failures), and payout
+ * timelines. Returned as simple {label,value} bars.
+ */
+export async function getBreakdownAnalytics(): Promise<{
+  categoryPerformance: Bar[];
+  verificationBreakdown: Bar[];
+  donationOutcomes: Bar[];
+  payoutTimeline: Bar[];
+}> {
+  const [catGroups, verGroups, donGroups, payGroups] = await Promise.all([
+    db.campaign.groupBy({ by: ["category"], _sum: { currentAmount: true } }),
+    db.user.groupBy({ by: ["verificationStatus"], _count: { _all: true }, where: { ownerProfile: { isNot: null } } }),
+    db.donation.groupBy({ by: ["status"], _count: { _all: true } }),
+    db.payout.groupBy({ by: ["status"], _sum: { amount: true } }),
+  ]);
+
+  const catMap = new Map(catGroups.map((g) => [g.category, Number(g._sum.currentAmount ?? 0)]));
+  const verMap = new Map(verGroups.map((g) => [g.verificationStatus, g._count._all]));
+  const donMap = new Map(donGroups.map((g) => [g.status, g._count._all]));
+  const payMap = new Map(payGroups.map((g) => [g.status, Number(g._sum.amount ?? 0)]));
+
+  return {
+    categoryPerformance: CATEGORY_ORDER.map((c) => ({ label: CATEGORY_LABELS[c], value: catMap.get(c) ?? 0 })),
+    verificationBreakdown: VERIFICATION_ORDER.map((v) => ({ label: v.label, value: verMap.get(v.key as never) ?? 0 })),
+    donationOutcomes: DONATION_OUTCOME_ORDER.map((d) => ({ label: d.label, value: donMap.get(d.key as never) ?? 0 })),
+    payoutTimeline: PAYOUT_ORDER.map((p) => ({ label: p.label, value: payMap.get(p.key as never) ?? 0 })),
+  };
 }
