@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ExternalLink, Download, FileText, ShieldCheck, MessageSquare } from "lucide-react";
+import { ArrowLeft, ShieldCheck, MessageSquare } from "lucide-react";
 import { db } from "@/lib/db";
 import { requirePermission, hasPermission } from "@/lib/admin/permissions";
 import { signedKycUrl } from "@/lib/supabase/server";
@@ -8,9 +8,16 @@ import { OwnerDecisionPanel } from "@/components/admin/owner-decision-panel";
 import { FlagControl } from "@/components/admin/flag-control";
 import { StatusBadge } from "@/components/campaigns/status-badge";
 import { FundraiserIdCard } from "@/components/owner/fundraiser-id-card";
+import { DocumentPreview, type DocKind } from "@/components/admin/document-preview";
 import { formatDate } from "@/lib/format";
 
 export const metadata = { title: "Admin · Owner review" };
+
+function docKind(ext: string): DocKind {
+  if (["jpg", "jpeg", "png", "webp", "gif", "heic"].includes(ext)) return "image";
+  if (ext === "pdf") return "pdf";
+  return "other";
+}
 
 export default async function AdminOwnerDetailPage({
   params,
@@ -52,13 +59,14 @@ export default async function AdminOwnerDetailPage({
   const safeName = owner.user.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
   const docs = await Promise.all(
     owner.documents.map(async (d) => {
-      const ext = d.fileUrl.split(".").pop()?.split("?")[0] || "file";
+      const ext = (d.fileUrl.split(".").pop()?.split("?")[0] || "file").toLowerCase();
+      const kind = docKind(ext);
       const filename = `${safeName}-${d.documentType.toLowerCase()}.${ext}`;
       const [signedUrl, downloadUrl] = await Promise.all([
         signedKycUrl(d.fileUrl, 600),
         signedKycUrl(d.fileUrl, 600, filename),
       ]);
-      return { ...d, signedUrl, downloadUrl };
+      return { ...d, signedUrl, downloadUrl, kind };
     })
   );
 
@@ -197,43 +205,15 @@ export default async function AdminOwnerDetailPage({
             ) : (
               <ul className="mt-4 divide-y">
                 {docs.map((d) => (
-                  <li key={d.id} className="flex items-center justify-between gap-3 py-3">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <FileText className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium">
-                          {d.documentType.replaceAll("_", " ")}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatDate(d.createdAt)} · {d.status}
-                          {d.adminNote ? ` · note: ${d.adminNote}` : ""}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      {d.signedUrl ? (
-                        <a
-                          href={d.signedUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-medium shadow-sm transition-colors hover:bg-accent"
-                        >
-                          <ExternalLink className="h-3.5 w-3.5" aria-hidden /> Open
-                        </a>
-                      ) : null}
-                      {d.downloadUrl ? (
-                        <a
-                          href={d.downloadUrl}
-                          className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-medium shadow-sm transition-colors hover:bg-accent"
-                        >
-                          <Download className="h-3.5 w-3.5" aria-hidden /> Download
-                        </a>
-                      ) : null}
-                      {!d.signedUrl && !d.downloadUrl ? (
-                        <span className="text-xs text-muted-foreground">unavailable</span>
-                      ) : null}
-                    </div>
-                  </li>
+                  <DocumentPreview
+                    key={d.id}
+                    label={d.documentType.replaceAll("_", " ") + (d.adminNote ? ` · note: ${d.adminNote}` : "")}
+                    status={d.status}
+                    uploaded={formatDate(d.createdAt)}
+                    kind={d.kind}
+                    signedUrl={d.signedUrl}
+                    downloadUrl={d.downloadUrl}
+                  />
                 ))}
               </ul>
             )}
@@ -279,19 +259,22 @@ export default async function AdminOwnerDetailPage({
 
           {/* Decision */}
           <section className="rounded-xl border bg-card p-6 shadow-sm">
-            <h2 className="font-display text-base font-semibold">KYC decision</h2>
-            {owner.user.verificationStatus === "PENDING" ? (
-              <div className="mt-4">
-                <OwnerDecisionPanel ownerId={owner.id} />
-              </div>
-            ) : (
-              <p className="mt-3 text-sm text-muted-foreground">
-                No application awaiting review
-                {owner.user.verificationStatus === "VERIFIED"
-                  ? " — this owner is verified."
-                  : ` (status: ${owner.user.verificationStatus}).`}
-              </p>
-            )}
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="font-display text-base font-semibold">KYC decision</h2>
+              <span className="text-xs font-medium text-muted-foreground">
+                Status: {owner.user.verificationStatus}
+              </span>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Allow or deny this fundraiser. Approving grants the Mulesoo seal and
+              unlocks their Fundraiser ID; revoking pulls it back.
+            </p>
+            <div className="mt-4">
+              <OwnerDecisionPanel
+                ownerId={owner.id}
+                status={owner.user.verificationStatus}
+              />
+            </div>
           </section>
 
           {/* Campaigns */}

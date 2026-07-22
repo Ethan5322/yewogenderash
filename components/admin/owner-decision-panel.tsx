@@ -2,18 +2,46 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Check, X, RotateCcw } from "lucide-react";
+import type { VerificationStatus } from "@prisma/client";
+import { Loader2, Check, X, RotateCcw, ShieldOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { decideOwnerAction } from "@/app/admin/actions";
 
-type Decision = "approve" | "reject" | "resubmit";
+type Decision = "approve" | "reject" | "resubmit" | "revoke";
 
-export function OwnerDecisionPanel({ ownerId }: { ownerId: string }) {
+const META: Record<
+  Decision,
+  { label: string; icon: React.ElementType; variant: "default" | "destructive" | "outline" | "secondary" }
+> = {
+  approve: { label: "Allow — grant Mulesoo seal", icon: Check, variant: "default" },
+  resubmit: { label: "Request resubmission", icon: RotateCcw, variant: "outline" },
+  reject: { label: "Reject", icon: X, variant: "destructive" },
+  revoke: { label: "Revoke verification", icon: ShieldOff, variant: "destructive" },
+};
+
+/** Which actions make sense from each status (mirrors the server matrix). */
+const AVAILABLE: Record<VerificationStatus, Decision[]> = {
+  PENDING: ["approve", "resubmit", "reject"],
+  UNVERIFIED: ["approve", "resubmit", "reject"],
+  RESUBMIT: ["approve", "reject"],
+  REJECTED: ["approve", "resubmit"],
+  VERIFIED: ["revoke"],
+};
+
+export function OwnerDecisionPanel({
+  ownerId,
+  status,
+}: {
+  ownerId: string;
+  status: VerificationStatus;
+}) {
   const router = useRouter();
   const [pending, startTransition] = React.useTransition();
   const [note, setNote] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
   const [busyOn, setBusyOn] = React.useState<Decision | null>(null);
+
+  const decisions = AVAILABLE[status] ?? [];
 
   function run(decision: Decision) {
     setBusyOn(decision);
@@ -39,7 +67,7 @@ export function OwnerDecisionPanel({ ownerId }: { ownerId: string }) {
         <label htmlFor="kyc-note" className="text-sm font-medium">
           Note{" "}
           <span className="font-normal text-muted-foreground">
-            (required for reject/resubmit — shown to the owner)
+            (required for reject / resubmit / revoke — shown to the owner)
           </span>
         </label>
         <textarea
@@ -53,40 +81,25 @@ export function OwnerDecisionPanel({ ownerId }: { ownerId: string }) {
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Button size="sm" disabled={pending} onClick={() => run("approve")}>
-          {busyOn === "approve" ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Check className="h-4 w-4" aria-hidden />
-          )}
-          Approve — grant Mulesoo seal
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          disabled={pending}
-          onClick={() => run("resubmit")}
-        >
-          {busyOn === "resubmit" ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <RotateCcw className="h-4 w-4" aria-hidden />
-          )}
-          Request resubmission
-        </Button>
-        <Button
-          size="sm"
-          variant="destructive"
-          disabled={pending}
-          onClick={() => run("reject")}
-        >
-          {busyOn === "reject" ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <X className="h-4 w-4" aria-hidden />
-          )}
-          Reject
-        </Button>
+        {decisions.map((d) => {
+          const meta = META[d];
+          return (
+            <Button
+              key={d}
+              size="sm"
+              variant={meta.variant}
+              disabled={pending}
+              onClick={() => run(d)}
+            >
+              {busyOn === d ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <meta.icon className="h-4 w-4" aria-hidden />
+              )}
+              {meta.label}
+            </Button>
+          );
+        })}
       </div>
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}

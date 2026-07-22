@@ -89,7 +89,7 @@ const ownerDecisionSchema = z.object({
  * resubmit → user RESUBMIT (the wizard reopens); pending documents RESUBMIT.
  */
 export async function decideOwnerAction(
-  decision: "approve" | "reject" | "resubmit",
+  decision: "approve" | "reject" | "resubmit" | "revoke",
   _prev: ActionResult | null,
   formData: FormData
 ): Promise<ActionResult> {
@@ -105,7 +105,7 @@ export async function decideOwnerAction(
   if (decision !== "approve" && !note) {
     return {
       ok: false,
-      error: "A note is required — the owner needs to know what to fix.",
+      error: "A note is required — the owner needs to know why.",
     };
   }
 
@@ -119,8 +119,18 @@ export async function decideOwnerAction(
     },
   });
   if (!owner) return { ok: false, error: "Owner not found" };
-  if (owner.user.verificationStatus !== "PENDING") {
-    return { ok: false, error: "This application is not awaiting review." };
+
+  // Which decisions are valid from the current status. Approve is allowed from
+  // any not-yet-verified state; revoke only from a verified one.
+  const status = owner.user.verificationStatus;
+  const allowed: Record<typeof decision, string[]> = {
+    approve: ["PENDING", "UNVERIFIED", "RESUBMIT", "REJECTED"],
+    reject: ["PENDING", "UNVERIFIED", "RESUBMIT"],
+    resubmit: ["PENDING", "UNVERIFIED", "REJECTED"],
+    revoke: ["VERIFIED"],
+  };
+  if (!allowed[decision].includes(status)) {
+    return { ok: false, error: `Cannot ${decision} an owner whose status is ${status}.` };
   }
 
   if (decision === "approve") {
@@ -145,8 +155,20 @@ export async function decideOwnerAction(
         },
       }),
       db.verificationDocument.updateMany({
-        where: { ownerId: owner.id, status: "PENDING" },
+        where: { ownerId: owner.id, status: { in: ["PENDING", "RESUBMIT"] } },
         data: { status: "APPROVED", ...(note ? { adminNote: note } : {}) },
+      }),
+    ]);
+  } else if (decision === "revoke") {
+    // Pull the Mulesoo seal from a verified owner — re-locks their ID.
+    await db.$transaction([
+      db.user.update({
+        where: { id: owner.userId },
+        data: { verificationStatus: "REJECTED" },
+      }),
+      db.campaignOwner.update({
+        where: { id: owner.id },
+        data: { mulesooVerified: false, biometricStatus: "REJECTED" },
       }),
     ]);
   } else {

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ExternalLink, Download, FileText, ShieldCheck, Star, MessageSquare } from "lucide-react";
+import { ArrowLeft, ExternalLink, ShieldCheck, Star, MessageSquare } from "lucide-react";
 import { db } from "@/lib/db";
 import { requirePermission, hasPermission } from "@/lib/admin/permissions";
 import { signedKycUrl } from "@/lib/supabase/server";
@@ -8,10 +8,17 @@ import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/campaigns/status-badge";
 import { CampaignDecisionPanel } from "@/components/admin/campaign-decision-panel";
 import { FlagControl } from "@/components/admin/flag-control";
+import { DocumentPreview, type DocKind } from "@/components/admin/document-preview";
 import { CATEGORY_LABELS } from "@/lib/campaign-types";
 import { formatETB, formatDate } from "@/lib/format";
 
 export const metadata = { title: "Admin · Campaign review" };
+
+function docKind(ext: string): DocKind {
+  if (["jpg", "jpeg", "png", "webp", "gif", "heic"].includes(ext)) return "image";
+  if (ext === "pdf") return "pdf";
+  return "other";
+}
 
 export default async function AdminCampaignDetailPage({
   params,
@@ -88,13 +95,15 @@ export default async function AdminCampaignDetailPage({
     const ext = fileUrl.split(".").pop()?.split("?")[0] || "file";
     return `${raw.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-${type.toLowerCase()}.${ext}`;
   };
+  const kindOf = (fileUrl: string) =>
+    docKind((fileUrl.split(".").pop()?.split("?")[0] || "file").toLowerCase());
   const docs = await Promise.all(
     owner.documents.map(async (d) => {
       const [signedUrl, downloadUrl] = await Promise.all([
         signedKycUrl(d.fileUrl, 600),
         signedKycUrl(d.fileUrl, 600, nameFor(owner.user.name, d.documentType, d.fileUrl)),
       ]);
-      return { ...d, signedUrl, downloadUrl };
+      return { ...d, signedUrl, downloadUrl, kind: kindOf(d.fileUrl) };
     })
   );
   const campaignDocs = await Promise.all(
@@ -103,7 +112,7 @@ export default async function AdminCampaignDetailPage({
         signedKycUrl(d.fileUrl, 600),
         signedKycUrl(d.fileUrl, 600, nameFor(campaign.title, d.documentType, d.fileUrl)),
       ]);
-      return { ...d, signedUrl, downloadUrl };
+      return { ...d, signedUrl, downloadUrl, kind: kindOf(d.fileUrl) };
     })
   );
 
@@ -204,42 +213,15 @@ export default async function AdminCampaignDetailPage({
             ) : (
               <ul className="mt-4 divide-y">
                 {campaignDocs.map((d) => (
-                  <li key={d.id} className="flex items-center justify-between gap-3 py-3">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <FileText className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium">
-                          {d.documentType.replaceAll("_", " ")}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Uploaded {formatDate(d.createdAt)} · status {d.status}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      {d.signedUrl ? (
-                        <a
-                          href={d.signedUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-medium shadow-sm transition-colors hover:bg-accent"
-                        >
-                          <ExternalLink className="h-3.5 w-3.5" aria-hidden /> Open
-                        </a>
-                      ) : null}
-                      {d.downloadUrl ? (
-                        <a
-                          href={d.downloadUrl}
-                          className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-medium shadow-sm transition-colors hover:bg-accent"
-                        >
-                          <Download className="h-3.5 w-3.5" aria-hidden /> Download
-                        </a>
-                      ) : null}
-                      {!d.signedUrl && !d.downloadUrl ? (
-                        <span className="text-xs text-muted-foreground">unavailable</span>
-                      ) : null}
-                    </div>
-                  </li>
+                  <DocumentPreview
+                    key={d.id}
+                    label={d.documentType.replaceAll("_", " ")}
+                    status={d.status}
+                    uploaded={`Uploaded ${formatDate(d.createdAt)}`}
+                    kind={d.kind}
+                    signedUrl={d.signedUrl}
+                    downloadUrl={d.downloadUrl}
+                  />
                 ))}
               </ul>
             )}
@@ -259,42 +241,15 @@ export default async function AdminCampaignDetailPage({
             ) : (
               <ul className="mt-4 divide-y">
                 {docs.map((d) => (
-                  <li key={d.id} className="flex items-center justify-between gap-3 py-3">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <FileText className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium">
-                          {d.documentType.replaceAll("_", " ")}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Uploaded {formatDate(d.createdAt)} · status {d.status}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      {d.signedUrl ? (
-                        <a
-                          href={d.signedUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-medium shadow-sm transition-colors hover:bg-accent"
-                        >
-                          <ExternalLink className="h-3.5 w-3.5" aria-hidden /> Open
-                        </a>
-                      ) : null}
-                      {d.downloadUrl ? (
-                        <a
-                          href={d.downloadUrl}
-                          className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-medium shadow-sm transition-colors hover:bg-accent"
-                        >
-                          <Download className="h-3.5 w-3.5" aria-hidden /> Download
-                        </a>
-                      ) : null}
-                      {!d.signedUrl && !d.downloadUrl ? (
-                        <span className="text-xs text-muted-foreground">unavailable</span>
-                      ) : null}
-                    </div>
-                  </li>
+                  <DocumentPreview
+                    key={d.id}
+                    label={d.documentType.replaceAll("_", " ")}
+                    status={d.status}
+                    uploaded={`Uploaded ${formatDate(d.createdAt)}`}
+                    kind={d.kind}
+                    signedUrl={d.signedUrl}
+                    downloadUrl={d.downloadUrl}
+                  />
                 ))}
               </ul>
             )}
