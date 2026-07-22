@@ -30,7 +30,9 @@ const NAV_GROUPS: GroupDef[] = [
     items: [
       { href: "/admin/campaigns", label: "Campaigns", key: "campaigns", perm: "campaigns" },
       { href: "/admin/owners", label: "Owners / KYC", key: "kyc", perm: "kyc" },
+      { href: "/admin/querycodes", label: "Querycodes / QR", key: "querycodes", perm: "campaigns" },
       { href: "/admin/messages", label: "Notices", key: "messages", perm: "messages" },
+      { href: "/admin/notifications", label: "Notifications", key: "notifications", perm: "messages" },
       { href: "/admin/support", label: "Support / Disputes", key: "support", perm: "messages" },
     ],
   },
@@ -40,6 +42,7 @@ const NAV_GROUPS: GroupDef[] = [
       { href: "/admin/donations", label: "Donations", key: "donations", perm: "payouts" },
       { href: "/admin/payments", label: "Payments", key: "payments", perm: "payouts" },
       { href: "/admin/payouts", label: "Payouts", key: "payouts", perm: "payouts" },
+      { href: "/admin/reports", label: "Reports", key: "reports", perm: "payouts" },
     ],
   },
   {
@@ -54,6 +57,7 @@ const NAV_GROUPS: GroupDef[] = [
     items: [
       { href: "/admin/team", label: "Roles & Team", key: "admins", perm: "admins" },
       { href: "/admin/audit", label: "Audit log", key: "audit", perm: "admins" },
+      { href: "/admin/system", label: "System status", key: "system", superOnly: true },
       { href: "/admin/settings", label: "Fees / Settings", key: "settings", superOnly: true },
     ],
   },

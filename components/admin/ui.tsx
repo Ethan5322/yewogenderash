@@ -90,6 +90,8 @@ const STATUS_TONE: Record<string, Tone> = {
   VERIFIED: "success", UNVERIFIED: "neutral",
   // support
   OPEN: "warning", RESOLVED: "success",
+  // notifications
+  SENT: "success", QUEUED: "warning",
 };
 
 export function StatusChip({ status }: { status: string }) {
