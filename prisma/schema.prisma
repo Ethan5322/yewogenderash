@@ -175,6 +175,12 @@ model User {
   /// Staff identifier for admins/sub-admins, e.g. YWD-ADM-7KQ2. Issued when an
   /// admin account is created; null for non-admin users.
   adminCode          String?            @unique
+  /// Staff biometric + ID-card portrait (admins/sub-admins). idPhotoUrl is the
+  /// public portrait shown on the staff ID; faceDescriptor is the enrolled
+  /// biometric template; biometricEnrolledAt marks when it was captured.
+  idPhotoUrl         String?
+  faceDescriptor     String?
+  biometricEnrolledAt DateTime?
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 

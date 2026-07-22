@@ -27,7 +27,10 @@ type GroupDef = { label: string; items: NavDef[] };
 const NAV_GROUPS: GroupDef[] = [
   {
     label: "Overview",
-    items: [{ href: "/admin", label: "Dashboard", key: "overview" }],
+    items: [
+      { href: "/admin", label: "Dashboard", key: "overview" },
+      { href: "/admin/id", label: "My staff ID", key: "staffid" },
+    ],
   },
   {
     label: "Operations",

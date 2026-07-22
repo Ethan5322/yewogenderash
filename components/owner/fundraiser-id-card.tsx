@@ -23,6 +23,12 @@ export type FundraiserIdCardProps = {
   /** Show the PNG/PDF download buttons (owner's own ID page only). */
   showDownload?: boolean;
   fields?: IdCardField[];
+  /** Card subtitle line (defaults to the fundraiser wording). */
+  subtitle?: string;
+  /** Holder role label beside the photo (defaults to the fundraiser wording). */
+  roleLabel?: string;
+  /** QR target (defaults to the public author profile /a/{code}). */
+  qrUrl?: string;
 };
 
 /**
@@ -39,6 +45,9 @@ export function FundraiserIdCard({
   approved,
   showDownload = false,
   fields = [],
+  subtitle = "Verified Fundraiser ID",
+  roleLabel = "Verified Fundraiser",
+  qrUrl,
 }: FundraiserIdCardProps) {
   const [src, setSrc] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState<null | "png" | "pdf">(null);
@@ -46,20 +55,21 @@ export function FundraiserIdCard({
   const data: IdCardData = React.useMemo(
     () => ({
       org: "Yewogen Derash",
-      subtitle: "Verified Fundraiser ID",
-      roleLabel: "Verified Fundraiser",
+      subtitle,
+      roleLabel,
       name,
       verificationCode,
       photoUrl: photoUrl ?? "",
       qrUrl:
-        typeof window !== "undefined"
+        qrUrl ??
+        (typeof window !== "undefined"
           ? `${window.location.origin}/a/${verificationCode}`
-          : `/a/${verificationCode}`,
+          : `/a/${verificationCode}`),
       issued,
       status,
       fields,
     }),
-    [name, verificationCode, photoUrl, issued, status, fields]
+    [name, verificationCode, photoUrl, issued, status, fields, subtitle, roleLabel, qrUrl]
   );
 
   React.useEffect(() => {

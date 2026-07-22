@@ -22,6 +22,7 @@ import {
   ScrollText,
   BarChart3,
   Activity,
+  Fingerprint,
   Settings,
   LogOut,
   ExternalLink,
@@ -51,6 +52,7 @@ const ICONS = {
   admins: ShieldCheck,
   audit: ScrollText,
   system: Activity,
+  staffid: Fingerprint,
   settings: Settings,
 } as const;
 
