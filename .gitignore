@@ -49,5 +49,6 @@ next-env.d.ts
 # Personal notes (never commit — may contain secrets)
 NEXT-STEPS.md
 
-# Generated QR exports (belong on the Desktop, not in the repo)
-Yewogen Derash QR Codes/
+# Note: "Yewogen Derash QR Codes/" is intentionally tracked so the codes survive
+# anywhere the repo is cloned. They encode NEXT_PUBLIC_APP_URL, so regenerate
+# them with `node scripts/make-qr.mjs` whenever that URL changes.
