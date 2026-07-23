@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { listPublishedPosts } from "@/lib/blog";
 import { formatDate } from "@/lib/format";
+import { getDictionary } from "@/lib/i18n";
 
 export const metadata: Metadata = {
   title: "Blog",
@@ -13,24 +14,20 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function BlogIndexPage() {
-  const posts = await listPublishedPosts();
+  const [posts, dict] = await Promise.all([listPublishedPosts(), getDictionary()]);
+  const t = dict.blog;
 
   return (
     <div className="mx-auto w-full max-w-4xl px-4 py-12 sm:px-6">
       <header className="max-w-2xl">
         <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">
-          Blog
+          {t.title}
         </h1>
-        <p className="mt-3 text-muted-foreground">
-          Guides, platform updates, and stories about trusted fundraising
-          worldwide.
-        </p>
+        <p className="mt-3 text-muted-foreground">{t.description}</p>
       </header>
 
       {posts.length === 0 ? (
-        <p className="mt-10 text-muted-foreground">
-          No posts published yet — check back soon.
-        </p>
+        <p className="mt-10 text-muted-foreground">{t.empty}</p>
       ) : (
         <div className="mt-10 grid gap-6 sm:grid-cols-2">
           {posts.map((post) => (

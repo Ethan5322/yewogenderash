@@ -203,6 +203,28 @@ const en = {
       "Supporting document for your cause",
     ],
   },
+
+  support: {
+    eyebrow: "Support",
+    title: "Help & legal centre",
+    description:
+      "Everything you need to understand how Yewogen Derash keeps fundraising transparent, verified, and safe.",
+    readMore: "Read more",
+    cards: {
+      fees: { title: "Fees & payouts", desc: "How hosting and platform fees work, and when funds are paid out." },
+      faq: { title: "FAQ", desc: "Common questions from donors and campaign owners." },
+      terms: { title: "Terms & conditions", desc: "The rules that govern the use of Yewogen Derash." },
+      privacy: { title: "Privacy policy", desc: "How we collect, use, and protect your personal and biometric data." },
+      contact: { title: "Contact us", desc: "Reach the Yewogen Derash support team." },
+      report: { title: "Report abuse", desc: "Flag a campaign or owner you believe is fraudulent." },
+    },
+  },
+
+  blog: {
+    title: "Blog",
+    description: "Guides, platform updates, and stories about trusted fundraising worldwide.",
+    empty: "No posts published yet — check back soon.",
+  },
 };
 
 export type Dict = typeof en;
@@ -401,6 +423,28 @@ const am: Dict = {
       "የክፍያ መቀበያ መለያ ዝርዝሮች",
       "ለዓላማዎ ማስረጃ ሰነድ",
     ],
+  },
+
+  support: {
+    eyebrow: "ድጋፍ",
+    title: "የእገዛና ሕጋዊ ማዕከል",
+    description:
+      "ወገን ደራሽ የገንዘብ ማሰባሰብን ግልጽ፣ የተረጋገጠና ደህንነቱ የተጠበቀ እንዴት እንደሚያደርግ ለመረዳት የሚያስፈልግዎ ሁሉ።",
+    readMore: "ተጨማሪ ያንብቡ",
+    cards: {
+      fees: { title: "ክፍያዎችና ወጪዎች", desc: "የማስተናገጃና የመድረክ ክፍያዎች እንዴት እንደሚሠሩ፣ ገንዘብም መቼ እንደሚከፈል።" },
+      faq: { title: "ተደጋጋሚ ጥያቄዎች", desc: "ከለጋሾችና ከዘመቻ አዘጋጆች የሚነሱ የተለመዱ ጥያቄዎች።" },
+      terms: { title: "ውሎችና ሁኔታዎች", desc: "የወገን ደራሽን አጠቃቀም የሚገዙ ደንቦች።" },
+      privacy: { title: "የግላዊነት ፖሊሲ", desc: "የግልዎንና የባዮሜትሪክ መረጃዎን እንዴት እንደምንሰበስብ፣ እንደምንጠቀምና እንደምንጠብቅ።" },
+      contact: { title: "ያግኙን", desc: "የወገን ደራሽ የድጋፍ ቡድንን ያግኙ።" },
+      report: { title: "በደል ሪፖርት ያድርጉ", desc: "አጭበርባሪ ነው ብለው የሚያምኑበትን ዘመቻ ወይም አዘጋጅ ያመልክቱ።" },
+    },
+  },
+
+  blog: {
+    title: "ብሎግ",
+    description: "ስለ ታመነ የገንዘብ ማሰባሰብ በዓለም አቀፍ ደረጃ መመሪያዎች፣ የመድረክ ዝማኔዎችና ታሪኮች።",
+    empty: "እስካሁን የታተመ ጽሁፍ የለም — ቆየት ብለው ይመልከቱ።",
   },
 };
 
