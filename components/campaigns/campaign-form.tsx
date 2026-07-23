@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { FileDropzone } from "@/components/onboarding/file-dropzone";
 import { CATEGORY_LABELS, CATEGORY_PROOF } from "@/lib/campaign-types";
 import { createCampaignAction, type ActionResult } from "@/app/dashboard/campaigns/actions";
+import { useDict } from "@/lib/use-dict";
 
 const selectClass =
   "h-10 w-full rounded-md border border-input bg-card px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring";
@@ -45,8 +46,8 @@ export type CampaignFormDefaults = {
 export function CampaignForm({
   action = createCampaignAction,
   defaults,
-  submitLabel = "Create draft",
-  footerNote = "Your campaign is created as a draft. Submit it for review when ready — it goes live only after admin approval.",
+  submitLabel,
+  footerNote,
   currentHeroUrl,
   requireProof = false,
 }: {
@@ -58,6 +59,8 @@ export function CampaignForm({
   /** Require a category-matched proof document (campaign creation only). */
   requireProof?: boolean;
 }) {
+  const dict = useDict();
+  const t = dict.campaignForm;
   const [state, formAction, pending] = useActionState<ActionResult | null, FormData>(
     action,
     null
@@ -70,26 +73,30 @@ export function CampaignForm({
 
   return (
     <form action={formAction} className="space-y-6">
-      <Field label="Campaign title" hint="Clear and specific — no exaggerated claims.">
+      <p className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-2.5 text-sm text-foreground/80">
+        {t.writeHint}
+      </p>
+
+      <Field label={t.title} hint={t.titleHint}>
         <Input name="title" required minLength={8} maxLength={90} defaultValue={defaults?.title} />
       </Field>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Category">
+        <Field label={t.category}>
           <select
             name="category"
             className={selectClass}
             value={category}
             onChange={(e) => setCategory(e.target.value)}
           >
-            {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
+            {Object.keys(CATEGORY_LABELS).map((value) => (
               <option key={value} value={value}>
-                {label}
+                {dict.categories[value as keyof typeof dict.categories]}
               </option>
             ))}
           </select>
         </Field>
-        <Field label="Target amount (ETB)" hint="Whole birr, minimum 1,000.">
+        <Field label={t.target} hint={t.targetHint}>
           <Input
             name="targetAmount"
             type="number"
@@ -100,15 +107,15 @@ export function CampaignForm({
             defaultValue={defaults?.targetAmount}
           />
         </Field>
-        <Field label="Location" hint="City or region (optional).">
-          <Input name="location" maxLength={80} placeholder="e.g. Addis Ababa" defaultValue={defaults?.location} />
+        <Field label={t.location} hint={t.locationHint}>
+          <Input name="location" maxLength={80} placeholder={t.locationPlaceholder} defaultValue={defaults?.location} />
         </Field>
-        <Field label="End date" hint="Optional — leave empty for open-ended.">
+        <Field label={t.endDate} hint={t.endDateHint}>
           <Input name="endDate" type="date" defaultValue={defaults?.endDate} />
         </Field>
       </div>
 
-      <Field label="Short summary" hint="Shown on campaign cards. 40–300 characters.">
+      <Field label={t.summary} hint={t.summaryHint}>
         <textarea
           name="description"
           rows={3}
@@ -120,10 +127,7 @@ export function CampaignForm({
         />
       </Field>
 
-      <Field
-        label="Full story"
-        hint="The complete picture: who, why, what the funds cover, and how progress will be shared. Reviewers check this against your supporting documents."
-      >
+      <Field label={t.story} hint={t.storyHint}>
         <textarea
           name="story"
           rows={10}
@@ -146,7 +150,7 @@ export function CampaignForm({
           <div className="mt-3">
             <FileDropzone
               name="proofDocument"
-              label="Upload proof document"
+              label={t.uploadProof}
               accept="image/jpeg,image/png,image/webp,application/pdf"
               file={proof}
               onFileChange={setProof}
@@ -157,22 +161,20 @@ export function CampaignForm({
 
       {currentHeroUrl ? (
         <div>
-          <p className="text-sm font-medium">Current hero image</p>
+          <p className="text-sm font-medium">{t.currentHero}</p>
           {/* eslint-disable-next-line @next/next/no-img-element -- user upload on arbitrary host */}
           <img
             src={currentHeroUrl}
             alt="Current hero"
             className="mt-1.5 h-32 w-full max-w-sm rounded-lg border object-cover"
           />
-          <p className="mt-1 text-xs text-muted-foreground">
-            Upload a new image below to replace it, or leave empty to keep it.
-          </p>
+          <p className="mt-1 text-xs text-muted-foreground">{t.currentHeroHint}</p>
         </div>
       ) : null}
 
       <FileDropzone
         name="heroImage"
-        label={currentHeroUrl ? "Replace hero image (optional)" : "Hero image (optional)"}
+        label={currentHeroUrl ? t.heroReplace : t.heroOptional}
         accept="image/jpeg,image/png,image/webp"
         file={hero}
         onFileChange={setHero}
@@ -189,14 +191,14 @@ export function CampaignForm({
       ) : null}
 
       <div className="flex items-center justify-between gap-4 border-t pt-6">
-        <p className="text-xs text-muted-foreground">{footerNote}</p>
+        <p className="text-xs text-muted-foreground">{footerNote ?? t.footerNote}</p>
         <Button type="submit" disabled={pending || proofMissing}>
           {pending ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
             <Rocket className="h-4 w-4" aria-hidden />
           )}
-          {submitLabel}
+          {submitLabel ?? t.createDraft}
         </Button>
       </div>
     </form>

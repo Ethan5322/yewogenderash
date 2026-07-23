@@ -71,7 +71,7 @@ export function SiteHeader({ user, dict }: { user?: HeaderUser; dict?: Dict }) {
         </nav>
 
         <div className="hidden items-center gap-2 md:flex">
-          {dict ? <LanguageSwitcher label={dict.switchLabel} /> : null}
+          <LanguageSwitcher label={dict?.switchLabel} />
           {user ? (
             <>
               <span className="max-w-[12rem] truncate text-sm text-muted-foreground">
@@ -92,7 +92,7 @@ export function SiteHeader({ user, dict }: { user?: HeaderUser; dict?: Dict }) {
         </div>
 
         <div className="flex items-center gap-1 md:hidden">
-          {dict ? <LanguageSwitcher label={dict.switchLabel} /> : null}
+          <LanguageSwitcher label={dict?.switchLabel} />
           <button
             type="button"
             className="inline-flex h-10 w-10 items-center justify-center rounded-md text-foreground hover:bg-accent"

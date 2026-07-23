@@ -239,6 +239,36 @@ const en = {
     termsSub:
       "Before uploading any documents, please review and accept the following. Each acceptance is recorded with a timestamp.",
   },
+
+  campaignForm: {
+    writeHint:
+      "You can write your campaign in Amharic or English — donors read it exactly as you write it.",
+    title: "Campaign title",
+    titleHint: "Clear and specific — no exaggerated claims.",
+    category: "Category",
+    target: "Target amount (ETB)",
+    targetHint: "Whole birr, minimum 1,000.",
+    location: "Location",
+    locationHint: "City or region (optional).",
+    locationPlaceholder: "e.g. Addis Ababa",
+    endDate: "End date",
+    endDateHint: "Optional — leave empty for open-ended.",
+    summary: "Short summary",
+    summaryHint: "Shown on campaign cards. 40–300 characters.",
+    story: "Full story",
+    storyHint:
+      "The complete picture: who, why, what the funds cover, and how progress will be shared. Reviewers check this against your supporting documents.",
+    currentHero: "Current hero image",
+    currentHeroHint: "Upload a new image below to replace it, or leave empty to keep it.",
+    heroReplace: "Replace hero image (optional)",
+    heroOptional: "Hero image (optional)",
+    uploadProof: "Upload proof document",
+    createDraft: "Create draft",
+    footerNote:
+      "Your campaign is created as a draft. Submit it for review when ready — it goes live only after admin approval.",
+    saveChanges: "Save changes",
+    editFooterNote: "Changes are saved immediately and recorded in the audit log.",
+  },
 };
 
 export type Dict = typeof en;
@@ -473,6 +503,36 @@ const am: Dict = {
     termsHeading: "ውሎቹን ይቀበሉ",
     termsSub:
       "ማንኛውንም ሰነድ ከመጫንዎ በፊት እባክዎ የሚከተሉትን ገምግመው ይቀበሉ። እያንዳንዱ ስምምነት ከጊዜ ማህተም ጋር ይመዘገባል።",
+  },
+
+  campaignForm: {
+    writeHint:
+      "ዘመቻዎን በአማርኛ ወይም በእንግሊዝኛ መጻፍ ይችላሉ — ለጋሾች እርስዎ በጻፉት መልኩ ያነብቡታል።",
+    title: "የዘመቻ ርዕስ",
+    titleHint: "ግልጽና የተለየ ይሁን — የተጋነነ ማስታወቂያ አይሁን።",
+    category: "ምድብ",
+    target: "የሚፈለግ መጠን (ብር)",
+    targetHint: "ሙሉ ብር፣ ቢያንስ 1,000።",
+    location: "አካባቢ",
+    locationHint: "ከተማ ወይም ክልል (አማራጭ)።",
+    locationPlaceholder: "ለምሳሌ አዲስ አበባ",
+    endDate: "የመጨረሻ ቀን",
+    endDateHint: "አማራጭ — ክፍት እንዲሆን ባዶ ይተዉት።",
+    summary: "አጭር መግለጫ",
+    summaryHint: "በዘመቻ ካርዶች ላይ ይታያል። 40–300 ፊደላት።",
+    story: "ሙሉ ታሪክ",
+    storyHint:
+      "ሙሉ ገጽታው፦ ማን፣ ለምን፣ ገንዘቡ ምን እንደሚሸፍንና እድገቱ እንዴት እንደሚጋራ። ገምጋሚዎች ይህን ከደጋፊ ሰነዶችዎ ጋር ያመሳክራሉ።",
+    currentHero: "አሁን ያለው ዋና ምስል",
+    currentHeroHint: "ለመተካት ከታች አዲስ ምስል ይጫኑ፣ ወይም እንዲቆይ ባዶ ይተዉት።",
+    heroReplace: "ዋና ምስል ይተኩ (አማራጭ)",
+    heroOptional: "ዋና ምስል (አማራጭ)",
+    uploadProof: "የማስረጃ ሰነድ ይጫኑ",
+    createDraft: "ረቂቅ ፍጠር",
+    footerNote:
+      "ዘመቻዎ እንደ ረቂቅ ይፈጠራል። ሲዘጋጅ ለግምገማ ያስገቡት — በአስተዳዳሪ ከጸደቀ በኋላ ብቻ ይፋ ይሆናል።",
+    saveChanges: "ለውጦችን አስቀምጥ",
+    editFooterNote: "ለውጦች ወዲያውኑ ተቀምጠው በክለሳ መዝገብ ውስጥ ይመዘገባሉ።",
   },
 };
 
