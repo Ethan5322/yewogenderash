@@ -1,11 +1,11 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { requireSuperAdmin } from "@/lib/admin/permissions";
 import { writeAudit } from "@/lib/audit";
-import { I18N_OVERRIDES_KEY, type I18nOverrides } from "@/lib/i18n";
+import { I18N_OVERRIDES_KEY, I18N_OVERRIDES_TAG, type I18nOverrides } from "@/lib/i18n";
 import { AM_FLAT, EN_FLAT } from "@/lib/i18n-data";
 
 export type SaveResult = { ok: true; count: number } | { ok: false; error: string };
@@ -54,7 +54,8 @@ export async function saveTranslationsAction(
     detail: { amCount: Object.keys(am).length, enCount: Object.keys(en).length },
   });
 
-  // Overrides affect every page — revalidate broadly.
+  // Overrides affect every page — bust the cached overrides + all pages.
+  revalidateTag(I18N_OVERRIDES_TAG);
   revalidatePath("/", "layout");
   return { ok: true, count: Object.keys(am).length + Object.keys(en).length };
 }

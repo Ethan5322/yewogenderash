@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { cookies } from "next/headers";
+import { unstable_cache } from "next/cache";
 import { db } from "@/lib/db";
 import {
   dictionaries,
@@ -15,6 +16,7 @@ export * from "@/lib/i18n-data";
 
 /** SiteContent key that stores admin translation overrides. */
 export const I18N_OVERRIDES_KEY = "i18n_overrides";
+export const I18N_OVERRIDES_TAG = "i18n-overrides";
 
 /** Overrides shape: per-locale maps of dot-path → replacement string. */
 export type I18nOverrides = Partial<Record<Locale, Record<string, string>>>;
@@ -25,18 +27,25 @@ export async function getLocale(): Promise<Locale> {
   return store.get(LOCALE_COOKIE)?.value === "am" ? "am" : "en";
 }
 
-/** Admin overrides from the CMS (per-request cached). */
-export const getOverrides = cache(async (): Promise<I18nOverrides> => {
-  try {
-    const row = await db.siteContent.findUnique({
-      where: { key: I18N_OVERRIDES_KEY },
-      select: { value: true },
-    });
-    return (row?.value as I18nOverrides) ?? {};
-  } catch {
-    return {};
-  }
-});
+/**
+ * Admin overrides from the CMS, cached ACROSS requests (invalidated on save via
+ * revalidateTag) so a translation lookup never adds a DB hit to page renders.
+ */
+export const getOverrides = unstable_cache(
+  async (): Promise<I18nOverrides> => {
+    try {
+      const row = await db.siteContent.findUnique({
+        where: { key: I18N_OVERRIDES_KEY },
+        select: { value: true },
+      });
+      return (row?.value as I18nOverrides) ?? {};
+    } catch {
+      return {};
+    }
+  },
+  ["i18n-overrides"],
+  { tags: [I18N_OVERRIDES_TAG] }
+);
 
 /** Deep-clone `base` and apply each dot-path override (e.g. "home.activeTitle"). */
 function applyOverrides(base: Dict, patch: Record<string, string>): Dict {
