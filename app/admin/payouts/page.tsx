@@ -57,12 +57,13 @@ export default async function AdminPayoutsPage({
       owner: {
         select: {
           id: true,
+          mulesooVerified: true,
           payoutAccounts: {
             where: { isDefault: true, isVerified: true },
             select: { bankName: true, accountNumber: true, accountName: true },
             take: 1,
           },
-          user: { select: { name: true, email: true } },
+          user: { select: { name: true, email: true, verificationStatus: true } },
         },
       },
     },
@@ -143,11 +144,18 @@ export default async function AdminPayoutsPage({
                     <td className="px-4 py-3">
                       <Link
                         href={`/admin/owners/${p.owner.id}`}
-                        className="hover:text-primary hover:underline"
+                        className="font-medium hover:text-primary hover:underline"
                       >
                         {p.owner.user.name}
                       </Link>
-                      <p className="text-xs text-muted-foreground">
+                      {/* KYC at a glance — never release money to an unverified owner */}
+                      <span className="mt-0.5 block">
+                        <StatusChip status={p.owner.user.verificationStatus} />
+                      </span>
+                      <p className={cn(
+                        "mt-0.5 text-xs",
+                        account ? "text-muted-foreground" : "font-medium text-destructive"
+                      )}>
                         {account
                           ? `${account.bankName} · ${account.accountNumber}`
                           : "no verified payout account"}

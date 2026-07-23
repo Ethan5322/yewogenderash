@@ -57,7 +57,13 @@ export default async function AdminDonationsPage({
       select: {
         id: true, amount: true, platformFee: true, netAmount: true, currency: true,
         status: true, donorName: true, txRef: true, paidAt: true, createdAt: true,
-        campaign: { select: { id: true, title: true } },
+        campaign: {
+          select: {
+            id: true,
+            title: true,
+            owner: { select: { id: true, user: { select: { name: true } } } },
+          },
+        },
       },
     }),
     db.donation.count({ where }),
@@ -130,6 +136,13 @@ export default async function AdminDonationsPage({
                   <td className="px-4 py-3">{d.donorName ?? "Anonymous"}</td>
                   <td className="px-4 py-3">
                     <Link href={`/admin/campaigns/${d.campaign.id}`} className="font-medium hover:text-primary hover:underline">{d.campaign.title}</Link>
+                    <Link
+                      href={`/admin/owners/${d.campaign.owner.id}`}
+                      className="mt-0.5 block text-xs text-muted-foreground hover:text-primary hover:underline"
+                      title="Open this fundraiser's KYC record"
+                    >
+                      {d.campaign.owner.user.name}
+                    </Link>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     <span className="font-semibold">{formatETB(Number(d.amount), d.currency)}</span>
