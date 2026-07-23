@@ -4,7 +4,6 @@ import { db } from "@/lib/db";
 import { appUrl } from "@/lib/env";
 import { formatDate } from "@/lib/format";
 import { FundraiserIdCard } from "@/components/owner/fundraiser-id-card";
-import { AdminIdPhotoUpload } from "@/components/admin/admin-id-photo-upload";
 import { PageHeader, SectionCard, Chip } from "@/components/admin/ui";
 
 export const metadata = { title: "Admin · My staff ID" };
@@ -32,7 +31,7 @@ export default async function AdminStaffIdPage() {
     <div>
       <PageHeader
         title="My staff ID"
-        description="Your official Yewogen Derash staff credential. Enrol your biometric photo, then download the ID as an image or PDF."
+        description="Your official Yewogen Derash staff credential. Download it as a high-resolution image or a print-ready PDF."
       />
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -57,7 +56,7 @@ export default async function AdminStaffIdPage() {
         </div>
 
         <div className="space-y-4">
-          <SectionCard title="Biometric enrolment">
+          <SectionCard title="Biometric status">
             <div className="flex items-center gap-2">
               <Fingerprint className="h-4 w-4 text-primary" aria-hidden />
               {enrolled ? (
@@ -69,13 +68,10 @@ export default async function AdminStaffIdPage() {
               )}
             </div>
             <p className="mt-3 text-sm text-muted-foreground">
-              Add a clear photo of your face. It is cropped to a portrait, placed
-              on your staff ID, and (where the face service is available) stored as
-              your biometric template.
+              Your photo and biometric are fixed to your verified identity and
+              cannot be changed here — a deliberate anti-fraud control. Contact a
+              main admin if a correction is genuinely required.
             </p>
-            <div className="mt-4">
-              <AdminIdPhotoUpload hasPhoto={!!user.idPhotoUrl} />
-            </div>
           </SectionCard>
 
           <SectionCard title="About your staff ID">

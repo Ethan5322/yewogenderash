@@ -8,6 +8,7 @@ import { reviewDecisionSchema } from "@/lib/validators/campaign";
 import { requirePermission } from "@/lib/admin/permissions";
 import { sendEmail, emailConfigured } from "@/lib/email";
 import { appUrl } from "@/lib/env";
+import { signedKycUrl, uploadMediaFile } from "@/lib/supabase/server";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -117,6 +118,7 @@ export async function decideOwnerAction(
       id: true,
       userId: true,
       authorCode: true,
+      idPhotoUrl: true,
       user: { select: { verificationStatus: true, role: true, name: true, email: true } },
     },
   });
@@ -137,6 +139,37 @@ export async function decideOwnerAction(
 
   if (decision === "approve") {
     const authorCode = owner.authorCode ?? (await generateUniqueAuthorCode());
+
+    // Anti-fraud: the ID portrait is the VERIFIED face, not a re-uploadable
+    // gallery photo. On first approval, copy the biometric selfie into the
+    // public bucket and lock it as the ID photo. Best-effort — never blocks
+    // approval, and never overwrites an existing photo.
+    let verifiedPhotoUrl: string | undefined;
+    if (!owner.idPhotoUrl) {
+      try {
+        const selfie = await db.verificationDocument.findFirst({
+          where: { ownerId: owner.id, documentType: "SELFIE" },
+          orderBy: { createdAt: "desc" },
+          select: { fileUrl: true },
+        });
+        const signed = selfie ? await signedKycUrl(selfie.fileUrl, 120) : null;
+        if (signed) {
+          const resp = await fetch(signed);
+          if (resp.ok) {
+            const buf = new Uint8Array(await resp.arrayBuffer());
+            const up = await uploadMediaFile(
+              `owners/${owner.id}/verified-id-${Date.now()}.jpg`,
+              buf,
+              "image/jpeg"
+            );
+            if (up.ok) verifiedPhotoUrl = up.url;
+          }
+        }
+      } catch (err) {
+        console.error("[kyc] selfie → ID photo copy failed:", err);
+      }
+    }
+
     await db.$transaction([
       db.user.update({
         where: { id: owner.userId },
@@ -154,6 +187,7 @@ export async function decideOwnerAction(
           authorCode,
           verifiedAt: new Date(),
           biometricStatus: "VERIFIED",
+          ...(verifiedPhotoUrl ? { idPhotoUrl: verifiedPhotoUrl } : {}),
         },
       }),
       db.verificationDocument.updateMany({

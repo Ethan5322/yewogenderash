@@ -7,7 +7,6 @@ import { appUrl } from "@/lib/env";
 import { SiteHeader } from "@/components/site/site-header";
 import { SiteFooter } from "@/components/site/site-footer";
 import { FundraiserIdCard } from "@/components/owner/fundraiser-id-card";
-import { IdPhotoUpload } from "@/components/owner/id-photo-upload";
 import { CopyButton } from "@/components/admin/copy-button";
 import { formatDate } from "@/lib/format";
 
@@ -163,21 +162,14 @@ export default async function FundraiserIdPage() {
           </section>
         ) : null}
 
-        {/* Photo management */}
-        <section className="mt-6 rounded-xl border bg-card p-6 shadow-sm">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4 text-primary" aria-hidden />
-            <h2 className="font-display text-base font-semibold">ID photo</h2>
-          </div>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Upload a clear photo of your face from your gallery. It is
-            auto-cropped and placed on your ID. This is separate from the private
-            verification selfie only your reviewer sees.
-          </p>
-          <div className="mt-4">
-            <IdPhotoUpload hasPhoto={!!owner.idPhotoUrl} />
-          </div>
-        </section>
+        {/* Anti-fraud: the photo/biometric is fixed at verification and cannot
+            be changed afterwards — only the ID can be downloaded. */}
+        <p className="mt-6 flex items-start gap-2 rounded-lg border bg-muted/40 p-4 text-xs text-muted-foreground">
+          <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-success" aria-hidden />
+          Your photo and biometric are locked to your verified identity and can&apos;t
+          be changed — this protects donors from identity fraud. You can download
+          your ID any time above.
+        </p>
       </main>
       <SiteFooter />
     </div>
