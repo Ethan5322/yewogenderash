@@ -2,7 +2,7 @@ import Link from "next/link";
 import { AlertTriangle, Mail } from "lucide-react";
 import { db } from "@/lib/db";
 import { requirePermission } from "@/lib/admin/permissions";
-import { SupportResolveButton } from "@/components/admin/support-controls";
+import { SupportResolveButton, SupportCaseControls } from "@/components/admin/support-controls";
 import { PageHeader } from "@/components/admin/ui";
 import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -39,6 +39,25 @@ export default async function AdminSupportPage({
     orderBy: { createdAt: "desc" },
     take: 100,
   });
+
+  // Cross-department glue: resolve reported querycodes to their campaign, and
+  // load the admin roster so a case can be handed to a specific reviewer.
+  const codes = [...new Set(messages.map((m) => m.code).filter(Boolean))] as string[];
+  const [linkedCampaigns, admins] = await Promise.all([
+    codes.length
+      ? db.campaign.findMany({
+          where: { queryCode: { in: codes } },
+          select: { id: true, title: true, queryCode: true, owner: { select: { id: true } } },
+        })
+      : Promise.resolve([]),
+    db.user.findMany({
+      where: { role: "ADMIN", isBanned: false },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
+  const byCode = new Map(linkedCampaigns.map((c) => [c.queryCode, c]));
+  const adminName = new Map(admins.map((a) => [a.id, a.name]));
 
   return (
     <div>
@@ -105,17 +124,53 @@ export default async function AdminSupportPage({
                     ) : null}
                   </div>
                   {m.reason || m.code ? (
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {m.reason ? `Reason: ${m.reason}` : ""}
-                      {m.reason && m.code ? " · " : ""}
-                      {m.code ? `Campaign: ${m.code}` : ""}
+                    <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                      {m.reason ? <span>Reason: {m.reason}</span> : null}
+                      {m.reason && m.code ? <span>·</span> : null}
+                      {m.code ? (
+                        (() => {
+                          const c = byCode.get(m.code!);
+                          return c ? (
+                            <>
+                              <Link
+                                href={`/admin/campaigns/${c.id}`}
+                                className="font-medium text-primary hover:underline"
+                              >
+                                {c.title}
+                              </Link>
+                              <span>·</span>
+                              <Link
+                                href={`/admin/owners/${c.owner.id}`}
+                                className="hover:text-primary hover:underline"
+                              >
+                                Owner / KYC
+                              </Link>
+                              <span className="font-mono">({m.code})</span>
+                            </>
+                          ) : (
+                            <span>Campaign: {m.code}</span>
+                          );
+                        })()
+                      ) : null}
                     </p>
                   ) : null}
                   <p className="mt-2 whitespace-pre-line text-sm text-foreground/90">{m.message}</p>
-                  <p className="mt-2 text-xs text-muted-foreground">{formatDateTime(m.createdAt)}</p>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {formatDateTime(m.createdAt)}
+                    {m.assignedToId ? (
+                      <> · Assigned to {adminName.get(m.assignedToId) ?? "an admin"}</>
+                    ) : null}
+                  </p>
                 </div>
                 <SupportResolveButton id={m.id} status={m.status} />
               </div>
+
+              <SupportCaseControls
+                id={m.id}
+                assignedToId={m.assignedToId}
+                note={m.adminNote}
+                admins={admins}
+              />
             </li>
           ))}
         </ul>

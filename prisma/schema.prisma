@@ -520,6 +520,9 @@ model SupportMessage {
   message   String
   status    String   @default("OPEN")
   adminNote String?
+  /// Case handoff: which admin owns this case (User.id) and when it was assigned.
+  assignedToId String?
+  assignedAt   DateTime?
   createdAt DateTime @default(now())
 
   @@index([type, status, createdAt])

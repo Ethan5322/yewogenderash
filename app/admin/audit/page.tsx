@@ -1,4 +1,5 @@
-import { Search } from "lucide-react";
+import Link from "next/link";
+import { Search, ExternalLink } from "lucide-react";
 import { db } from "@/lib/db";
 import type { Prisma } from "@prisma/client";
 import { requireAnyPermission } from "@/lib/admin/permissions";
@@ -22,6 +23,32 @@ function label(action: string) {
     .toLowerCase()
     .replace(/_/g, " ")
     .replace(/^\w/, (c) => c.toUpperCase());
+}
+
+/** Map an audited entity to the admin screen that shows it, so every log line
+ *  is a jump-off point instead of a dead id. */
+function entityHref(type: string | null, id: string | null): string | null {
+  if (!type) return null;
+  switch (type) {
+    case "Campaign":
+      return id ? `/admin/campaigns/${id}` : "/admin/campaigns";
+    case "CampaignOwner":
+      return id ? `/admin/owners/${id}` : "/admin/owners";
+    case "User":
+      return "/admin/team";
+    case "Payout":
+      return "/admin/payouts";
+    case "Donation":
+      return "/admin/donations";
+    case "SupportMessage":
+      return "/admin/support";
+    case "SiteContent":
+      return "/admin/content";
+    case "PlatformSettings":
+      return "/admin/settings";
+    default:
+      return null;
+  }
 }
 
 function summarizeDetail(detail: unknown): string {
@@ -128,10 +155,31 @@ export default async function AdminAuditPage({
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap font-medium">{label(l.action)}</td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">
-                    {l.entityType ?? "—"}
-                    {l.entityId ? (
-                      <span className="block font-mono">{l.entityId.slice(0, 12)}…</span>
-                    ) : null}
+                    {(() => {
+                      const href = entityHref(l.entityType, l.entityId);
+                      const body = (
+                        <>
+                          {l.entityType ?? "—"}
+                          {l.entityId ? (
+                            <span className="block font-mono">
+                              {l.entityId.slice(0, 12)}…
+                            </span>
+                          ) : null}
+                        </>
+                      );
+                      return href ? (
+                        <Link
+                          href={href}
+                          className="inline-flex items-center gap-1 hover:text-primary hover:underline"
+                          title={`Open ${l.entityType}`}
+                        >
+                          <span>{body}</span>
+                          <ExternalLink className="h-3 w-3 shrink-0" aria-hidden />
+                        </Link>
+                      ) : (
+                        body
+                      );
+                    })()}
                   </td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">
                     {summarizeDetail(l.detail) || "—"}
