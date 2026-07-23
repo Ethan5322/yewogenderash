@@ -545,6 +545,31 @@ export function getDictFor(locale: Locale): Dict {
   return dictionaries[locale] ?? dictionaries[DEFAULT_LOCALE];
 }
 
+/** Meta keys that must not be edited in the translations CMS. */
+const NON_EDITABLE = new Set(["code", "htmlLang"]);
+
+/**
+ * Flatten a dictionary to { "dot.path": string } for the translations editor
+ * (arrays become "…steps.0.title"). Skips non-editable meta keys.
+ */
+export function flattenDict(obj: unknown, prefix = ""): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (obj && typeof obj === "object") {
+    for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
+      if (!prefix && NON_EDITABLE.has(k)) continue;
+      const path = prefix ? `${prefix}.${k}` : k;
+      if (typeof v === "string") out[path] = v;
+      else if (v && typeof v === "object") Object.assign(out, flattenDict(v, path));
+    }
+  }
+  return out;
+}
+
+export const EN_FLAT = flattenDict(en);
+export const AM_FLAT = flattenDict(am);
+/** Ordered top-level sections for grouping the editor. */
+export const DICT_SECTIONS = Object.keys(en).filter((k) => !NON_EDITABLE.has(k) && k !== "switchLabel");
+
 /** Parse the locale from a raw cookie string (client-safe). */
 export function localeFromCookie(cookie: string | undefined): Locale {
   const m = cookie?.match(/(?:^|;\s*)locale=([^;]+)/);

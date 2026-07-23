@@ -23,6 +23,7 @@ import {
   BarChart3,
   Activity,
   Fingerprint,
+  Languages,
   Settings,
   LogOut,
   ExternalLink,
@@ -53,6 +54,7 @@ const ICONS = {
   audit: ScrollText,
   system: Activity,
   staffid: Fingerprint,
+  translations: Languages,
   settings: Settings,
 } as const;
 

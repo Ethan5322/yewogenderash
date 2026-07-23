@@ -65,6 +65,7 @@ const NAV_GROUPS: GroupDef[] = [
       { href: "/admin/team", label: "Roles & Team", key: "admins", superOnly: true },
       { href: "/admin/audit", label: "Audit log", key: "audit", anyPerm: ["audit", "admins"] },
       { href: "/admin/system", label: "System status", key: "system", superOnly: true },
+      { href: "/admin/translations", label: "Translations", key: "translations", superOnly: true },
       { href: "/admin/settings", label: "Fees / Settings", key: "settings", superOnly: true },
     ],
   },
