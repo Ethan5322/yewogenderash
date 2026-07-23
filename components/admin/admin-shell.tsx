@@ -37,6 +37,7 @@ import { cn } from "@/lib/utils";
 
 const ICONS = {
   overview: LayoutDashboard,
+  qr: QrCode,
   campaigns: Megaphone,
   kyc: BadgeCheck,
   owners: Users,

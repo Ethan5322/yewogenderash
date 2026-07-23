@@ -30,6 +30,7 @@ const NAV_GROUPS: GroupDef[] = [
     items: [
       { href: "/admin", label: "Dashboard", key: "overview" },
       { href: "/admin/id", label: "My staff ID", key: "staffid" },
+      { href: "/admin/qr", label: "QR codes", key: "qr" },
     ],
   },
   {
