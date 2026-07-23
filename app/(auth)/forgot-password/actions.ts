@@ -4,7 +4,11 @@ import { db } from "@/lib/db";
 import { appUrl } from "@/lib/env";
 import { hashPassword } from "@/lib/auth/password";
 import { writeAudit } from "@/lib/audit";
-import { forgotPasswordSchema, resetPasswordSchema } from "@/lib/validators/auth";
+import {
+  forgotPasswordSchema,
+  resetPasswordSchema,
+  isFundraiserCode,
+} from "@/lib/validators/auth";
 import {
   createPasswordResetToken,
   findValidResetToken,
@@ -17,8 +21,13 @@ export type RequestResetState = { ok: boolean; message: string } | null;
 /**
  * Step 1 — ask for a reset link.
  *
- * Always reports the same thing whether or not the address has an account.
- * Anything else turns this form into an oracle for checking which people are
+ * Accepts an email OR a fundraiser verification code (YWD-…): a fundraiser
+ * remembers the code on their ID card more reliably than which email they used.
+ * Either way the link is emailed to the address ON FILE — the code path never
+ * reveals that address, so knowing a code cannot expose someone's email.
+ *
+ * Always reports the same thing whether or not the identifier matches an
+ * account. Anything else turns this form into an oracle for checking who is
  * registered on the platform, which for a KYC-verified fundraiser is a privacy
  * leak, not just an inconvenience. The cooldown case is silent for the same
  * reason.
@@ -28,24 +37,33 @@ export async function requestPasswordResetAction(
   formData: FormData
 ): Promise<RequestResetState> {
   const parsed = forgotPasswordSchema.safeParse({
-    email: String(formData.get("email") ?? ""),
+    identifier: String(formData.get("identifier") ?? ""),
   });
   if (!parsed.success) {
-    return { ok: false, message: "Enter a valid email address." };
+    return { ok: false, message: "Enter your email or fundraiser code." };
   }
 
   const generic = {
     ok: true,
     message:
-      "If that email has an account, we've sent a link to reset the password. " +
-      "Check your inbox — and your spam folder.",
+      "If that matches an account, we've sent a link to reset the password to " +
+      "the email on file. Check your inbox — and your spam folder.",
   };
 
-  const email = parsed.data.email.toLowerCase().trim();
-  const user = await db.user.findUnique({
-    where: { email },
-    select: { id: true, name: true, email: true, isBanned: true },
-  });
+  const identifier = parsed.data.identifier.trim();
+  const user = isFundraiserCode(identifier)
+    ? (
+        await db.campaignOwner.findUnique({
+          where: { authorCode: identifier.toUpperCase() },
+          select: {
+            user: { select: { id: true, name: true, email: true, isBanned: true } },
+          },
+        })
+      )?.user ?? null
+    : await db.user.findUnique({
+        where: { email: identifier.toLowerCase() },
+        select: { id: true, name: true, email: true, isBanned: true },
+      });
   if (!user || user.isBanned) return generic;
 
   const token = await createPasswordResetToken(user.id);

@@ -38,9 +38,21 @@ export const registerSchema = z.object({
     .regex(/[0-9]/, "Must include a number"),
 });
 
+// Recovery accepts EITHER an email OR a fundraiser verification code (YWD-…),
+// because a fundraiser knows the code on their ID card better than which email
+// address they signed up with. The action decides which one it is.
 export const forgotPasswordSchema = z.object({
-  email: z.email("Enter a valid email address").max(190),
+  identifier: z
+    .string()
+    .trim()
+    .min(1, "Enter your email or fundraiser code")
+    .max(190),
 });
+
+/** True for a fundraiser verification code like "YWD-7KQ2". */
+export function isFundraiserCode(value: string): boolean {
+  return /^YWD-[A-Z0-9]{4,10}$/.test(value.trim().toUpperCase());
+}
 
 /** Same strength rules as registration, plus a confirmation field. */
 const newPassword = z

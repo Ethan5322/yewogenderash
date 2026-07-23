@@ -26,8 +26,9 @@ export default function ForgotPasswordPage() {
       <CardHeader>
         <CardTitle className="text-2xl">Forgot your password?</CardTitle>
         <CardDescription>
-          Enter the email address on your account and we&apos;ll send you a link
-          to choose a new password.
+          Enter your email <span className="whitespace-nowrap">or the fundraiser
+          code</span> from your ID card. We&apos;ll email you a link to choose a
+          new password.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -47,15 +48,18 @@ export default function ForgotPasswordPage() {
         ) : (
           <form action={action} className="space-y-4" noValidate>
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="identifier">Email or fundraiser code</Label>
               <Input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
+                id="identifier"
+                name="identifier"
+                type="text"
+                autoComplete="username"
                 required
-                placeholder="you@example.com"
+                placeholder="you@example.com  or  YWD-XXXXXX"
               />
+              <p className="text-xs text-muted-foreground">
+                Fundraisers can use the code printed on their ID card.
+              </p>
             </div>
 
             {state && !state.ok && (
