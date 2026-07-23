@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { SITE_NAME } from "@/lib/seo";
+import { BRAND_HAND_PATHS, BRAND_HEART_PATH } from "@/lib/brand";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
@@ -24,14 +25,10 @@ export default function OpengraphImage() {
         }}
       >
         <svg width="150" height="150" viewBox="0 0 24 24">
-          <path
-            d="M12 2.4 19.6 5.2 V11 C19.6 15.9 16.3 19.6 12 21.7 C7.7 19.6 4.4 15.9 4.4 11 V5.2 Z"
-            fill="#ffffff"
-          />
-          <path
-            d="M12 16.5 C11.85 16.5 6.9 13.35 6.9 9.75 C6.9 8.12 8.12 6.9 9.6 6.9 C10.68 6.9 11.62 7.56 12 8.46 C12.38 7.56 13.32 6.9 14.4 6.9 C15.88 6.9 17.1 8.12 17.1 9.75 C17.1 13.35 12.15 16.5 12 16.5 Z"
-            fill="#12a05f"
-          />
+          <path d={BRAND_HEART_PATH} fill="#e8b04b" />
+          {BRAND_HAND_PATHS.map((d) => (
+            <path key={d} d={d} fill="#ffffff" />
+          ))}
         </svg>
         <div style={{ fontSize: 76, fontWeight: 800, marginTop: 28, letterSpacing: -1 }}>
           {SITE_NAME}

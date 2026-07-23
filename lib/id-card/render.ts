@@ -10,6 +10,7 @@
 // crisp PNG or a print-ready PDF at exact card size.
 import { code128Modules } from "@/lib/barcode";
 import { jpegToPdfBlob } from "@/lib/id-card/jpeg-pdf";
+import { BRAND_HAND_PATHS, BRAND_HEART_PATH } from "@/lib/brand";
 
 export type IdCardField = { label: string; value: string };
 export type IdCardData = {
@@ -92,29 +93,23 @@ function drawBarcode(
   ctx.restore();
 }
 
-/** The brand mark — a trust shield holding a heart — drawn on the canvas. */
+/** The brand mark — a heart cradled in open hands — drawn on the canvas. */
 function drawLogoMark(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
   size: number,
-  shieldColor: string,
+  handColor: string,
   heartColor: string
 ) {
   const scale = size / 24;
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(scale, scale);
-  const shield = new Path2D(
-    "M12 2.4 19.6 5.2 V11 C19.6 15.9 16.3 19.6 12 21.7 C7.7 19.6 4.4 15.9 4.4 11 V5.2 Z"
-  );
-  ctx.fillStyle = shieldColor;
-  ctx.fill(shield);
-  const heart = new Path2D(
-    "M12 16.5 C11.85 16.5 6.9 13.35 6.9 9.75 C6.9 8.12 8.12 6.9 9.6 6.9 C10.68 6.9 11.62 7.56 12 8.46 C12.38 7.56 13.32 6.9 14.4 6.9 C15.88 6.9 17.1 8.12 17.1 9.75 C17.1 13.35 12.15 16.5 12 16.5 Z"
-  );
   ctx.fillStyle = heartColor;
-  ctx.fill(heart);
+  ctx.fill(new Path2D(BRAND_HEART_PATH));
+  ctx.fillStyle = handColor;
+  for (const d of BRAND_HAND_PATHS) ctx.fill(new Path2D(d));
   ctx.restore();
 }
 
@@ -175,7 +170,7 @@ async function drawCard(ctx: CanvasRenderingContext2D, o: IdCardData) {
   drawShell(ctx, accent);
 
   // Header — brand mark (white shield + accent heart) then wordmark
-  drawLogoMark(ctx, 52, 40, 58, "#FFFFFF", accent);
+  drawLogoMark(ctx, 52, 40, 58, "#FFFFFF", GOLD);
   ctx.fillStyle = accent;
   ctx.font = "700 46px Oswald, Arial, sans-serif";
   ctx.fillText(fit(ctx, o.org.toUpperCase(), 540), 124, 88);

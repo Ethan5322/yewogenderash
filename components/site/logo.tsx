@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { BRAND_GOLD, BRAND_HAND_PATHS, BRAND_HEART_PATH } from "@/lib/brand";
 
 /**
- * Brand mark — a trust shield holding a heart ("verified giving"). Deliberately
- * distinct from the generic hand-heart. `tone="onDark"` swaps to the white-shield
- * variant for dark surfaces. Standalone files live in /public/brand.
+ * Brand mark — a heart cradled in open hands ("giving, held safely").
+ * `tone="onDark"` swaps the hands to white for dark surfaces; the gold heart
+ * carries across both. Standalone files live in /public/brand.
  */
 export function LogoMark({
   className,
@@ -13,18 +14,14 @@ export function LogoMark({
   className?: string;
   tone?: "color" | "onDark";
 }) {
-  const shield = tone === "onDark" ? "#ffffff" : "var(--primary, #0f7a4d)";
-  const heart = tone === "onDark" ? "#12a05f" : "#ffffff";
+  const hands = tone === "onDark" ? "#ffffff" : "var(--primary, #0f7a4d)";
+  const heart = tone === "onDark" ? "#e8b04b" : BRAND_GOLD;
   return (
     <svg viewBox="0 0 24 24" className={className} role="img" aria-hidden focusable="false">
-      <path
-        d="M12 2.4 19.6 5.2 V11 C19.6 15.9 16.3 19.6 12 21.7 C7.7 19.6 4.4 15.9 4.4 11 V5.2 Z"
-        fill={shield}
-      />
-      <path
-        d="M12 16.5 C11.85 16.5 6.9 13.35 6.9 9.75 C6.9 8.12 8.12 6.9 9.6 6.9 C10.68 6.9 11.62 7.56 12 8.46 C12.38 7.56 13.32 6.9 14.4 6.9 C15.88 6.9 17.1 8.12 17.1 9.75 C17.1 13.35 12.15 16.5 12 16.5 Z"
-        fill={heart}
-      />
+      <path d={BRAND_HEART_PATH} fill={heart} />
+      {BRAND_HAND_PATHS.map((d) => (
+        <path key={d} d={d} fill={hands} />
+      ))}
     </svg>
   );
 }
