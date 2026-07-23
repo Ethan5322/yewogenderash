@@ -225,6 +225,20 @@ const en = {
     description: "Guides, platform updates, and stories about trusted fundraising worldwide.",
     empty: "No posts published yet — check back soon.",
   },
+
+  wizard: {
+    eyebrow: "Become a verified owner",
+    title: "Owner verification",
+    steps: {
+      verify: "Verify contact",
+      terms: "Terms & consent",
+      documents: "Documents & payout",
+      review: "Face & submit",
+    },
+    termsHeading: "Accept the terms",
+    termsSub:
+      "Before uploading any documents, please review and accept the following. Each acceptance is recorded with a timestamp.",
+  },
 };
 
 export type Dict = typeof en;
@@ -445,6 +459,20 @@ const am: Dict = {
     title: "ብሎግ",
     description: "ስለ ታመነ የገንዘብ ማሰባሰብ በዓለም አቀፍ ደረጃ መመሪያዎች፣ የመድረክ ዝማኔዎችና ታሪኮች።",
     empty: "እስካሁን የታተመ ጽሁፍ የለም — ቆየት ብለው ይመልከቱ።",
+  },
+
+  wizard: {
+    eyebrow: "የተረጋገጡ አዘጋጅ ይሁኑ",
+    title: "የአዘጋጅ ማረጋገጫ",
+    steps: {
+      verify: "ግንኙነት ማረጋገጥ",
+      terms: "ውሎችና ስምምነት",
+      documents: "ሰነዶችና ክፍያ",
+      review: "ፊትና ማስገባት",
+    },
+    termsHeading: "ውሎቹን ይቀበሉ",
+    termsSub:
+      "ማንኛውንም ሰነድ ከመጫንዎ በፊት እባክዎ የሚከተሉትን ገምግመው ይቀበሉ። እያንዳንዱ ስምምነት ከጊዜ ማህተም ጋር ይመዘገባል።",
   },
 };
 
