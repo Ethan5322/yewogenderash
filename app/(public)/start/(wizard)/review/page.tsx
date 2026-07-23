@@ -12,7 +12,6 @@ import {
 } from "@/lib/owner";
 import { SelfieCapture } from "@/components/onboarding/selfie-capture";
 import { SubmitReview } from "@/components/onboarding/submit-review";
-import { IdPhotoUpload } from "@/components/owner/id-photo-upload";
 import { createCaptureToken } from "@/lib/capture-token";
 
 export const metadata: Metadata = { title: "Face & submit · Owner verification" };
@@ -84,10 +83,6 @@ export default async function ReviewStep() {
   }
 
   const ready = canSubmitForReview(state);
-  const idPhoto = await db.campaignOwner.findUnique({
-    where: { userId: session.user.id },
-    select: { idPhotoUrl: true },
-  });
 
   return (
     <section className="space-y-8">
@@ -120,22 +115,6 @@ export default async function ReviewStep() {
               }
             />
           )}
-        </div>
-      </div>
-
-      {/* ID card photo — uploaded after the biometric capture, auto-cropped and
-          placed on the Fundraiser ID that is issued once an admin approves. */}
-      <div>
-        <h2 className="font-display text-xl font-semibold tracking-tight">
-          ID card photo
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Upload a clear photo of your face from your gallery. It is auto-cropped
-          and placed on your corporate Fundraiser ID. Your ID stays locked until
-          an administrator approves your verification.
-        </p>
-        <div className="mt-6 rounded-xl border bg-card p-6 shadow-sm">
-          <IdPhotoUpload hasPhoto={!!idPhoto?.idPhotoUrl} />
         </div>
       </div>
 

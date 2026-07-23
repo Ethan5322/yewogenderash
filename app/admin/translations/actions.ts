@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { requireSuperAdmin } from "@/lib/admin/permissions";
@@ -55,7 +55,9 @@ export async function saveTranslationsAction(
   });
 
   // Overrides affect every page — bust the cached overrides + all pages.
-  revalidateTag(I18N_OVERRIDES_TAG);
+  // updateTag (not revalidateTag) because this runs in a Server Action: it gives
+  // read-your-own-writes, so the admin sees the edit on the very next render.
+  updateTag(I18N_OVERRIDES_TAG);
   revalidatePath("/", "layout");
   return { ok: true, count: Object.keys(am).length + Object.keys(en).length };
 }
