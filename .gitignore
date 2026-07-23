@@ -48,3 +48,6 @@ next-env.d.ts
 
 # Personal notes (never commit — may contain secrets)
 NEXT-STEPS.md
+
+# Generated QR exports (belong on the Desktop, not in the repo)
+Yewogen Derash QR Codes/
