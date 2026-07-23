@@ -47,16 +47,21 @@ export function OwnerDecisionPanel({
     setBusyOn(decision);
     setError(null);
     startTransition(async () => {
-      const fd = new FormData();
-      fd.append("ownerId", ownerId);
-      fd.append("note", note);
-      const res = await decideOwnerAction(decision, null, fd);
-      setBusyOn(null);
-      if (res.ok) {
-        setNote("");
-        router.refresh();
-      } else {
-        setError(res.error);
+      try {
+        const fd = new FormData();
+        fd.append("ownerId", ownerId);
+        fd.append("note", note);
+        const res = await decideOwnerAction(decision, null, fd);
+        if (res.ok) {
+          setNote("");
+          router.refresh();
+        } else {
+          setError(res.error);
+        }
+      } catch {
+        setError("Something went wrong — but the change may have applied. Refresh to check.");
+      } finally {
+        setBusyOn(null);
       }
     });
   }

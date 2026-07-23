@@ -163,28 +163,34 @@ export async function decideOwnerAction(
     ]);
 
     // Email the fundraiser a direct link to download their new ID (PDF + photo).
-    // Best-effort — approval must not fail if email is down.
-    if (emailConfigured() && owner.user.email) {
-      const idUrl = `${appUrl()}/dashboard/id`;
-      await sendEmail({
-        to: owner.user.email,
-        subject: "You're verified — download your Yewogen Derash Fundraiser ID",
-        text:
-          `Hello ${owner.user.name},\n\n` +
-          `Your verification is approved. You now hold the Mulesoo trust seal and your ` +
-          `Fundraiser ID (${authorCode}) is ready.\n\n` +
-          `Download it (image or PDF) here: ${idUrl}\n\n` +
-          `Sign in with your fundraiser code ${authorCode} and password, then open “My Fundraiser ID”.\n\n` +
-          `— Yewogen Derash`,
-        html:
-          `<div style="font-family:system-ui,Arial,sans-serif;line-height:1.6">` +
-          `<p>Hello ${owner.user.name},</p>` +
-          `<p>Your verification is <strong>approved</strong> — you now hold the Mulesoo trust seal and your ` +
-          `Fundraiser ID (<strong>${authorCode}</strong>) is ready.</p>` +
-          `<p><a href="${idUrl}" style="display:inline-block;background:#0f7a4d;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:600">Download my Fundraiser ID</a></p>` +
-          `<p style="color:#555">It’s available as a high-resolution image and a print-ready PDF. Sign in with your fundraiser code and password, then open “My Fundraiser ID”.</p>` +
-          `<p style="color:#555">— Yewogen Derash</p></div>`,
-      }).catch((err) => console.error("[kyc] ID email failed:", err));
+    // FULLY best-effort — approval must never fail if email OR the app URL env
+    // is missing/misconfigured (this whole block used to be able to throw after
+    // the DB commit, leaving the admin's button spinning with no result).
+    try {
+      if (emailConfigured() && owner.user.email) {
+        const idUrl = `${appUrl()}/dashboard/id`;
+        await sendEmail({
+          to: owner.user.email,
+          subject: "You're verified — download your Yewogen Derash Fundraiser ID",
+          text:
+            `Hello ${owner.user.name},\n\n` +
+            `Your verification is approved. You now hold the Mulesoo trust seal and your ` +
+            `Fundraiser ID (${authorCode}) is ready.\n\n` +
+            `Download it (image or PDF) here: ${idUrl}\n\n` +
+            `Sign in with your fundraiser code ${authorCode} and password, then open “My Fundraiser ID”.\n\n` +
+            `— Yewogen Derash`,
+          html:
+            `<div style="font-family:system-ui,Arial,sans-serif;line-height:1.6">` +
+            `<p>Hello ${owner.user.name},</p>` +
+            `<p>Your verification is <strong>approved</strong> — you now hold the Mulesoo trust seal and your ` +
+            `Fundraiser ID (<strong>${authorCode}</strong>) is ready.</p>` +
+            `<p><a href="${idUrl}" style="display:inline-block;background:#0f7a4d;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:600">Download my Fundraiser ID</a></p>` +
+            `<p style="color:#555">It’s available as a high-resolution image and a print-ready PDF. Sign in with your fundraiser code and password, then open “My Fundraiser ID”.</p>` +
+            `<p style="color:#555">— Yewogen Derash</p></div>`,
+        });
+      }
+    } catch (err) {
+      console.error("[kyc] ID email failed (approval still succeeded):", err);
     }
   } else if (decision === "revoke") {
     // Pull the Mulesoo seal from a verified owner — re-locks their ID.
