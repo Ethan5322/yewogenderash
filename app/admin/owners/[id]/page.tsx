@@ -9,7 +9,8 @@ import { FlagControl } from "@/components/admin/flag-control";
 import { StatusBadge } from "@/components/campaigns/status-badge";
 import { FundraiserIdCard } from "@/components/owner/fundraiser-id-card";
 import { DocumentPreview, type DocKind } from "@/components/admin/document-preview";
-import { formatDate } from "@/lib/format";
+import { StatusChip } from "@/components/admin/ui";
+import { formatDate, formatETB } from "@/lib/format";
 
 export const metadata = { title: "Admin · Owner review" };
 
@@ -45,7 +46,27 @@ export default async function AdminOwnerDetailPage({
       documents: { orderBy: { createdAt: "desc" } },
       campaigns: {
         orderBy: { createdAt: "desc" },
-        select: { id: true, title: true, status: true },
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          queryCode: true,
+          currency: true,
+          currentAmount: true,
+          targetAmount: true,
+        },
+      },
+      payouts: {
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        select: {
+          id: true,
+          amount: true,
+          currency: true,
+          status: true,
+          createdAt: true,
+          campaign: { select: { title: true } },
+        },
       },
       payoutAccounts: {
         where: { isDefault: true, isVerified: true },
@@ -71,6 +92,40 @@ export default async function AdminOwnerDetailPage({
   );
 
   const payout = owner.payoutAccounts[0] ?? null;
+
+  // Owner 360 — everything this fundraiser touches, in one place.
+  const queryCodes = owner.campaigns.map((c) => c.queryCode);
+  const [donationAgg, paidAgg, recentDonations, supportCases] = await Promise.all([
+    db.donation.aggregate({
+      where: { status: "SUCCESS", campaign: { ownerId: owner.id } },
+      _sum: { amount: true, netAmount: true },
+      _count: true,
+    }),
+    db.payout.aggregate({
+      where: { ownerId: owner.id, status: "PAID" },
+      _sum: { amount: true },
+    }),
+    db.donation.findMany({
+      where: { campaign: { ownerId: owner.id } },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      select: {
+        id: true, amount: true, currency: true, status: true,
+        donorName: true, paidAt: true, createdAt: true,
+        campaign: { select: { id: true, title: true } },
+      },
+    }),
+    queryCodes.length
+      ? db.supportMessage.findMany({
+          where: { code: { in: queryCodes } },
+          orderBy: { createdAt: "desc" },
+          take: 5,
+          select: { id: true, type: true, status: true, message: true, createdAt: true },
+        })
+      : Promise.resolve([]),
+  ]);
+  const totalRaised = Number(donationAgg._sum.amount ?? 0);
+  const totalPaid = Number(paidAgg._sum.amount ?? 0);
 
   return (
     <div>
@@ -190,6 +245,111 @@ export default async function AdminOwnerDetailPage({
                 </p>
               </div>
             ) : null}
+          </section>
+
+          {/* Owner 360 — money, donations and cases for this fundraiser */}
+          <section className="rounded-xl border bg-card p-6 shadow-sm">
+            <h2 className="font-display text-base font-semibold">Activity &amp; money</h2>
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <div className="rounded-lg border bg-muted/30 p-4">
+                <p className="text-xs text-muted-foreground">Raised (all campaigns)</p>
+                <p className="mt-1 font-display text-lg font-bold">{formatETB(totalRaised)}</p>
+                <p className="text-xs text-muted-foreground">{donationAgg._count} donations</p>
+              </div>
+              <div className="rounded-lg border bg-muted/30 p-4">
+                <p className="text-xs text-muted-foreground">Paid out</p>
+                <p className="mt-1 font-display text-lg font-bold text-success">
+                  {formatETB(totalPaid)}
+                </p>
+              </div>
+              <div className="rounded-lg border bg-muted/30 p-4">
+                <p className="text-xs text-muted-foreground">Campaigns</p>
+                <p className="mt-1 font-display text-lg font-bold">{owner.campaigns.length}</p>
+              </div>
+            </div>
+
+            {/* Recent donations */}
+            <h3 className="mt-6 border-t pt-4 text-sm font-medium">Recent donations</h3>
+            {recentDonations.length === 0 ? (
+              <p className="mt-2 text-sm text-muted-foreground">No donations yet.</p>
+            ) : (
+              <ul className="mt-2 space-y-1.5 text-sm">
+                {recentDonations.map((d) => (
+                  <li key={d.id} className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="min-w-0 truncate text-muted-foreground">
+                      {formatDate(d.paidAt ?? d.createdAt)} · {d.donorName ?? "Anonymous"} ·{" "}
+                      <Link
+                        href={`/admin/campaigns/${d.campaign.id}`}
+                        className="hover:text-primary hover:underline"
+                      >
+                        {d.campaign.title}
+                      </Link>
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <span className="font-medium">
+                        {formatETB(Number(d.amount), d.currency)}
+                      </span>
+                      <StatusChip status={d.status} />
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {/* Payouts */}
+            <h3 className="mt-6 border-t pt-4 text-sm font-medium">Payouts</h3>
+            {owner.payouts.length === 0 ? (
+              <p className="mt-2 text-sm text-muted-foreground">No payouts requested.</p>
+            ) : (
+              <ul className="mt-2 space-y-1.5 text-sm">
+                {owner.payouts.map((p) => (
+                  <li key={p.id} className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="min-w-0 truncate text-muted-foreground">
+                      {formatDate(p.createdAt)} · {p.campaign.title}
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <span className="font-medium">
+                        {formatETB(Number(p.amount), p.currency)}
+                      </span>
+                      <StatusChip status={p.status} />
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {/* Support / abuse cases touching their campaigns */}
+            <h3 className="mt-6 border-t pt-4 text-sm font-medium">
+              Support &amp; reports ({supportCases.length})
+            </h3>
+            {supportCases.length === 0 ? (
+              <p className="mt-2 text-sm text-muted-foreground">
+                No cases reference this fundraiser&apos;s campaigns.
+              </p>
+            ) : (
+              <ul className="mt-2 space-y-2 text-sm">
+                {supportCases.map((s) => (
+                  <li key={s.id} className="flex items-start justify-between gap-3">
+                    <span className="min-w-0">
+                      <span className="line-clamp-2 text-muted-foreground">{s.message}</span>
+                      <span className="text-xs text-muted-foreground/70">
+                        {formatDate(s.createdAt)}
+                      </span>
+                    </span>
+                    <span className="flex shrink-0 items-center gap-1.5">
+                      <StatusChip status={s.type === "REPORT" ? "DISPUTED" : "OPEN"} />
+                      <StatusChip status={s.status} />
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <Link
+              href="/admin/support"
+              className="mt-3 inline-block text-xs font-medium text-primary hover:underline"
+            >
+              Open support inbox →
+            </Link>
           </section>
 
           {/* Documents */}
