@@ -16,9 +16,10 @@ import { Badge } from "@/components/ui/badge";
 import { ProgressBar } from "@/components/campaigns/progress-bar";
 import { MulesooStamp } from "@/components/campaigns/verified-badges";
 import { MobileDonateBar } from "@/components/campaigns/mobile-donate-bar";
-import { getPublicCampaignBySlug } from "@/lib/campaigns";
+import { getPublicCampaignBySlug, CATEGORY_LABELS } from "@/lib/campaigns";
 import { formatETB, progressPercent, formatDate } from "@/lib/format";
 import { getDictionary } from "@/lib/i18n";
+import { campaignJsonLd, jsonLdScript, SITE_URL } from "@/lib/seo";
 
 type Params = { params: Promise<{ slug: string }> };
 
@@ -26,9 +27,25 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params;
   const campaign = await getPublicCampaignBySlug(slug);
   if (!campaign) return { title: "Campaign not found" };
+  const url = `${SITE_URL}/campaigns/${campaign.slug}`;
+  const images = campaign.heroImageUrl ? [campaign.heroImageUrl] : ["/opengraph-image"];
   return {
     title: campaign.title,
     description: campaign.description,
+    alternates: { canonical: `/campaigns/${campaign.slug}` },
+    openGraph: {
+      type: "article",
+      url,
+      title: campaign.title,
+      description: campaign.description,
+      images,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: campaign.title,
+      description: campaign.description,
+      images,
+    },
   };
 }
 
@@ -48,6 +65,22 @@ export default async function CampaignDetailPage({ params }: Params) {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 pb-28 sm:px-6 sm:py-12 lg:pb-12">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={jsonLdScript(
+          campaignJsonLd({
+            title: campaign.title,
+            description: campaign.description,
+            slug: campaign.slug,
+            currency: campaign.currency,
+            targetAmount: campaign.targetAmount,
+            currentAmount: campaign.currentAmount,
+            heroImageUrl: campaign.heroImageUrl,
+            ownerName: campaign.ownerName,
+            category: CATEGORY_LABELS[campaign.category],
+          })
+        )}
+      />
       <nav className="mb-6 text-sm text-muted-foreground" aria-label="Breadcrumb">
         <Link href="/campaigns" className="hover:text-foreground">
           {dict.nav.campaigns}

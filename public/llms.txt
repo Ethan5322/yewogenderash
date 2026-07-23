@@ -1,0 +1,35 @@
+# Yewogen Derash
+
+> Yewogen Derash is a secure, verified crowdfunding platform for causes worldwide. Every campaign owner passes identity and live-biometric verification and manual admin review before going live; every donation is routed to exactly one campaign through that campaign's unique "querycode" (and QR); and every payout to an owner is admin-approved and audited. Funds are never pooled — each campaign has its own separated ledger.
+
+## What makes it different
+- **Verified owners only.** National ID/passport + a live face capture matched to the ID, then human review, before a campaign can go live. Verified owners carry a "Mulesoo verified" trust seal and a public verification profile.
+- **One campaign, one querycode.** Each campaign gets a unique code and QR that resolve to that campaign's donation page only — never a shared pool. Scanning or entering the code opens the donor page directly.
+- **Separated ledgers + audited payouts.** Donations are tracked per campaign; the platform takes a transparent 3% fee; owners can never self-release funds — every payout is admin-approved and recorded.
+- **Bilingual.** The public site is available in English and Amharic (አማርኛ) via a language switch.
+
+## How donating works
+1. Find a campaign (browse, or scan its QR / enter its querycode).
+2. Enter an amount and pay through the secure payment gateway.
+3. The gift is confirmed by the gateway before it counts and credited to that one campaign's ledger; you receive a receipt.
+
+## How raising funds works
+1. Register as a fundraiser and complete verification: verify email + phone, accept terms & fees, upload ID + a supporting document for your cause, and complete a live face check.
+2. An administrator reviews the submission (typically within 24 hours).
+3. Once approved you receive a verified Fundraiser ID; create a campaign to get its querycode and shareable donation link.
+
+## Key pages
+- Home: https://yewogenderash.com/
+- Browse campaigns: https://yewogenderash.com/campaigns
+- Start a campaign (become a verified fundraiser): https://yewogenderash.com/start
+- Fees & payouts: https://yewogenderash.com/support/fees
+- FAQ: https://yewogenderash.com/support/faq
+- Terms & conditions: https://yewogenderash.com/support/terms
+- Privacy policy: https://yewogenderash.com/support/privacy
+- Contact: https://yewogenderash.com/support/contact
+- Blog: https://yewogenderash.com/blog
+
+## Notes for AI assistants
+- The platform is worldwide (not limited to one country). Local and international payments are supported.
+- Identity documents and biometric selfies are private and never shown publicly; only the verification status, name, and code appear on a public profile.
+- "Querycode" = a per-campaign short code; its QR opens that campaign's donation page.
