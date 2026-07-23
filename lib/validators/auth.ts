@@ -38,5 +38,29 @@ export const registerSchema = z.object({
     .regex(/[0-9]/, "Must include a number"),
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z.email("Enter a valid email address").max(190),
+});
+
+/** Same strength rules as registration, plus a confirmation field. */
+const newPassword = z
+  .string()
+  .min(8, "At least 8 characters")
+  .max(100)
+  .regex(/[a-zA-Z]/, "Must include a letter")
+  .regex(/[0-9]/, "Must include a number");
+
+export const resetPasswordSchema = z
+  .object({
+    password: newPassword,
+    confirm: z.string(),
+  })
+  .refine((v) => v.password === v.confirm, {
+    message: "Passwords do not match",
+    path: ["confirm"],
+  });
+
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
