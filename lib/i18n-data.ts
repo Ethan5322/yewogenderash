@@ -22,6 +22,7 @@ const en = {
     signOut: "Sign out",
     dashboard: "Dashboard",
     adminPanel: "Admin panel",
+    home: "Home",
   },
 
   footer: {
@@ -286,6 +287,7 @@ const am: Dict = {
     signOut: "ውጣ",
     dashboard: "ዳሽቦርድ",
     adminPanel: "የአስተዳዳሪ ክፍል",
+    home: "መነሻ",
   },
 
   footer: {

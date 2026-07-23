@@ -6,19 +6,19 @@ import {
   DEFAULT_LOCALE,
   localeFromCookie,
   type Dict,
-  type Locale,
 } from "@/lib/i18n-data";
+import { useDictContext } from "@/lib/dict-context";
 
 /**
- * Client-component localisation. Reads the `locale` cookie after mount and
- * returns the matching dictionary. Renders English on the first paint (to match
- * the server) then swaps to Amharic if selected — a brief, acceptable flash on
- * the client-only auth/wizard forms.
+ * Client-component localisation. Prefers the DictProvider value (server-resolved
+ * locale + CMS overrides, no flash). Where no provider is present, falls back to
+ * reading the locale cookie after mount and using the static dictionary.
  */
 export function useDict(): Dict {
-  const [locale, setLocale] = React.useState<Locale>(DEFAULT_LOCALE);
+  const ctx = useDictContext();
+  const [cookieDict, setCookieDict] = React.useState<Dict>(dictionaries[DEFAULT_LOCALE]);
   React.useEffect(() => {
-    setLocale(localeFromCookie(document.cookie));
+    setCookieDict(dictionaries[localeFromCookie(document.cookie)]);
   }, []);
-  return dictionaries[locale];
+  return ctx ?? cookieDict;
 }
