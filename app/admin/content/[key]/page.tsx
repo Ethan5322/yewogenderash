@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { CONTENT_REGISTRY, getRawContent, isContentKey } from "@/lib/content";
 import { requirePermission } from "@/lib/admin/permissions";
 import { ContentEditorForm } from "@/components/admin/content-editor-form";
+import { PageHeader } from "@/components/admin/ui";
 
 export const metadata = { title: "Edit content" };
 
@@ -29,12 +30,7 @@ export default async function EditContentPage({
       </Link>
 
       <div>
-        <h1 className="font-display text-2xl font-bold tracking-tight">
-          {entry.label}
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {entry.description}
-        </p>
+        <PageHeader title={entry.label} description={entry.description} />
       </div>
 
       <ContentEditorForm

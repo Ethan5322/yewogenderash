@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ExternalLink, ShieldCheck, Star, MessageSquare } from "lucide-react";
+import { ExternalLink, ShieldCheck, Star, MessageSquare } from "lucide-react";
+import { Breadcrumbs } from "@/components/admin/ui";
 import { db } from "@/lib/db";
 import { requirePermission, hasPermission } from "@/lib/admin/permissions";
 import { signedKycUrl } from "@/lib/supabase/server";
@@ -118,15 +119,14 @@ export default async function AdminCampaignDetailPage({
 
   return (
     <div>
-      <Link
-        href="/admin/campaigns"
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="h-4 w-4" aria-hidden />
-        All campaigns
-      </Link>
+      <Breadcrumbs
+        items={[
+          { label: "Campaigns", href: "/admin/campaigns" },
+          { label: campaign.title },
+        ]}
+      />
 
-      <div className="mt-4 flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <h1 className="font-display text-2xl font-bold tracking-tight">
           {campaign.title}
         </h1>

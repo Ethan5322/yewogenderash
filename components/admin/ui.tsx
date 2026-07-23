@@ -18,6 +18,33 @@ const TONE_SOFT: Record<Tone, string> = {
   brand: "bg-primary/10 text-primary ring-primary/20",
 };
 
+/** Breadcrumb trail for admin detail pages (replaces ad-hoc "← Back" links). */
+export function Breadcrumbs({
+  items,
+}: {
+  items: { label: string; href?: string }[];
+}) {
+  return (
+    <nav
+      aria-label="Breadcrumb"
+      className="mb-3 flex flex-wrap items-center gap-1 text-sm text-muted-foreground"
+    >
+      {items.map((item, i) => (
+        <span key={`${item.label}-${i}`} className="inline-flex items-center gap-1">
+          {i > 0 ? <span className="text-muted-foreground/50">/</span> : null}
+          {item.href ? (
+            <Link href={item.href} className="transition-colors hover:text-foreground">
+              {item.label}
+            </Link>
+          ) : (
+            <span className="font-medium text-foreground">{item.label}</span>
+          )}
+        </span>
+      ))}
+    </nav>
+  );
+}
+
 /** Page title + description + right-aligned action slot. */
 export function PageHeader({
   title,

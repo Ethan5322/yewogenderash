@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ShieldCheck, MessageSquare } from "lucide-react";
+import { ShieldCheck, MessageSquare } from "lucide-react";
 import { db } from "@/lib/db";
 import { requirePermission, hasPermission } from "@/lib/admin/permissions";
 import { signedKycUrl } from "@/lib/supabase/server";
@@ -9,7 +9,7 @@ import { FlagControl } from "@/components/admin/flag-control";
 import { StatusBadge } from "@/components/campaigns/status-badge";
 import { FundraiserIdCard } from "@/components/owner/fundraiser-id-card";
 import { DocumentPreview, type DocKind } from "@/components/admin/document-preview";
-import { StatusChip } from "@/components/admin/ui";
+import { StatusChip, Breadcrumbs } from "@/components/admin/ui";
 import { formatDate, formatETB } from "@/lib/format";
 
 export const metadata = { title: "Admin · Owner review" };
@@ -129,15 +129,14 @@ export default async function AdminOwnerDetailPage({
 
   return (
     <div>
-      <Link
-        href="/admin/owners"
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="h-4 w-4" aria-hidden />
-        Owner KYC queue
-      </Link>
+      <Breadcrumbs
+        items={[
+          { label: "Owners / KYC", href: "/admin/owners" },
+          { label: owner.user.name },
+        ]}
+      />
 
-      <div className="mt-4 flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <h1 className="font-display text-2xl font-bold tracking-tight">
           {owner.user.name}
         </h1>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { requirePermission } from "@/lib/admin/permissions";
 import { BlogEditor } from "@/components/admin/blog-editor";
+import { PageHeader } from "@/components/admin/ui";
 
 export const metadata = { title: "New post" };
 
@@ -16,10 +17,10 @@ export default async function NewBlogPostPage() {
       >
         <ArrowLeft className="h-4 w-4" aria-hidden /> Blog
       </Link>
-      <h1 className="font-display text-2xl font-bold tracking-tight">New post</h1>
-      <p className="text-sm text-muted-foreground">
-        Posts start as a draft. You can publish them after saving.
-      </p>
+      <PageHeader
+        title="New post"
+        description="Posts start as a draft. You can publish them after saving."
+      />
       <BlogEditor />
     </div>
   );

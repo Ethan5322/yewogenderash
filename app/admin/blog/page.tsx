@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { requirePermission } from "@/lib/admin/permissions";
 import { formatDate } from "@/lib/format";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/admin/ui";
 
 export const metadata = { title: "Blog" };
 
@@ -23,19 +24,17 @@ export default async function AdminBlogPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="font-display text-2xl font-bold tracking-tight">Blog</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Trust content, guides, and success stories for the public site.
-          </p>
-        </div>
-        <Button asChild size="sm">
-          <Link href="/admin/blog/new">
-            <Plus className="h-4 w-4" aria-hidden /> New post
-          </Link>
-        </Button>
-      </div>
+      <PageHeader
+        title="Blog"
+        description="Trust content, guides, and success stories for the public site."
+        actions={
+          <Button asChild size="sm">
+            <Link href="/admin/blog/new">
+              <Plus className="h-4 w-4" aria-hidden /> New post
+            </Link>
+          </Button>
+        }
+      />
 
       {posts.length === 0 ? (
         <p className="rounded-lg border bg-card p-6 text-sm text-muted-foreground">
