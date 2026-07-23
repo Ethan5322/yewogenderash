@@ -92,6 +92,32 @@ function drawBarcode(
   ctx.restore();
 }
 
+/** The brand mark — a trust shield holding a heart — drawn on the canvas. */
+function drawLogoMark(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  size: number,
+  shieldColor: string,
+  heartColor: string
+) {
+  const scale = size / 24;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+  const shield = new Path2D(
+    "M12 2.4 19.6 5.2 V11 C19.6 15.9 16.3 19.6 12 21.7 C7.7 19.6 4.4 15.9 4.4 11 V5.2 Z"
+  );
+  ctx.fillStyle = shieldColor;
+  ctx.fill(shield);
+  const heart = new Path2D(
+    "M12 16.5 C11.85 16.5 6.9 13.35 6.9 9.75 C6.9 8.12 8.12 6.9 9.6 6.9 C10.68 6.9 11.62 7.56 12 8.46 C12.38 7.56 13.32 6.9 14.4 6.9 C15.88 6.9 17.1 8.12 17.1 9.75 C17.1 13.35 12.15 16.5 12 16.5 Z"
+  );
+  ctx.fillStyle = heartColor;
+  ctx.fill(heart);
+  ctx.restore();
+}
+
 /** Obsidian body: accent header flourish (clipped to header), gold frame, corners. */
 function drawShell(ctx: CanvasRenderingContext2D, accent: string) {
   ctx.fillStyle = INK;
@@ -148,13 +174,14 @@ async function drawCard(ctx: CanvasRenderingContext2D, o: IdCardData) {
   const accent = o.accent ?? ACCENT_DEFAULT;
   drawShell(ctx, accent);
 
-  // Header
+  // Header — brand mark (white shield + accent heart) then wordmark
+  drawLogoMark(ctx, 52, 40, 58, "#FFFFFF", accent);
   ctx.fillStyle = accent;
   ctx.font = "700 46px Oswald, Arial, sans-serif";
-  ctx.fillText(fit(ctx, o.org.toUpperCase(), 620), 56, 88);
+  ctx.fillText(fit(ctx, o.org.toUpperCase(), 540), 124, 88);
   ctx.fillStyle = MUTED;
   ctx.font = "600 14px Oswald, Arial, sans-serif";
-  ctx.fillText(o.subtitle.toUpperCase(), 58, 112);
+  ctx.fillText(o.subtitle.toUpperCase(), 126, 112);
 
   // QR (top-right, white quiet zone)
   if (o.qrUrl) {
