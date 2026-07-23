@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { requirePermission } from "@/lib/admin/permissions";
 import { listAdminThreads } from "@/lib/messages";
 import { BroadcastForm } from "@/components/admin/broadcast-form";
+import { PageHeader } from "@/components/admin/ui";
 import { formatDateTime } from "@/lib/format";
 
 export const metadata = { title: "Admin · Messages" };
@@ -21,13 +22,11 @@ export default async function AdminMessagesPage() {
   ]);
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="font-display text-2xl font-bold tracking-tight">Messages</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Reply to individual fundraisers, or send one notice to everyone.
-        </p>
-      </div>
+    <div>
+      <PageHeader
+        title="Messages"
+        description="Reply to individual fundraisers, or send one notice to everyone."
+      />
 
       <div className="grid gap-8 lg:grid-cols-3">
         {/* Inbox */}

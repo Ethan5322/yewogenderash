@@ -3,6 +3,7 @@ import { AlertTriangle, Mail } from "lucide-react";
 import { db } from "@/lib/db";
 import { requirePermission } from "@/lib/admin/permissions";
 import { SupportResolveButton } from "@/components/admin/support-controls";
+import { PageHeader } from "@/components/admin/ui";
 import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -41,12 +42,12 @@ export default async function AdminSupportPage({
 
   return (
     <div>
-      <h1 className="font-display text-2xl font-bold tracking-tight">Support inbox</h1>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Contact messages and abuse reports from the public site.
-      </p>
+      <PageHeader
+        title="Support inbox"
+        description="Contact messages and abuse reports from the public site."
+      />
 
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mb-4 flex flex-wrap gap-2">
         {FILTERS.map((x) => (
           <Link
             key={x.value}

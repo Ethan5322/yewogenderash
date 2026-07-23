@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import type { Prisma } from "@prisma/client";
 import { requireAnyPermission } from "@/lib/admin/permissions";
 import { Pager, pageFrom } from "@/components/admin/pager";
+import { PageHeader } from "@/components/admin/ui";
 
 const PAGE_SIZE = 75;
 
@@ -74,25 +75,23 @@ export default async function AdminAuditPage({
 
   return (
     <div>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-display text-2xl font-bold tracking-tight">Audit log</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Every consequential action on the platform, newest first. Append-only.
-          </p>
-        </div>
-        <form action="/admin/audit" className="relative">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-          <input
-            name="q"
-            defaultValue={q}
-            placeholder="Search action, actor, entity…"
-            className="h-9 w-64 rounded-md border border-input bg-background pl-8 pr-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          />
-        </form>
-      </div>
+      <PageHeader
+        title="Audit log"
+        description="Every consequential action on the platform, newest first. Append-only."
+        actions={
+          <form action="/admin/audit" className="relative">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+            <input
+              name="q"
+              defaultValue={q}
+              placeholder="Search action, actor, entity…"
+              className="h-9 w-64 rounded-md border border-input bg-background pl-8 pr-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            />
+          </form>
+        }
+      />
 
-      <div className="mt-6 overflow-x-auto rounded-xl border bg-card shadow-sm">
+      <div className="overflow-x-auto rounded-xl border bg-card shadow-sm">
         <table className="w-full min-w-[860px] text-sm">
           <thead>
             <tr className="border-b bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">

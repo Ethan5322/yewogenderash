@@ -2,6 +2,7 @@ import { CheckCircle2, XCircle } from "lucide-react";
 import { db } from "@/lib/db";
 import { requirePermission } from "@/lib/admin/permissions";
 import { formatDateTime } from "@/lib/format";
+import { PageHeader } from "@/components/admin/ui";
 
 export const metadata = { title: "Admin · Payments" };
 
@@ -28,13 +29,12 @@ export default async function AdminPaymentsPage() {
 
   return (
     <div>
-      <h1 className="font-display text-2xl font-bold tracking-tight">Payments &amp; gateway</h1>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Chapa webhook events, stored on arrival for idempotency and audit. Every
-        payment is verified against the gateway before a donation counts.
-      </p>
+      <PageHeader
+        title="Payments &amp; gateway"
+        description="Chapa webhook events, stored on arrival for idempotency and audit. Every payment is verified against the gateway before a donation counts."
+      />
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-3">
         <Tile label="Webhook events (total)" value={String(counts._count)} />
         <Tile label="Shown (recent)" value={String(events.length)} />
         <Tile label="Bad signature (recent)" value={String(badSig)} danger={badSig > 0} />
