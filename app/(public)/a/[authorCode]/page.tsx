@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import {
   BadgeCheck,
   ScanFace,
-  Download,
   Megaphone,
   ExternalLink,
 } from "lucide-react";
@@ -13,7 +12,6 @@ import { getAuthorProfile } from "@/lib/authors";
 import { signedKycUrl } from "@/lib/supabase/server";
 import { StatusBadge } from "@/components/campaigns/status-badge";
 import { ProgressBar } from "@/components/campaigns/progress-bar";
-import { FundraiserIdCard } from "@/components/owner/fundraiser-id-card";
 import { CATEGORY_LABELS } from "@/lib/campaign-types";
 import { formatETB, formatDate, progressPercent } from "@/lib/format";
 
@@ -42,43 +40,19 @@ export default async function AuthorProfilePage({ params }: Params) {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 sm:py-14">
-      {/* Corporate Fundraiser ID card */}
-      <div className="flex flex-col items-center gap-4">
-        <FundraiserIdCard
-          name={owner.user.name}
-          verificationCode={owner.authorCode ?? "—"}
-          issued={owner.verifiedAt ? formatDate(owner.verifiedAt) : "—"}
-          status="VERIFIED"
-          photoUrl={owner.idPhotoUrl}
-          approved
-          fields={[
-            { label: "Status", value: "Verified" },
-            { label: "Platform", value: "Yewogen Derash" },
-          ]}
-        />
-        <a
-          href={`/a/${owner.authorCode}/qr`}
-          download={`fundraiser-${owner.authorCode}.png`}
-          className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-        >
-          <Download className="h-3 w-3" aria-hidden /> Download QR
-        </a>
-      </div>
-
-      {/* Public verification details — everything a donor should know */}
-      <div className="mt-8 overflow-hidden rounded-2xl border bg-card shadow-sm">
-        <div className="flex items-center gap-2 border-b bg-success/5 px-6 py-3">
-          <BadgeCheck className="h-4 w-4 text-success" aria-hidden />
-          <h2 className="font-display text-sm font-semibold">Verified fundraiser</h2>
+      {/* Public verification confirmation — enough for a donor to trust who they
+          are supporting, and NOTHING that could be used to impersonate them.
+          The verification code and the Fundraiser ID are private login
+          credentials and are never shown or downloadable here. */}
+      <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+        <div className="flex items-center gap-2 border-b bg-success/5 px-6 py-4">
+          <BadgeCheck className="h-5 w-5 text-success" aria-hidden />
+          <h1 className="font-display text-base font-semibold">Verified fundraiser</h1>
         </div>
         <dl className="grid gap-x-8 gap-y-4 p-6 sm:grid-cols-2">
           <div>
             <dt className="text-xs uppercase tracking-wide text-muted-foreground">Full name</dt>
             <dd className="mt-0.5 font-medium">{owner.user.name}</dd>
-          </div>
-          <div>
-            <dt className="text-xs uppercase tracking-wide text-muted-foreground">Verification code</dt>
-            <dd className="mt-0.5 font-mono font-medium tracking-wider">{owner.authorCode}</dd>
           </div>
           <div>
             <dt className="text-xs uppercase tracking-wide text-muted-foreground">Status</dt>
@@ -96,7 +70,7 @@ export default async function AuthorProfilePage({ params }: Params) {
             <dt className="text-xs uppercase tracking-wide text-muted-foreground">Reviewed by</dt>
             <dd className="mt-0.5 font-medium">Yewogen Derash administrators</dd>
           </div>
-          <div>
+          <div className="sm:col-span-2">
             <dt className="text-xs uppercase tracking-wide text-muted-foreground">Public campaigns</dt>
             <dd className="mt-0.5 font-medium">
               {owner.campaigns.length} · {formatETB(totalRaised)} raised
@@ -104,9 +78,9 @@ export default async function AuthorProfilePage({ params }: Params) {
           </div>
         </dl>
         <p className="border-t px-6 py-3 text-xs text-muted-foreground">
-          Identity documents and the biometric selfie were checked privately by
-          administrators and are never shown publicly. Scan the ID’s QR to reach
-          this page and confirm who you are supporting.
+          Identity documents, the verification code, and the biometric selfie
+          were checked privately by administrators and are never shown publicly.
+          This page only confirms that the fundraiser is real and verified.
         </p>
       </div>
 

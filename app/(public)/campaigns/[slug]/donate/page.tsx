@@ -72,18 +72,9 @@ export default async function DonatePage({ params }: Params) {
           <p className="flex flex-wrap items-center gap-2 text-sm text-white/85">
             <span>by {campaign.ownerName}</span>
             {campaign.mulesooVerified ? (
-              campaign.authorCode ? (
-                <Link
-                  href={`/a/${campaign.authorCode}`}
-                  className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2 py-0.5 text-xs font-semibold backdrop-blur hover:bg-white/25"
-                >
-                  <ShieldCheck className="h-3.5 w-3.5" aria-hidden /> {dict.campaign.verified}
-                </Link>
-              ) : (
-                <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2 py-0.5 text-xs font-semibold backdrop-blur">
-                  <ShieldCheck className="h-3.5 w-3.5" aria-hidden /> {dict.campaign.verified}
-                </span>
-              )
+              <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2 py-0.5 text-xs font-semibold backdrop-blur">
+                <ShieldCheck className="h-3.5 w-3.5" aria-hidden /> {dict.campaign.verified}
+              </span>
             ) : null}
           </p>
 

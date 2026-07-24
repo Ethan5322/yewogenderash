@@ -70,7 +70,6 @@ export default async function QuickDonatePage({ params }: Params) {
               className="mt-2"
               ownerName={campaign.ownerName}
               mulesooVerified={campaign.mulesooVerified}
-              authorCode={campaign.authorCode}
               byLabel={t.by}
               verifiedLabel={t.verifiedOwner}
             />

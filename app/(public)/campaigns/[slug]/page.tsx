@@ -142,21 +142,9 @@ export default async function CampaignDetailPage({ params }: Params) {
                 <div className="flex items-center gap-2">
                   <span className="truncate font-semibold">{campaign.ownerName}</span>
                   {campaign.mulesooVerified ? (
-                    campaign.authorCode ? (
-                      <Link
-                        href={`/a/${campaign.authorCode}`}
-                        className="shrink-0"
-                        title="View verification profile"
-                      >
-                        <Badge variant="verified" className="gap-1">
-                          <ShieldCheck className="h-3.5 w-3.5" aria-hidden /> {t.verified}
-                        </Badge>
-                      </Link>
-                    ) : (
-                      <Badge variant="verified" className="shrink-0 gap-1">
-                        <ShieldCheck className="h-3.5 w-3.5" aria-hidden /> Verified
-                      </Badge>
-                    )
+                    <Badge variant="verified" className="shrink-0 gap-1">
+                      <ShieldCheck className="h-3.5 w-3.5" aria-hidden /> {t.verified}
+                    </Badge>
                   ) : null}
                 </div>
                 <p className="mt-0.5 truncate text-xs text-muted-foreground">
@@ -315,8 +303,7 @@ export default async function CampaignDetailPage({ params }: Params) {
                 {campaign.reviewedAt
                   ? formatDate(campaign.reviewedAt)
                   : formatDate(campaign.createdAt)}
-                . {t.ownerCodeLabel}:{" "}
-                <span className="font-mono">{campaign.authorCode ?? "—"}</span>
+                .
               </p>
               <Link
                 href="/support/report"
