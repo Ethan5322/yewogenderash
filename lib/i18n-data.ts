@@ -259,10 +259,13 @@ const en = {
     story: "Full story",
     storyHint:
       "The complete picture: who, why, what the funds cover, and how progress will be shared. Reviewers check this against your supporting documents.",
-    currentHero: "Current hero image",
+    currentHero: "Current public photo",
     currentHeroHint: "Upload a new image below to replace it, or leave empty to keep it.",
-    heroReplace: "Replace hero image (optional)",
-    heroOptional: "Hero image (optional)",
+    heroReplace: "Replace public photo",
+    heroOptional: "Public photo of the person or cause",
+    heroPublicHint:
+      "This is shown to everyone on your campaign page — the face of who needs help. It is different from the private proof document, which only administrators see.",
+    heroMissing: "Add a public photo — donors need to see who they are helping.",
     uploadProof: "Upload proof document",
     createDraft: "Create draft",
     footerNote:
@@ -525,10 +528,13 @@ const am: Dict = {
     story: "ሙሉ ታሪክ",
     storyHint:
       "ሙሉ ገጽታው፦ ማን፣ ለምን፣ ገንዘቡ ምን እንደሚሸፍንና እድገቱ እንዴት እንደሚጋራ። ገምጋሚዎች ይህን ከደጋፊ ሰነዶችዎ ጋር ያመሳክራሉ።",
-    currentHero: "አሁን ያለው ዋና ምስል",
+    currentHero: "አሁን ያለው ይፋዊ ፎቶ",
     currentHeroHint: "ለመተካት ከታች አዲስ ምስል ይጫኑ፣ ወይም እንዲቆይ ባዶ ይተዉት።",
-    heroReplace: "ዋና ምስል ይተኩ (አማራጭ)",
-    heroOptional: "ዋና ምስል (አማራጭ)",
+    heroReplace: "ይፋዊ ፎቶ ይተኩ",
+    heroOptional: "የሚረዳው ሰው ወይም ጉዳይ ይፋዊ ፎቶ",
+    heroPublicHint:
+      "ይህ ፎቶ በዘመቻዎ ገጽ ላይ ለሁሉም ሰው ይታያል — እርዳታ የሚያስፈልገው ማን እንደሆነ ያሳያል። አስተዳዳሪዎች ብቻ ከሚያዩት ግላዊ የማስረጃ ሰነድ የተለየ ነው።",
+    heroMissing: "ይፋዊ ፎቶ ያክሉ — ለጋሾች የሚረዱትን ሰው ማየት አለባቸው።",
     uploadProof: "የማስረጃ ሰነድ ይጫኑ",
     createDraft: "ረቂቅ ፍጠር",
     footerNote:

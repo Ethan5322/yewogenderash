@@ -71,6 +71,7 @@ export default async function EditCampaignPage({
               submitLabel={cf.saveChanges}
               footerNote={cf.editFooterNote}
               currentHeroUrl={campaign.heroImageUrl}
+              requireHero={!campaign.heroImageUrl}
               defaults={{
                 title: campaign.title,
                 category: campaign.category,

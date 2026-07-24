@@ -97,25 +97,27 @@ export async function createCampaignAction(
     };
   }
 
-  // Optional hero image → public media bucket.
-  let heroImageUrl: string | null = null;
+  // Public hero photo → public media bucket. REQUIRED: a live campaign must show
+  // the face/cause behind it, so donors see who they're helping. This is the
+  // PUBLIC image, distinct from the private proof document above.
   const hero = formData.get("heroImage");
-  if (hero instanceof File && hero.size > 0) {
-    if (!(ALLOWED_IMAGE_TYPES as readonly string[]).includes(hero.type)) {
-      return { ok: false, error: "Hero image must be a JPG, PNG, or WEBP" };
-    }
-    if (hero.size > MAX_UPLOAD_BYTES) {
-      return { ok: false, error: "Hero image is too large (maximum 5 MB)" };
-    }
-    const path = `campaigns/${owner.id}/hero-${Date.now()}.${IMG_EXT[hero.type]}`;
-    const up = await uploadMediaFile(
-      path,
-      new Uint8Array(await hero.arrayBuffer()),
-      hero.type
-    );
-    if (!up.ok) return { ok: false, error: `Image upload failed: ${up.error}` };
-    heroImageUrl = up.url;
+  if (!(hero instanceof File) || hero.size === 0) {
+    return { ok: false, error: "Add a public photo for your campaign — this is what donors will see." };
   }
+  if (!(ALLOWED_IMAGE_TYPES as readonly string[]).includes(hero.type)) {
+    return { ok: false, error: "Photo must be a JPG, PNG, or WEBP" };
+  }
+  if (hero.size > MAX_UPLOAD_BYTES) {
+    return { ok: false, error: "Photo is too large (maximum 5 MB)" };
+  }
+  const heroPath = `campaigns/${owner.id}/hero-${Date.now()}.${IMG_EXT[hero.type]}`;
+  const heroUp = await uploadMediaFile(
+    heroPath,
+    new Uint8Array(await hero.arrayBuffer()),
+    hero.type
+  );
+  if (!heroUp.ok) return { ok: false, error: `Image upload failed: ${heroUp.error}` };
+  const heroImageUrl = heroUp.url;
 
   const [slug, queryCode] = await Promise.all([
     generateUniqueSlug(parsed.data.title),
@@ -199,22 +201,24 @@ export async function updateCampaignAction(
 
   const existing = await db.campaign.findFirst({
     where: { id: campaignId, ownerId: owner.id },
-    select: { id: true, status: true, slug: true },
+    select: { id: true, status: true, slug: true, heroImageUrl: true },
   });
   if (!existing) return { ok: false, error: "Campaign not found." };
   if (existing.status === "ARCHIVED" || existing.status === "COMPLETED") {
     return { ok: false, error: "This campaign can no longer be edited." };
   }
 
-  // Optional replacement hero image → public media bucket. No file = keep current.
+  // Replacement hero image → public media bucket. No file = keep the current
+  // one. But a campaign must always end up WITH a public photo: if it has none
+  // yet, one must be supplied now.
   let heroImageUrl: string | undefined;
   const hero = formData.get("heroImage");
   if (hero instanceof File && hero.size > 0) {
     if (!(ALLOWED_IMAGE_TYPES as readonly string[]).includes(hero.type)) {
-      return { ok: false, error: "Hero image must be a JPG, PNG, or WEBP" };
+      return { ok: false, error: "Photo must be a JPG, PNG, or WEBP" };
     }
     if (hero.size > MAX_UPLOAD_BYTES) {
-      return { ok: false, error: "Hero image is too large (maximum 5 MB)" };
+      return { ok: false, error: "Photo is too large (maximum 5 MB)" };
     }
     const path = `campaigns/${owner.id}/hero-${Date.now()}.${IMG_EXT[hero.type]}`;
     const up = await uploadMediaFile(
@@ -224,6 +228,8 @@ export async function updateCampaignAction(
     );
     if (!up.ok) return { ok: false, error: `Image upload failed: ${up.error}` };
     heroImageUrl = up.url;
+  } else if (!existing.heroImageUrl) {
+    return { ok: false, error: "Add a public photo for your campaign — this is what donors will see." };
   }
 
   await db.campaign.update({

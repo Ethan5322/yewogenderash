@@ -50,6 +50,7 @@ export function CampaignForm({
   footerNote,
   currentHeroUrl,
   requireProof = false,
+  requireHero = false,
 }: {
   action?: (prev: ActionResult | null, fd: FormData) => Promise<ActionResult>;
   defaults?: CampaignFormDefaults;
@@ -58,6 +59,8 @@ export function CampaignForm({
   currentHeroUrl?: string | null;
   /** Require a category-matched proof document (campaign creation only). */
   requireProof?: boolean;
+  /** Require a public hero photo (true unless one already exists). */
+  requireHero?: boolean;
 }) {
   const dict = useDict();
   const t = dict.campaignForm;
@@ -70,6 +73,9 @@ export function CampaignForm({
   const [proof, setProof] = React.useState<File | null>(null);
   const proofSpec = CATEGORY_PROOF[category as keyof typeof CATEGORY_PROOF] ?? CATEGORY_PROOF.OTHER;
   const proofMissing = requireProof && !proof;
+  // A public photo must end up on the campaign: needed when required and neither
+  // a new file is chosen nor one already exists.
+  const heroMissing = requireHero && !hero && !currentHeroUrl;
 
   return (
     <form action={formAction} className="space-y-6">
@@ -159,26 +165,36 @@ export function CampaignForm({
         </div>
       ) : null}
 
-      {currentHeroUrl ? (
-        <div>
-          <p className="text-sm font-medium">{t.currentHero}</p>
-          {/* eslint-disable-next-line @next/next/no-img-element -- user upload on arbitrary host */}
-          <img
-            src={currentHeroUrl}
-            alt="Current hero"
-            className="mt-1.5 h-32 w-full max-w-sm rounded-lg border object-cover"
-          />
-          <p className="mt-1 text-xs text-muted-foreground">{t.currentHeroHint}</p>
-        </div>
-      ) : null}
+      <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
+        <p className="text-sm font-semibold">
+          {currentHeroUrl ? t.heroReplace : t.heroOptional}{" "}
+          {requireHero ? <span className="text-destructive">*</span> : null}
+        </p>
+        <p className="mt-0.5 text-xs text-muted-foreground">{t.heroPublicHint}</p>
 
-      <FileDropzone
-        name="heroImage"
-        label={currentHeroUrl ? t.heroReplace : t.heroOptional}
-        accept="image/jpeg,image/png,image/webp"
-        file={hero}
-        onFileChange={setHero}
-      />
+        {currentHeroUrl ? (
+          <div className="mt-3">
+            <p className="text-xs font-medium">{t.currentHero}</p>
+            {/* eslint-disable-next-line @next/next/no-img-element -- user upload on arbitrary host */}
+            <img
+              src={currentHeroUrl}
+              alt="Current public photo"
+              className="mt-1.5 h-32 w-full max-w-sm rounded-lg border object-cover"
+            />
+            <p className="mt-1 text-xs text-muted-foreground">{t.currentHeroHint}</p>
+          </div>
+        ) : null}
+
+        <div className="mt-3">
+          <FileDropzone
+            name="heroImage"
+            label={currentHeroUrl ? t.heroReplace : t.heroOptional}
+            accept="image/jpeg,image/png,image/webp"
+            file={hero}
+            onFileChange={setHero}
+          />
+        </div>
+      </div>
 
       {state && !state.ok ? (
         <p className="text-sm text-destructive">{state.error}</p>
@@ -190,9 +206,13 @@ export function CampaignForm({
         </p>
       ) : null}
 
+      {heroMissing ? (
+        <p className="text-sm text-warning">{t.heroMissing}</p>
+      ) : null}
+
       <div className="flex items-center justify-between gap-4 border-t pt-6">
         <p className="text-xs text-muted-foreground">{footerNote ?? t.footerNote}</p>
-        <Button type="submit" disabled={pending || proofMissing}>
+        <Button type="submit" disabled={pending || proofMissing || heroMissing}>
           {pending ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
