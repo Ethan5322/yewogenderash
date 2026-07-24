@@ -114,6 +114,11 @@ const en = {
     querycodeHint:
       "Scan or enter this code to donate to this exact campaign — it never points anywhere else.",
     quickDonate: "Quick donate",
+    shareTitle: "Share this campaign",
+    shareHint: "Every share reaches more people who can help.",
+    copyLink: "Copy link",
+    copied: "Copied!",
+    shareVia: "Share",
     reviewedLabel: "Reviewed",
     ownerCodeLabel: "Owner code",
     report: "Report this campaign",
@@ -383,6 +388,11 @@ const am: Dict = {
     querycodeHint:
       "ለዚህ ዘመቻ ብቻ ለመለገስ ይህን ኮድ ይቃኙ ወይም ያስገቡ — ፈጽሞ ወደ ሌላ ቦታ አይመራም።",
     quickDonate: "ፈጣን ልገሳ",
+    shareTitle: "ይህን ዘመቻ ያጋሩ",
+    shareHint: "እያንዳንዱ ማጋራት መርዳት የሚችሉ ተጨማሪ ሰዎችን ያደርሳል።",
+    copyLink: "አገናኝ ቅዳ",
+    copied: "ተቀድቷል!",
+    shareVia: "አጋራ",
     reviewedLabel: "ተገምግሟል",
     ownerCodeLabel: "የአዘጋጅ ኮድ",
     report: "ይህን ዘመቻ ሪፖርት ያድርጉ",

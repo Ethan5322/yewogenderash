@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { ProgressBar } from "@/components/campaigns/progress-bar";
 import { MulesooStamp } from "@/components/campaigns/verified-badges";
 import { MobileDonateBar } from "@/components/campaigns/mobile-donate-bar";
+import { ShareCampaign } from "@/components/campaigns/share-campaign";
 import { getPublicCampaignBySlug, CATEGORY_LABELS } from "@/lib/campaigns";
 import { formatETB, progressPercent, formatDate } from "@/lib/format";
 import { getDictionary } from "@/lib/i18n";
@@ -296,6 +297,12 @@ export default async function CampaignDetailPage({ params }: Params) {
                 <Link href={`/q/${campaign.queryCode}`}>{t.quickDonate}</Link>
               </Button>
             </div>
+
+            {/* Shareable link + one-tap social sharing */}
+            <ShareCampaign
+              url={`${SITE_URL}/campaigns/${campaign.slug}`}
+              title={campaign.title}
+            />
 
             <div className="rounded-xl border bg-muted/40 p-4 text-xs text-muted-foreground">
               <p>
