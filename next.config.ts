@@ -28,6 +28,14 @@ const securityHeaders = [
 // committed, so it can never leak into the Linux build.
 const nextConfig: NextConfig = {
   turbopack: { root: process.env.TURBOPACK_ROOT || process.cwd() },
+  experimental: {
+    // Server Actions cap request bodies at 1 MB by default. Campaign creation
+    // posts a proof document AND a hero photo through one action, each allowed
+    // up to 5 MB (MAX_UPLOAD_BYTES), so the default rejected real phone photos
+    // with a body-size error and the upload appeared to "fail". Lift it to fit
+    // both files plus form fields.
+    serverActions: { bodySizeLimit: "12mb" },
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

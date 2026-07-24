@@ -14,6 +14,48 @@ function humanSize(bytes: number): string {
 }
 
 /**
+ * Shrink an image in the browser before it is uploaded. A phone photo is often
+ * 3–5 MB, which blows past the Server Action body limit AND Vercel's 4.5 MB
+ * function-body cap, so the upload "fails". Resizing to `maxDim` on the long
+ * edge and re-encoding as JPEG brings it to a few hundred KB — under every
+ * limit, and far quicker to load on the public page. Non-images (PDFs) and any
+ * failure fall through untouched. EXIF orientation is honoured so portrait
+ * photos are not rotated.
+ */
+async function downscaleImage(file: File, maxDim: number): Promise<File> {
+  if (!file.type.startsWith("image/")) return file;
+  try {
+    const bmp = await createImageBitmap(file, { imageOrientation: "from-image" });
+    const scale = Math.min(1, maxDim / Math.max(bmp.width, bmp.height));
+    // Already modest in both dimensions and bytes → leave it alone.
+    if (scale === 1 && file.size <= 1_200_000) {
+      bmp.close?.();
+      return file;
+    }
+    const w = Math.max(1, Math.round(bmp.width * scale));
+    const h = Math.max(1, Math.round(bmp.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      bmp.close?.();
+      return file;
+    }
+    ctx.drawImage(bmp, 0, 0, w, h);
+    bmp.close?.();
+    const blob: Blob | null = await new Promise((resolve) =>
+      canvas.toBlob(resolve, "image/jpeg", 0.85)
+    );
+    if (!blob || blob.size >= file.size) return file; // no gain → keep original
+    const base = file.name.replace(/\.[^.]+$/, "") || "photo";
+    return new File([blob], `${base}.jpg`, { type: "image/jpeg" });
+  } catch {
+    return file;
+  }
+}
+
+/**
  * Accessible file picker with drag-and-drop, client-side type/size validation,
  * and an image preview. The parent owns the selected File (controlled via
  * `onFileChange`) and submits it — server-side validation is still authoritative.
@@ -23,6 +65,7 @@ export function FileDropzone({
   label,
   accept = DEFAULT_ACCEPT,
   maxBytes = DEFAULT_MAX,
+  maxImageDimension,
   file,
   onFileChange,
 }: {
@@ -30,6 +73,9 @@ export function FileDropzone({
   label: string;
   accept?: string;
   maxBytes?: number;
+  /** If set, images are resized to this many pixels on the long edge before
+   *  upload (keeps request bodies small; ignored for non-image files). */
+  maxImageDimension?: number;
   file: File | null;
   onFileChange: (file: File | null) => void;
 }) {
@@ -37,6 +83,7 @@ export function FileDropzone({
   const [error, setError] = React.useState<string | null>(null);
   const [dragging, setDragging] = React.useState(false);
   const [preview, setPreview] = React.useState<string | null>(null);
+  const [processing, setProcessing] = React.useState(false);
 
   React.useEffect(() => {
     if (file && file.type.startsWith("image/")) {
@@ -62,7 +109,7 @@ export function FileDropzone({
     inputRef.current.files = dt.files;
   }
 
-  function validateAndSet(f: File | null) {
+  async function validateAndSet(f: File | null) {
     setError(null);
     if (!f) {
       syncInput(null);
@@ -79,8 +126,20 @@ export function FileDropzone({
       syncInput(null);
       return;
     }
-    syncInput(f);
-    onFileChange(f);
+    // Resize large images before they enter the form so the upload body stays
+    // small. onFileChange only fires with the FINAL file, so a required-photo
+    // submit guard stays disabled until the optimised file is ready.
+    let finalFile = f;
+    if (maxImageDimension && f.type.startsWith("image/")) {
+      setProcessing(true);
+      try {
+        finalFile = await downscaleImage(f, maxImageDimension);
+      } finally {
+        setProcessing(false);
+      }
+    }
+    syncInput(finalFile);
+    onFileChange(finalFile);
   }
 
   return (
@@ -102,7 +161,12 @@ export function FileDropzone({
           dragging ? "border-primary bg-accent/50" : "border-input"
         )}
       >
-        {file ? (
+        {processing ? (
+          <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
+            <UploadCloud className="h-5 w-5 animate-pulse" aria-hidden />
+            Optimising image…
+          </div>
+        ) : file ? (
           <div className="flex items-center gap-3">
             {preview ? (
               // eslint-disable-next-line @next/next/no-img-element -- local object URL preview

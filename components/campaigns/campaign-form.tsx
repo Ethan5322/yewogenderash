@@ -158,6 +158,7 @@ export function CampaignForm({
               name="proofDocument"
               label={t.uploadProof}
               accept="image/jpeg,image/png,image/webp,application/pdf"
+              maxImageDimension={2200}
               file={proof}
               onFileChange={setProof}
             />
@@ -190,6 +191,7 @@ export function CampaignForm({
             name="heroImage"
             label={currentHeroUrl ? t.heroReplace : t.heroOptional}
             accept="image/jpeg,image/png,image/webp"
+            maxImageDimension={1600}
             file={hero}
             onFileChange={setHero}
           />
