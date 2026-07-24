@@ -441,3 +441,85 @@ export async function setOwnerFlagAction(
   revalidatePath(`/admin/owners/${ownerId}`);
   return { ok: true };
 }
+
+/**
+ * Permanently delete a campaign and everything hanging off it — for spam,
+ * duplicates, test entries, or a fraudulent campaign an admin wants gone rather
+ * than merely hidden. This is irreversible.
+ *
+ * Financial integrity guard: a campaign that has actually taken money (any
+ * SUCCESS donation or non-requested payout) is NOT hard-deleted. Wiping those
+ * rows would destroy donor receipts and the money trail. Such a campaign must
+ * be Archived instead (hidden, records intact). Everything else — drafts,
+ * pending, rejected, suspended, or active-but-unfunded — can be removed
+ * completely at any time.
+ *
+ * Child rows that use ON DELETE RESTRICT (donations, payouts, fee ledgers,
+ * notifications) are cleared explicitly inside one transaction; documents,
+ * updates, and the balance row fall away via ON DELETE CASCADE.
+ */
+export async function deleteCampaignAction(
+  campaignId: string
+): Promise<ActionResult> {
+  const { id: adminId } = await requirePermission("campaigns");
+
+  const campaign = await db.campaign.findUnique({
+    where: { id: campaignId },
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      queryCode: true,
+      ownerId: true,
+      currentAmount: true,
+      _count: {
+        select: {
+          donations: { where: { status: "SUCCESS" } },
+          payouts: { where: { status: { not: "REQUESTED" } } },
+        },
+      },
+    },
+  });
+  if (!campaign) return { ok: false, error: "Campaign not found." };
+
+  if (campaign._count.donations > 0 || campaign._count.payouts > 0) {
+    return {
+      ok: false,
+      error:
+        "This campaign has received money, so it can't be deleted — that would " +
+        "erase donor receipts and the payout trail. Archive it instead to hide " +
+        "it while keeping the records.",
+    };
+  }
+
+  // Record what is about to vanish BEFORE it does, so the audit log keeps a
+  // permanent trace of the deletion even though the campaign itself is gone.
+  await writeAudit({
+    actorId: adminId,
+    action: "CAMPAIGN_DELETED",
+    entityType: "Campaign",
+    entityId: campaign.id,
+    detail: {
+      title: campaign.title,
+      queryCode: campaign.queryCode,
+      slug: campaign.slug,
+      ownerId: campaign.ownerId,
+      currentAmount: Number(campaign.currentAmount),
+    },
+  });
+
+  await db.$transaction([
+    // RESTRICT relations must go first (only non-money rows can exist here).
+    db.feeLedger.deleteMany({ where: { campaignId } }),
+    db.notification.deleteMany({ where: { campaignId } }),
+    db.payout.deleteMany({ where: { campaignId } }),
+    db.donation.deleteMany({ where: { campaignId } }),
+    // Campaign itself — documents, updates, and balance cascade away.
+    db.campaign.delete({ where: { id: campaignId } }),
+  ]);
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/campaigns");
+  revalidatePath("/campaigns");
+  return { ok: true };
+}

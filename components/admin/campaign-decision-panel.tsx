@@ -3,11 +3,12 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import type { CampaignStatus } from "@prisma/client";
-import { Loader2, Check, X, PauseCircle, Flag, Archive, Star } from "lucide-react";
+import { Loader2, Check, X, PauseCircle, Flag, Archive, Star, Trash2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   decideCampaignAction,
   toggleFeaturedAction,
+  deleteCampaignAction,
   type ActionResult,
 } from "@/app/admin/actions";
 
@@ -49,6 +50,7 @@ export function CampaignDecisionPanel({
   const [note, setNote] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
   const [busyOn, setBusyOn] = React.useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = React.useState(false);
 
   const decisions = AVAILABLE[status];
 
@@ -67,17 +69,33 @@ export function CampaignDecisionPanel({
     });
   }
 
-  if (decisions.length === 0 && status !== "ACTIVE") {
-    return (
-      <p className="text-sm text-muted-foreground">
-        No admin decisions available in this state.
-      </p>
-    );
+  // Permanent deletion — leaves nothing to refresh, so navigate away on success.
+  function runDelete() {
+    setBusyOn("delete");
+    setError(null);
+    startTransition(async () => {
+      const res = await deleteCampaignAction(campaignId);
+      setBusyOn(null);
+      if (res.ok) {
+        router.push("/admin/campaigns");
+        router.refresh();
+      } else {
+        setConfirmDelete(false);
+        setError(res.error);
+      }
+    });
   }
+
+  const noDecisions = decisions.length === 0 && status !== "ACTIVE";
 
   return (
     <div className="space-y-4">
-      <div>
+      {noDecisions ? (
+        <p className="text-sm text-muted-foreground">
+          No status changes available in this state.
+        </p>
+      ) : null}
+      <div className={noDecisions ? "hidden" : undefined}>
         <label htmlFor="review-note" className="text-sm font-medium">
           Review note{" "}
           <span className="font-normal text-muted-foreground">
@@ -140,6 +158,57 @@ export function CampaignDecisionPanel({
       </div>
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
+
+      {/* Permanent deletion — always available, walled off behind a confirm. */}
+      <div className="border-t border-destructive/20 pt-4">
+        {confirmDelete ? (
+          <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3">
+            <p className="flex items-start gap-2 text-sm font-medium text-destructive">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+              Delete this campaign permanently? This cannot be undone.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="destructive"
+                disabled={pending}
+                onClick={runDelete}
+              >
+                {busyOn === "delete" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" aria-hidden />
+                )}
+                Yes, delete permanently
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={pending}
+                onClick={() => setConfirmDelete(false)}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              setError(null);
+              setConfirmDelete(true);
+            }}
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-destructive hover:underline"
+          >
+            <Trash2 className="h-4 w-4" aria-hidden />
+            Delete campaign permanently
+          </button>
+        )}
+        <p className="mt-2 text-xs text-muted-foreground">
+          Campaigns that have received money can&apos;t be deleted — archive
+          those instead to keep the records.
+        </p>
+      </div>
     </div>
   );
 }
