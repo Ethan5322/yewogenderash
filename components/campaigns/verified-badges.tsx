@@ -8,7 +8,14 @@ import { cn } from "@/lib/utils";
  */
 export function MulesooStamp({ className }: { className?: string }) {
   return (
-    <Badge variant="gold" className={cn("gap-1", className)} title="Mulesoo verified owner">
+    <Badge
+      // Brand green, not gold: this is the platform's own trust mark, so it
+      // carries the platform's colour. It also usually sits on top of a hero
+      // photo, hence the ring and shadow to keep it legible on any image.
+      variant="brand"
+      className={cn("gap-1 shadow-sm ring-1 ring-white/25", className)}
+      title="Mulesoo verified owner"
+    >
       <BadgeCheck className="h-3.5 w-3.5" aria-hidden />
       Mulesoo verified
     </Badge>

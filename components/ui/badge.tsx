@@ -10,6 +10,9 @@ const badgeVariants = cva(
         default: "border-transparent bg-primary text-primary-foreground",
         secondary: "border-transparent bg-secondary text-secondary-foreground",
         verified: "border-transparent bg-success text-success-foreground",
+        /** The platform's own seal — brand green. Also the only green that
+         *  clears AA contrast against white text (5.4:1 vs success's 3.3:1). */
+        brand: "border-transparent bg-primary text-primary-foreground",
         gold: "border-transparent bg-gold text-gold-foreground",
         warning: "border-transparent bg-warning text-warning-foreground",
         destructive: "border-transparent bg-destructive text-destructive-foreground",
