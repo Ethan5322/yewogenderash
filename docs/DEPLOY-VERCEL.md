@@ -24,6 +24,14 @@ The full list (14 required vars): `NEXT_PUBLIC_APP_URL`, `DATABASE_URL`,
 `CHAPA_SECRET_KEY`, `CHAPA_PUBLIC_KEY`, `CHAPA_ENCRYPTION_KEY`,
 `CHAPA_WEBHOOK_SECRET`, `ADMIN_WHATSAPP_PHONE`, `ADMIN_CALLMEBOT_APIKEY`.
 
+`ADMIN_WHATSAPP_PHONE` + `ADMIN_CALLMEBOT_APIKEY` are **load-bearing for
+main-admin sign-in**: the main admin's one-time login code is delivered to that
+WhatsApp number. A CallMeBot key is issued for one specific number, so the two
+must be a matched pair — a key that does not belong to the phone will fail
+silently. If delivery fails the sign-in screen says so and the code is still
+written to the application log, so the main admin is never locked out. Delegated
+(sub-)admins sign in with their password and need no code.
+
 **Optional:**
 
 - `NEXT_PUBLIC_ETB_PER_USD` — approximate birr per 1 USD. Shows diaspora donors

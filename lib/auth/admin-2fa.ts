@@ -11,21 +11,43 @@ function maskPhone(p: string): string {
   return `••••••${digits.slice(-3)}`;
 }
 
+export type AdminLoginStep =
+  /** Main admin: a one-time code has been sent and must be entered. */
+  | { ok: true; codeRequired: true; sentTo: string; delivered: boolean }
+  /** Delegated admin: no second factor — the password alone signs them in. */
+  | { ok: true; codeRequired: false }
+  | { ok: false; error: string };
+
 /**
- * Step 1 of admin 2FA login: verify email + password, confirm the account is an
- * ADMIN, then issue and deliver a one-time login code (WhatsApp via CallMeBot).
- * Errors are deliberately generic to avoid revealing which accounts are admins.
- * The code is also logged server-side so it can be retrieved from logs during
- * setup/testing if WhatsApp delivery isn't available.
+ * Step 1 of admin sign-in: check email + password, then decide whether a second
+ * factor is needed.
+ *
+ * The second factor is for the MAIN ADMIN only. They hold every capability,
+ * including creating admins and changing fee settings, so theirs is the account
+ * worth protecting beyond a password. A delegated (sub-)admin signs in with
+ * their password alone — which also matches the staff-code route, where an admin
+ * has always been able to sign in with their code plus a password or their face
+ * and no second factor.
+ *
+ * The code goes to WhatsApp through CallMeBot. Errors are deliberately generic,
+ * so this never reveals which addresses belong to admins or which admin is the
+ * main one.
  */
 export async function requestAdminLoginCode(
   email: string,
   password: string
-): Promise<{ ok: true; sentTo: string } | { ok: false; error: string }> {
+): Promise<AdminLoginStep> {
   const e = email.toLowerCase().trim();
   const user = await db.user.findUnique({
     where: { email: e },
-    select: { id: true, email: true, role: true, isBanned: true, passwordHash: true, phone: true },
+    select: {
+      id: true,
+      email: true,
+      role: true,
+      isBanned: true,
+      isSuperAdmin: true,
+      passwordHash: true,
+    },
   });
 
   // Always run a password check shape so timing doesn't leak account existence.
@@ -34,21 +56,50 @@ export async function requestAdminLoginCode(
     return { ok: false, error: "Invalid admin credentials." };
   }
 
+  // Delegated admins have no second factor; the password they just proved is
+  // enough, and the caller signs them straight in.
+  if (!user.isSuperAdmin) return { ok: true, codeRequired: false };
+
   const otp = await createOtp(user.id, "LOGIN_2FA");
   if (!otp.ok) {
     return { ok: false, error: "A code was just sent. Wait a minute before requesting another." };
   }
 
-  const phone = user.phone || process.env.ADMIN_WHATSAPP_PHONE || "";
+  // A CallMeBot API key is issued for ONE specific WhatsApp number, so the phone
+  // and the key have to travel together. Admin accounts carry no per-user key
+  // (that field belongs to campaign owners), so the platform pair is the only
+  // combination that can actually deliver — pairing an admin's own phone with
+  // the platform key would fail silently.
+  const phone = process.env.ADMIN_WHATSAPP_PHONE || "";
   const apiKey = process.env.ADMIN_CALLMEBOT_APIKEY || "";
-  const message = `Yewogen Derash — your admin login code is ${otp.code}. It expires in 10 minutes. If you didn't request this, ignore it.`;
+  const message = `Yewogen Derash — your main admin login code is ${otp.code}. It expires in 10 minutes. If you didn't request this, ignore it and change your password.`;
 
-  // Server log so the code is retrievable during setup/testing.
+  // Also logged server-side so the code stays recoverable during setup, or if
+  // WhatsApp is down and the main admin would otherwise be locked out.
   console.log(`[admin-2fa] LOGIN_2FA code for ${user.email}: ${otp.code}`);
 
+  let delivered = false;
   if (phone && apiKey) {
-    await sendWhatsApp(phone, apiKey, message).catch(() => {});
+    const sent = await sendWhatsApp(phone, apiKey, message).catch(() => ({
+      ok: false as const,
+      error: "request failed",
+    }));
+    delivered = sent.ok;
+    if (!sent.ok) {
+      console.warn(`[admin-2fa] WhatsApp delivery failed: ${sent.error ?? "unknown"}`);
+    }
+  } else {
+    console.warn(
+      "[admin-2fa] ADMIN_WHATSAPP_PHONE / ADMIN_CALLMEBOT_APIKEY not set — the code is in the server log only."
+    );
   }
 
-  return { ok: true, sentTo: phone ? maskPhone(phone) : "your registered channel" };
+  return {
+    ok: true,
+    codeRequired: true,
+    sentTo: phone ? maskPhone(phone) : "your registered channel",
+    // Surfaced so the screen tells the truth rather than claiming a message was
+    // sent when the request failed.
+    delivered,
+  };
 }

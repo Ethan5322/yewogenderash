@@ -33,7 +33,47 @@ export default function AdminLoginPage() {
   const [verifying, setVerifying] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
-  const codeSent = state?.ok === true;
+  // Only the main admin reaches the code step; a delegated admin is signed in
+  // directly by the effect below.
+  const codeSent = state?.ok === true && state.codeRequired;
+
+  /**
+   * A delegated admin has no second factor: the action already checked their
+   * password, so complete the sign-in without a code step.
+   */
+  React.useEffect(() => {
+    if (state?.ok !== true || state.codeRequired) return;
+    let cancelled = false;
+    (async () => {
+      setVerifying(true);
+      setError(null);
+      try {
+        const res = await signIn("credentials", {
+          email: creds.email,
+          password: creds.password,
+          redirect: false,
+        });
+        if (cancelled) return;
+        if (res?.error) {
+          setError("Sign-in failed. Check your email and password.");
+          setVerifying(false);
+          return;
+        }
+        router.push("/admin");
+        router.refresh();
+      } catch {
+        if (!cancelled) {
+          setError("Something went wrong signing in. Please try again.");
+          setVerifying(false);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // creds are stable for the life of this submission.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
 
   /** Staff code + EITHER a live face or the staff password. */
   async function signInWithStaffCode(e: React.FormEvent) {
@@ -102,7 +142,8 @@ export default function AdminLoginPage() {
       </CardHeader>
       <CardContent>
         {/* Two ways in: staff code + face (no email round-trip), or the
-            classic email + password + emailed code. */}
+            classic email + password (the main admin also confirms a WhatsApp
+            code). */}
         <div className="mb-4 grid grid-cols-2 gap-1 rounded-md bg-muted p-1 text-sm">
           <button
             type="button"
@@ -120,7 +161,7 @@ export default function AdminLoginPage() {
               mode === "email" ? "bg-background shadow-sm" : "text-muted-foreground"
             }`}
           >
-            Email + code
+            Email + password
           </button>
         </div>
 
@@ -151,7 +192,7 @@ export default function AdminLoginPage() {
                 personCode={staffCode ? staffCode.toUpperCase() : null}
               />
               <p className="text-xs text-muted-foreground">
-                Your enrolled face — no emailed code needed.
+                Your enrolled face — no WhatsApp code needed.
               </p>
             </div>
 
@@ -226,15 +267,25 @@ export default function AdminLoginPage() {
             ) : null}
             <Button type="submit" className="w-full" disabled={sending}>
               {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Send login code
+              Continue
             </Button>
           </form>
         ) : (
           <form onSubmit={verify} className="space-y-4">
             <p className="rounded-md border bg-muted/40 p-3 text-sm text-muted-foreground">
-              A one-time code was sent to{" "}
-              <span className="font-medium text-foreground">{state.sentTo}</span>.
-              Enter it below to finish signing in.
+              {state.delivered ? (
+                <>
+                  A one-time code was sent on WhatsApp to{" "}
+                  <span className="font-medium text-foreground">{state.sentTo}</span>.
+                  Enter it below to finish signing in.
+                </>
+              ) : (
+                <>
+                  A one-time code was issued, but the WhatsApp message could not
+                  be delivered. Ask whoever runs the server for the code from the
+                  application log, then enter it below.
+                </>
+              )}
             </p>
             <div className="space-y-2">
               <Label htmlFor="code">6-digit code</Label>

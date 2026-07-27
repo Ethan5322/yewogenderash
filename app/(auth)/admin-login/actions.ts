@@ -1,12 +1,13 @@
 "use server";
 
-import { requestAdminLoginCode } from "@/lib/auth/admin-2fa";
+import { requestAdminLoginCode, type AdminLoginStep } from "@/lib/auth/admin-2fa";
 
-export type AdminCodeResult =
-  | { ok: true; sentTo: string }
-  | { ok: false; error: string };
+export type AdminCodeResult = AdminLoginStep;
 
-/** Step 1: validate admin credentials and send the one-time login code. */
+/**
+ * Step 1: check admin credentials, then either send the main admin a one-time
+ * code or tell the screen that this admin needs no second factor.
+ */
 export async function requestAdminCodeAction(
   _prev: AdminCodeResult | null,
   formData: FormData
