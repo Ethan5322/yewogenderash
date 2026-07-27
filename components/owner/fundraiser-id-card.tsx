@@ -23,9 +23,9 @@ export type FundraiserIdCardProps = {
   /** Show the PNG/PDF download buttons (owner's own ID page only). */
   showDownload?: boolean;
   fields?: IdCardField[];
-  /** Card subtitle line (defaults to the fundraiser wording). */
+  /** Card subtitle line. Defaults to wording that matches the approval state. */
   subtitle?: string;
-  /** Holder role label beside the photo (defaults to the fundraiser wording). */
+  /** Holder role label beside the photo. Defaults to match the approval state. */
   roleLabel?: string;
   /** QR target (defaults to the public author profile /a/{code}). */
   qrUrl?: string;
@@ -45,18 +45,24 @@ export function FundraiserIdCard({
   approved,
   showDownload = false,
   fields = [],
-  subtitle = "Verified Fundraiser ID",
-  roleLabel = "Verified Fundraiser",
+  subtitle,
+  roleLabel,
   qrUrl,
 }: FundraiserIdCardProps) {
   const [src, setSrc] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState<null | "png" | "pdf">(null);
 
+  // Never letter the card "Verified" before an admin has approved it — the seal
+  // would read PENDING while the type claimed otherwise. Callers issuing a
+  // different kind of card (e.g. staff IDs) pass their own wording.
+  const cardSubtitle = subtitle ?? (approved ? "Verified Fundraiser ID" : "Fundraiser ID · Pending");
+  const cardRoleLabel = roleLabel ?? (approved ? "Verified Fundraiser" : "Fundraiser · Pending Review");
+
   const data: IdCardData = React.useMemo(
     () => ({
       org: "Yewogen Derash",
-      subtitle,
-      roleLabel,
+      subtitle: cardSubtitle,
+      roleLabel: cardRoleLabel,
       name,
       verificationCode,
       photoUrl: photoUrl ?? "",
@@ -69,7 +75,7 @@ export function FundraiserIdCard({
       status,
       fields,
     }),
-    [name, verificationCode, photoUrl, issued, status, fields, subtitle, roleLabel, qrUrl]
+    [name, verificationCode, photoUrl, issued, status, fields, cardSubtitle, cardRoleLabel, qrUrl]
   );
 
   React.useEffect(() => {

@@ -1,16 +1,29 @@
-// Corporate Fundraiser ID card generator (browser/canvas only).
+// Yewogen Derash ID card generator (browser/canvas only).
 //
-// Same single-sided CR80 (85.6×54 mm) layout and arrangement as the Yoyo GYM
-// member ID — obsidian body, accent racing stripe in the header, gold inset
-// frame + diamond corners, passport photo, scan-to-verify QR, holder details,
-// a Code128 verification barcode, and the MuleSoo "Designed & Built" agency
-// credit — but in Yewogen Derash's own (green) colour and with fundraiser data.
+// An original design, not a restyle of anyone else's card. It is built to read
+// as a VERIFICATION CREDENTIAL rather than a membership card, using motifs
+// borrowed from identity documents and banknotes:
+//
+//   - a brand-green header carrying a guilloché wave lattice (the interference
+//     pattern used on passports and banknotes) instead of a graphic stripe,
+//   - the platform's promise printed on the card — identity-checked, tracked,
+//     audited — with the site address, so the card states the trust it claims,
+//   - a struck verification seal with ring text around the holder's status,
+//   - registration-style corner brackets on the portrait and the card edge,
+//   - a repeating microtext security strip down the left edge,
+//   - a ghosted brand watermark behind the holder details,
+//   - the verification zone (QR + barcode) grouped together in a footer band,
+//     so everything a verifier scans sits in one place.
+//
+// Colours are the site's own brand tokens, and the type is the site's display
+// font, so the card and the website read as one system. The MuleSoo agency
+// credit stays in the footer.
 //
 // Renders to a high-resolution canvas (3× ≈ 3036×1914 px) and downloads as a
-// crisp PNG or a print-ready PDF at exact card size.
+// crisp PNG or a print-ready PDF at exact CR80 size.
 import { code128Modules } from "@/lib/barcode";
 import { jpegToPdfBlob } from "@/lib/id-card/jpeg-pdf";
-import { BRAND_HAND_PATHS, BRAND_HEART_PATH } from "@/lib/brand";
+import { BRAND_HAND_PATHS, BRAND_HEART_PATH, BRAND_GOLD, BRAND_GREEN } from "@/lib/brand";
 
 export type IdCardField = { label: string; value: string };
 export type IdCardData = {
@@ -33,15 +46,38 @@ const H = 638;
 const CARD_W_MM = 85.6;
 const CARD_H_MM = 54;
 
-const INK = "#0A0A0A";
-const GOLD = "#C8922A";
-const PAPER = "#F0EDE8";
-const MUTED = "#8A8580";
-const ACCENT_DEFAULT = "#12a05f"; // Yewogen Derash green
+// Brand tokens (see lib/brand.ts and the public-site palette).
+const INK = "#0B1620"; // card body
+const INK_PANEL = "#132430"; // portrait + footer panels
+const GOLD = BRAND_GOLD;
+const PAPER = "#F7FAF8";
+const MUTED = "#8FA3AD";
+const ACCENT_DEFAULT = BRAND_GREEN;
 
-const HEADER_H = 120;
+const HEADER_H = 104;
+const FOOTER_Y = 500;
+const SITE = "yewogenderash.com";
+const PROMISE = "IDENTITY-CHECKED · TRACKED · AUDITED";
 const MULESOO_CREDIT_SRC = "/brand/mulesoo-credit-on-dark.png";
 const MULESOO_CREDIT_ASPECT = 4.25;
+
+/**
+ * The site's own display font. next/font generates a hashed family name and
+ * publishes it as a CSS variable, so read it off the document rather than
+ * guessing; fall back to a sensible stack when it isn't available (SSR, tests).
+ */
+function siteFont(): string {
+  try {
+    const v = getComputedStyle(document.documentElement)
+      .getPropertyValue("--font-jakarta")
+      .trim();
+    if (v) return `${v}, "Segoe UI", Arial, sans-serif`;
+  } catch {
+    /* fall through */
+  }
+  return '"Plus Jakarta Sans", "Segoe UI", Arial, sans-serif';
+}
+const MONO = '"Courier New", ui-monospace, monospace';
 
 function loadImg(src: string): Promise<HTMLImageElement | null> {
   return new Promise((resolve) => {
@@ -54,7 +90,14 @@ function loadImg(src: string): Promise<HTMLImageElement | null> {
   });
 }
 
-function drawCover(ctx: CanvasRenderingContext2D, img: HTMLImageElement, x: number, y: number, w: number, h: number) {
+function drawCover(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement,
+  x: number,
+  y: number,
+  w: number,
+  h: number
+) {
   const ir = img.width / img.height;
   const r = w / h;
   let sw = img.width;
@@ -73,11 +116,61 @@ function fit(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): str
   return `${t}…`;
 }
 
-/** Draw a Code128 barcode into the context, scaled to fit `width` with a quiet zone. */
+/** Letter-spaced small caps — used for every label on the card. */
+function tracked(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  spacing = 1.6
+) {
+  let cx = x;
+  for (const ch of text) {
+    ctx.fillText(ch, cx, y);
+    cx += ctx.measureText(ch).width + spacing;
+  }
+  return cx - x;
+}
+
+function trackedWidth(ctx: CanvasRenderingContext2D, text: string, spacing = 1.6): number {
+  let w = 0;
+  for (const ch of text) w += ctx.measureText(ch).width + spacing;
+  return w - spacing;
+}
+
+/** Rounded rectangle path, with a manual fallback for older engines. */
+function roundRectPath(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number
+) {
+  ctx.beginPath();
+  if (typeof ctx.roundRect === "function") {
+    ctx.roundRect(x, y, w, h, r);
+    return;
+  }
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+/** Draw a Code128 barcode, scaled to fit `width` with a quiet zone. */
 function drawBarcode(
   ctx: CanvasRenderingContext2D,
   value: string,
-  { x, y, width, height, quietZone = 8 }: { x: number; y: number; width: number; height: number; quietZone?: number }
+  {
+    x,
+    y,
+    width,
+    height,
+    quietZone = 8,
+  }: { x: number; y: number; width: number; height: number; quietZone?: number }
 ) {
   const bits = code128Modules(value);
   const drawable = width - quietZone * 2;
@@ -93,230 +186,446 @@ function drawBarcode(
   ctx.restore();
 }
 
-/** The brand mark — a heart cradled in open hands — drawn on the canvas. */
+/** The brand mark — a heart cradled in open hands. */
 function drawLogoMark(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
   size: number,
   handColor: string,
-  heartColor: string
+  heartColor: string,
+  alpha = 1
 ) {
   const scale = size / 24;
   ctx.save();
+  ctx.globalAlpha = alpha;
   ctx.translate(x, y);
   ctx.scale(scale, scale);
-  ctx.fillStyle = heartColor;
-  ctx.fill(new Path2D(BRAND_HEART_PATH));
   ctx.fillStyle = handColor;
   for (const d of BRAND_HAND_PATHS) ctx.fill(new Path2D(d));
+  ctx.fillStyle = heartColor;
+  ctx.fill(new Path2D(BRAND_HEART_PATH));
   ctx.restore();
 }
 
-/** Obsidian body: accent header flourish (clipped to header), gold frame, corners. */
-function drawShell(ctx: CanvasRenderingContext2D, accent: string) {
+/**
+ * Guilloché lattice — interfering sine curves, the pattern engraved on
+ * banknotes and passports. Cheap to draw, impossible to mistake for a stripe.
+ */
+function drawGuilloche(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  color: string,
+  lines = 16
+) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x, y, w, h);
+  ctx.clip();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1;
+  ctx.globalAlpha = 0.18;
+  for (let i = 0; i < lines; i++) {
+    const phase = i * 0.44;
+    const amp = h * 0.3;
+    ctx.beginPath();
+    for (let px = 0; px <= w; px += 4) {
+      const t = (px / w) * Math.PI * 5;
+      const py =
+        y + h / 2 + Math.sin(t + phase) * amp * Math.cos(t * 0.45 + phase * 0.8) + (i - lines / 2) * 3.2;
+      if (px === 0) ctx.moveTo(x + px, py);
+      else ctx.lineTo(x + px, py);
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/** Registration-style corner brackets (portrait frame and card edge). */
+function drawBrackets(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  len: number,
+  color: string,
+  lineWidth = 3
+) {
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = lineWidth;
+  ctx.beginPath();
+  // top-left
+  ctx.moveTo(x, y + len);
+  ctx.lineTo(x, y);
+  ctx.lineTo(x + len, y);
+  // top-right
+  ctx.moveTo(x + w - len, y);
+  ctx.lineTo(x + w, y);
+  ctx.lineTo(x + w, y + len);
+  // bottom-right
+  ctx.moveTo(x + w, y + h - len);
+  ctx.lineTo(x + w, y + h);
+  ctx.lineTo(x + w - len, y + h);
+  // bottom-left
+  ctx.moveTo(x + len, y + h);
+  ctx.lineTo(x, y + h);
+  ctx.lineTo(x, y + h - len);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** Text set around a circle, for the seal's ring. */
+/**
+ * Set text along a circular arc, one glyph at a time.
+ *
+ * `facing` is which way the tops of the letters point. Seal convention is that
+ * the arc over the top reads with its letters' tops pointing "out" (away from
+ * the centre), while the arc under the bottom reads with them pointing "in" —
+ * that is what keeps both arcs readable left-to-right on an upright card.
+ * Getting this wrong on the lower arc renders the word upside down, which reads
+ * as mirrored ("VERIFIED" → "DEIFIREV").
+ */
+function ringText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  cx: number,
+  cy: number,
+  r: number,
+  startAngle: number,
+  endAngle: number,
+  font: string,
+  color: string,
+  facing: "out" | "in" = "out"
+) {
+  const chars = [...text];
+  if (!chars.length) return;
+  const step = (endAngle - startAngle) / chars.length;
+  const turn = facing === "out" ? Math.PI / 2 : -Math.PI / 2;
+  ctx.save();
+  ctx.font = font;
+  ctx.fillStyle = color;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  chars.forEach((ch, i) => {
+    const a = startAngle + step * i + step / 2;
+    ctx.save();
+    ctx.translate(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
+    ctx.rotate(a + turn);
+    ctx.fillText(ch, 0, 0);
+    ctx.restore();
+  });
+  ctx.restore();
+}
+
+/**
+ * The verification seal — a struck double ring carrying the platform name and
+ * the holder's status, with a tick when the holder is verified.
+ */
+function drawSeal(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  r: number,
+  status: string,
+  accent: string,
+  font: string
+) {
+  const label = (status || "").toUpperCase();
+  const verified = /VERIFIED|ACTIVE|STAFF/.test(label);
+  const tone = verified ? GOLD : MUTED;
+
+  ctx.save();
+  ctx.globalAlpha = 0.95;
+  ctx.strokeStyle = tone;
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r - 9, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ringText(ctx, "YEWOGEN DERASH", cx, cy, r - 20, Math.PI * 0.78, Math.PI * 2.22, `700 11px ${font}`, tone);
+  ringText(
+    ctx,
+    label || "ISSUED",
+    cx,
+    cy,
+    r - 20,
+    Math.PI * 0.72,
+    Math.PI * 0.28,
+    `700 11px ${font}`,
+    tone,
+    "in"
+  );
+
+  // Tick (verified) or a neutral dot rule (pending).
+  ctx.strokeStyle = verified ? accent : MUTED;
+  ctx.lineWidth = 5;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  if (verified) {
+    ctx.beginPath();
+    ctx.moveTo(cx - 15, cy);
+    ctx.lineTo(cx - 4, cy + 11);
+    ctx.lineTo(cx + 16, cy - 12);
+    ctx.stroke();
+  } else {
+    ctx.beginPath();
+    ctx.moveTo(cx - 13, cy);
+    ctx.lineTo(cx + 13, cy);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/** Repeating microtext strip — legible only at print resolution. */
+function drawMicrotext(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  height: number,
+  font: string
+) {
+  const unit = `${SITE.toUpperCase()} · VERIFIED · `;
+  ctx.save();
+  ctx.translate(x, y + height);
+  ctx.rotate(-Math.PI / 2);
+  ctx.font = `600 7px ${font}`;
+  ctx.fillStyle = MUTED;
+  ctx.globalAlpha = 0.5;
+  let text = "";
+  while (ctx.measureText(text).width < height) text += unit;
+  ctx.fillText(text, 0, 0);
+  ctx.restore();
+}
+
+/** Card body: header band, edge rules, watermark, microtext. */
+function drawShell(ctx: CanvasRenderingContext2D, accent: string, o: IdCardData, font: string) {
   ctx.fillStyle = INK;
   ctx.fillRect(0, 0, W, H);
 
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(0, 0, W, HEADER_H);
-  ctx.clip();
-  ctx.fillStyle = accent;
-  ctx.globalAlpha = 0.9;
-  ctx.beginPath();
-  ctx.moveTo(W * 0.62, -20);
-  ctx.lineTo(W * 0.72, -20);
-  ctx.lineTo(W * 0.5, HEADER_H + 20);
-  ctx.lineTo(W * 0.4, HEADER_H + 20);
-  ctx.closePath();
-  ctx.fill();
-  ctx.globalAlpha = 0.35;
-  ctx.beginPath();
-  ctx.moveTo(W * 0.75, -20);
-  ctx.lineTo(W * 0.8, -20);
-  ctx.lineTo(W * 0.58, HEADER_H + 20);
-  ctx.lineTo(W * 0.53, HEADER_H + 20);
-  ctx.closePath();
-  ctx.fill();
-  ctx.restore();
+  // ── Header band: brand green, guilloché lattice, gold hairline ──
+  const grad = ctx.createLinearGradient(0, 0, W, HEADER_H);
+  grad.addColorStop(0, accent);
+  grad.addColorStop(1, "#0A5C3A");
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, HEADER_H);
+  drawGuilloche(ctx, 0, 0, W, HEADER_H, "#FFFFFF", 13);
+  // Double rule under the header — a hair of gold over a lighter thread.
+  ctx.fillStyle = GOLD;
+  ctx.fillRect(0, HEADER_H - 2, W, 2);
+  ctx.fillStyle = "rgba(255,255,255,0.16)";
+  ctx.fillRect(0, HEADER_H, W, 1);
 
-  ctx.strokeStyle = accent;
-  ctx.lineWidth = 6;
-  ctx.strokeRect(8, 8, W - 16, H - 16);
+  // ── Footer band ──
+  ctx.fillStyle = INK_PANEL;
+  ctx.fillRect(0, FOOTER_Y, W, H - FOOTER_Y);
   ctx.strokeStyle = GOLD;
-  ctx.lineWidth = 2;
-  ctx.strokeRect(24, 24, W - 48, H - 48);
-
-  ctx.strokeStyle = GOLD;
+  ctx.globalAlpha = 0.45;
   ctx.lineWidth = 1;
-  ctx.globalAlpha = 0.5;
   ctx.beginPath();
-  ctx.moveTo(40, HEADER_H);
-  ctx.lineTo(W - 40, HEADER_H);
+  ctx.moveTo(0, FOOTER_Y);
+  ctx.lineTo(W, FOOTER_Y);
   ctx.stroke();
   ctx.globalAlpha = 1;
 
-  ctx.fillStyle = GOLD;
-  ctx.font = "22px serif";
-  ctx.fillText("◆", 30, 50);
-  ctx.fillText("◆", W - 50, 50);
-  ctx.fillText("◆", 30, H - 32);
-  ctx.fillText("◆", W - 50, H - 32);
+  // ── Ghosted brand watermark, set low-right so no text sits on it ──
+  drawLogoMark(ctx, 690, 214, 300, "#FFFFFF", "#FFFFFF", 0.022);
+
+  // ── One quiet gold rule inside the card edge (no busy corner marks) ──
+  ctx.strokeStyle = GOLD;
+  ctx.globalAlpha = 0.32;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(16, 16, W - 32, H - 32);
+  ctx.globalAlpha = 1;
+
+  // ── Microtext security strip (left edge) ──
+  drawMicrotext(ctx, 30, HEADER_H + 24, FOOTER_Y - HEADER_H - 48, font);
+  void o;
 }
 
 async function drawCard(ctx: CanvasRenderingContext2D, o: IdCardData) {
   const accent = o.accent ?? ACCENT_DEFAULT;
-  drawShell(ctx, accent);
+  const font = siteFont();
+  drawShell(ctx, accent, o, font);
 
-  // Header — brand mark (white shield + accent heart) then wordmark
-  drawLogoMark(ctx, 52, 40, 58, "#FFFFFF", GOLD);
-  ctx.fillStyle = accent;
-  ctx.font = "700 46px Oswald, Arial, sans-serif";
-  ctx.fillText(fit(ctx, o.org.toUpperCase(), 540), 124, 88);
-  ctx.fillStyle = MUTED;
-  ctx.font = "600 14px Oswald, Arial, sans-serif";
-  ctx.fillText(o.subtitle.toUpperCase(), 126, 112);
+  // ── Header content ────────────────────────────────────────────
+  drawLogoMark(ctx, 48, 24, 56, "#FFFFFF", GOLD);
+  ctx.fillStyle = PAPER;
+  ctx.font = `700 34px ${font}`;
+  tracked(ctx, fit(ctx, o.org.toUpperCase(), 440), 116, 56, 1.2);
+  ctx.fillStyle = "rgba(255,255,255,0.72)";
+  ctx.font = `600 11px ${font}`;
+  tracked(ctx, o.subtitle.toUpperCase(), 117, 80, 2.2);
 
-  // QR (top-right, white quiet zone)
-  if (o.qrUrl) {
-    const QRCode = (await import("qrcode")).default;
-    const qz = 136;
-    const qx = W - qz - 60;
-    const qy = 132;
-    const qrData = await QRCode.toDataURL(o.qrUrl, { margin: 1, width: 320, errorCorrectionLevel: "H" });
-    const qimg = await loadImg(qrData);
-    ctx.fillStyle = "#FFFFFF";
-    ctx.fillRect(qx - 8, qy - 8, qz + 16, qz + 16);
-    if (qimg) ctx.drawImage(qimg, qx, qy, qz, qz);
-    ctx.fillStyle = MUTED;
-    ctx.font = "500 12px Oswald, Arial, sans-serif";
-    ctx.fillText("SCAN TO VERIFY", qx + 14, qy + qz + 26);
-  }
+  // The promise the card makes — one quiet line, right-aligned.
+  ctx.font = `600 11px ${font}`;
+  ctx.fillStyle = "rgba(255,255,255,0.85)";
+  const pw = trackedWidth(ctx, PROMISE, 2.4);
+  tracked(ctx, PROMISE, W - 48 - pw, 64, 2.4);
 
-  // Photo (passport 3:4) with gold frame
+  // ── Portrait, bracketed like a document photo ─────────────────
   const px = 56;
-  const py = 130;
-  const pw = 210;
-  const ph = 258;
+  const py = 144;
+  const pw2 = 192;
+  const ph = 256;
+  ctx.fillStyle = INK_PANEL;
+  ctx.fillRect(px, py, pw2, ph);
   const photo = await loadImg(o.photoUrl);
-  ctx.fillStyle = "#1A1A1A";
-  ctx.fillRect(px, py, pw, ph);
   if (photo) {
-    drawCover(ctx, photo, px, py, pw, ph);
+    drawCover(ctx, photo, px, py, pw2, ph);
   } else {
+    ctx.fillStyle = "#24404F";
+    ctx.beginPath();
+    ctx.arc(px + pw2 / 2, py + ph * 0.38, 46, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(px + pw2 / 2, py + ph * 0.92, 78, 60, 0, Math.PI, 0);
+    ctx.fill();
     ctx.fillStyle = MUTED;
-    ctx.font = "500 15px Oswald, Arial, sans-serif";
-    ctx.fillText("NO PHOTO", px + 56, py + ph / 2);
+    ctx.font = `600 12px ${font}`;
+    const nl = trackedWidth(ctx, "NO PHOTO", 1.4);
+    tracked(ctx, "NO PHOTO", px + pw2 / 2 - nl / 2, py + ph - 18, 1.4);
   }
-  ctx.strokeStyle = GOLD;
-  ctx.lineWidth = 2;
-  ctx.strokeRect(px, py, pw, ph);
+  ctx.strokeStyle = "rgba(200,146,42,0.28)";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(px, py, pw2, ph);
+  drawBrackets(ctx, px - 7, py - 7, pw2 + 14, ph + 14, 18, GOLD, 2);
 
-  // Primary details beside the photo
-  const dx = px + pw + 36;
-  const dw = W - dx - 220;
+  // Issued date, tucked under the portrait.
   ctx.fillStyle = MUTED;
-  ctx.font = "600 14px Oswald, Arial, sans-serif";
-  ctx.fillText(o.roleLabel.toUpperCase(), dx, 154);
+  ctx.font = `600 9px ${font}`;
+  tracked(ctx, "ISSUED", px, py + ph + 34, 2);
   ctx.fillStyle = PAPER;
-  ctx.font = "700 40px Oswald, Arial, sans-serif";
-  ctx.fillText(fit(ctx, o.name.toUpperCase(), dw), dx, 194);
+  ctx.font = `500 16px ${MONO}`;
+  ctx.fillText(o.issued || "—", px, py + ph + 56);
 
-  ctx.fillStyle = MUTED;
-  ctx.font = "600 12px Oswald, Arial, sans-serif";
-  ctx.fillText("VERIFICATION CODE", dx, 226);
+  // ── Holder block ──────────────────────────────────────────────
+  const dx = px + pw2 + 46;
+  const sealCx = W - 122;
+  const sealCy = 224;
+  const sealR = 62;
+  const dw = sealCx - sealR - dx - 26;
+
   ctx.fillStyle = accent;
-  ctx.font = "500 27px 'Courier New', monospace";
-  ctx.fillText(o.verificationCode, dx, 254);
+  ctx.font = `700 10px ${font}`;
+  tracked(ctx, o.roleLabel.toUpperCase(), dx, 168, 2.4);
 
-  // Status badge (gold)
-  const label = (o.status || "").toUpperCase();
-  if (label) {
-    ctx.font = "700 16px Oswald, Arial, sans-serif";
-    const tw = ctx.measureText(label).width + 24;
-    ctx.fillStyle = GOLD;
-    ctx.fillRect(dx, 272, tw, 30);
-    ctx.fillStyle = INK;
-    ctx.fillText(label, dx + 12, 293);
-  }
-
-  ctx.fillStyle = MUTED;
-  ctx.font = "600 12px Oswald, Arial, sans-serif";
-  ctx.fillText("ISSUED", dx, 330);
   ctx.fillStyle = PAPER;
-  ctx.font = "500 20px 'Courier New', monospace";
-  ctx.fillText(o.issued || "—", dx, 356);
+  ctx.font = `700 37px ${font}`;
+  ctx.fillText(fit(ctx, o.name.toUpperCase(), dw), dx, 210);
 
-  // Holder detail grid
+  ctx.fillStyle = GOLD;
+  ctx.fillRect(dx, 224, 56, 2);
+
+  // Verification code — the card's primary key, set in a quiet framed panel.
+  const boxY = 250;
+  const boxH = 58;
+  const boxW = Math.max(280, Math.min(dw, 330));
+  ctx.strokeStyle = "rgba(15,122,77,0.45)";
+  ctx.lineWidth = 1;
+  roundRectPath(ctx, dx, boxY, boxW, boxH, 6);
+  ctx.stroke();
+  ctx.fillStyle = "rgba(15,122,77,0.09)";
+  ctx.fill();
+  ctx.fillStyle = MUTED;
+  ctx.font = `600 9px ${font}`;
+  tracked(ctx, "VERIFICATION CODE", dx + 16, boxY + 20, 2);
+  ctx.fillStyle = accent;
+  ctx.font = `700 24px ${MONO}`;
+  ctx.fillText(fit(ctx, o.verificationCode, boxW - 32), dx + 16, boxY + 46);
+
+  // Seal
+  drawSeal(ctx, sealCx, sealCy, sealR, o.status, accent, font);
+
+  // ── Holder detail grid ────────────────────────────────────────
   const fields = (o.fields || []).filter((f) => f && f.value);
   if (fields.length) {
-    ctx.strokeStyle = GOLD;
+    ctx.strokeStyle = "rgba(255,255,255,0.10)";
     ctx.lineWidth = 1;
-    ctx.globalAlpha = 0.6;
     ctx.beginPath();
-    ctx.moveTo(56, 398);
-    ctx.lineTo(W - 56, 398);
+    ctx.moveTo(dx, 344);
+    ctx.lineTo(W - 56, 344);
     ctx.stroke();
-    ctx.globalAlpha = 1;
 
-    const colX = [56, 372, 688];
-    const colW = 280;
+    const colW = (W - 56 - dx) / 3;
     fields.slice(0, 6).forEach((f, i) => {
-      const x = colX[i % 3];
-      const y = 424 + Math.floor(i / 3) * 40;
+      const x = dx + (i % 3) * colW;
+      const y = 376 + Math.floor(i / 3) * 46;
       ctx.fillStyle = MUTED;
-      ctx.font = "600 11px Oswald, Arial, sans-serif";
-      ctx.fillText(String(f.label).toUpperCase(), x, y);
+      ctx.font = `600 9px ${font}`;
+      tracked(ctx, String(f.label).toUpperCase(), x, y, 1.8);
       ctx.fillStyle = PAPER;
-      ctx.font = "500 17px 'Courier New', monospace";
-      ctx.fillText(fit(ctx, f.value, colW), x, y + 20);
+      ctx.font = `500 15px ${MONO}`;
+      ctx.fillText(fit(ctx, f.value, colW - 22), x, y + 22);
     });
   }
 
-  // Footer: verification barcode (left)
-  const footY = 522;
-  if (o.verificationCode) {
-    ctx.fillStyle = MUTED;
-    ctx.font = "600 11px Oswald, Arial, sans-serif";
-    ctx.fillText("VERIFICATION CODE", 56, footY);
-    const bx = 64;
-    const bw = 360;
-    const bh = 40;
-    const by = footY + 12;
+  // ── Footer: the verification zone (QR + barcode) then the credit ──
+  const qz = 82;
+  const qx = 56;
+  const qy = FOOTER_Y + 22;
+  if (o.qrUrl) {
+    const QRCode = (await import("qrcode")).default;
+    const qrData = await QRCode.toDataURL(o.qrUrl, {
+      margin: 1,
+      width: 320,
+      errorCorrectionLevel: "H",
+    });
+    const qimg = await loadImg(qrData);
     ctx.fillStyle = "#FFFFFF";
-    ctx.fillRect(bx - 8, by - 6, bw + 16, bh + 34);
+    roundRectPath(ctx, qx - 5, qy - 5, qz + 10, qz + 10, 4);
+    ctx.fill();
+    if (qimg) ctx.drawImage(qimg, qx, qy, qz, qz);
+  }
+
+  if (o.verificationCode) {
+    const bx = qx + qz + 32;
+    const bw = 264;
+    const bh = 38;
+    const by = qy + 2;
+    ctx.fillStyle = "#FFFFFF";
+    roundRectPath(ctx, bx - 7, by - 5, bw + 14, bh + 10, 4);
+    ctx.fill();
     try {
       drawBarcode(ctx, o.verificationCode, { x: bx, y: by, width: bw, height: bh, quietZone: 8 });
     } catch {
-      /* code outside Code128-B — text below still identifies it */
+      /* code outside Code128-B — the text below still identifies it */
     }
-    ctx.fillStyle = INK;
-    ctx.font = "600 16px 'Courier New', monospace";
-    ctx.textAlign = "center";
-    ctx.fillText(o.verificationCode, bx + bw / 2, by + bh + 20);
-    ctx.textAlign = "left";
+    // Code and the address to check it against, set on the dark panel.
+    ctx.fillStyle = PAPER;
+    ctx.font = `500 13px ${MONO}`;
+    ctx.fillText(o.verificationCode, bx - 7, by + bh + 26);
+    ctx.fillStyle = GOLD;
+    ctx.font = `600 9px ${font}`;
+    tracked(ctx, `SCAN OR VERIFY AT ${SITE.toUpperCase()}`, bx - 7, by + bh + 46, 1.8);
   }
 
-  // MuleSoo agency credit (footer-right) — image lockup, with a text fallback
-  // that still reads "Designed & Built by MuleSoo Digital Services".
-  const cx = 470;
-  const creditW = Math.min(470, W - cx - 30);
+  // MuleSoo agency credit (footer-right) — image lockup, text fallback.
+  const cx = 712;
+  const creditW = Math.min(244, W - cx - 56);
   const creditH = creditW / MULESOO_CREDIT_ASPECT;
-  const creditY = Math.min(footY - 6, H - creditH - 14);
+  const creditY = FOOTER_Y + (H - FOOTER_Y - creditH) / 2;
   const credit = await loadImg(MULESOO_CREDIT_SRC);
   if (credit) {
     ctx.drawImage(credit, cx, creditY, creditW, creditH);
   } else {
     ctx.fillStyle = MUTED;
-    ctx.font = "600 10px Oswald, Arial, sans-serif";
-    ctx.fillText("DESIGNED & BUILT BY", cx, footY);
+    ctx.font = `600 9px ${font}`;
+    tracked(ctx, "DESIGNED & BUILT BY", cx, FOOTER_Y + 44, 1.2);
     ctx.fillStyle = GOLD;
-    ctx.font = "700 16px Oswald, Arial, sans-serif";
-    ctx.fillText("MULESOO DIGITAL SERVICES", cx, footY + 23);
-    ctx.fillStyle = PAPER;
-    ctx.font = "500 13px 'Courier New', monospace";
-    ctx.fillText("mulesoo.com  |  hello@mulesoo.com", cx, footY + 45);
+    ctx.font = `700 15px ${font}`;
+    ctx.fillText("MULESOO DIGITAL SERVICES", cx, FOOTER_Y + 68);
+    ctx.fillStyle = MUTED;
+    ctx.font = `500 12px ${MONO}`;
+    ctx.fillText("mulesoo.com  |  hello@mulesoo.com", cx, FOOTER_Y + 90);
   }
 }
 
