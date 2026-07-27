@@ -11,6 +11,7 @@ import {
   Landmark,
   Megaphone,
   Pencil,
+  Receipt,
 } from "lucide-react";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
@@ -23,6 +24,7 @@ import { ProgressBar } from "@/components/campaigns/progress-bar";
 import { PostUpdateForm } from "@/components/dashboard/post-update-form";
 import { CATEGORY_LABELS } from "@/lib/campaign-types";
 import { formatETB, formatDate, progressPercent } from "@/lib/format";
+import { DashboardNav } from "@/components/dashboard/dashboard-nav";
 
 export const metadata = { title: "Campaign details" };
 
@@ -117,6 +119,7 @@ export default async function OwnerCampaignDetailPage({
   return (
     <div className="flex min-h-screen flex-col">
       <SiteHeader user={session.user} />
+      <DashboardNav />
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-10 sm:px-6">
         <Link
           href="/dashboard/campaigns"
@@ -197,14 +200,24 @@ export default async function OwnerCampaignDetailPage({
                 (latest {Math.min(100, campaign.donations.length)})
               </span>
             </h2>
-            {campaign.donations.length > 0 ? (
-              <a
-                href={`/dashboard/campaigns/${campaign.id}/export`}
+            <span className="flex flex-wrap items-center gap-4">
+              {/* The full statement — fee per donation and how the balance is
+                  built up. Previously only reachable from the payouts page. */}
+              <Link
+                href={`/dashboard/campaigns/${campaign.id}/transactions`}
                 className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
               >
-                <Download className="h-4 w-4" aria-hidden /> Download CSV
-              </a>
-            ) : null}
+                <Receipt className="h-4 w-4" aria-hidden /> Transaction statement
+              </Link>
+              {campaign.donations.length > 0 ? (
+                <a
+                  href={`/dashboard/campaigns/${campaign.id}/export`}
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+                >
+                  <Download className="h-4 w-4" aria-hidden /> Download CSV
+                </a>
+              ) : null}
+            </span>
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
             Every donation to this campaign. Only confirmed (SUCCESS) donations

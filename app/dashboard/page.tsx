@@ -13,6 +13,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { DashboardNav } from "@/components/dashboard/dashboard-nav";
+import { BalanceSummary } from "@/components/dashboard/balance-summary";
 
 export const metadata = { title: "Dashboard" };
 
@@ -43,6 +45,7 @@ export default async function DashboardPage() {
   return (
     <div className="flex min-h-screen flex-col">
       <SiteHeader user={session.user} />
+      <DashboardNav />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -60,6 +63,9 @@ export default async function DashboardPage() {
             {statusBadge.label}
           </span>
         </div>
+
+        {/* Money first — it is what a fundraiser signs in to see. */}
+        {user?.ownerProfile ? <BalanceSummary ownerId={user.ownerProfile.id} /> : null}
 
         {/* Onboarding prompt for anyone not yet a verified owner */}
         {!isOwner ? (

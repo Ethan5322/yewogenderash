@@ -10,6 +10,7 @@ import { campaignAvailableBalance, campaignWithholdingDue } from "@/lib/payouts"
 import { PLATFORM_FEE_RATE, WITHHOLDING_FEE_RATE } from "@/lib/fees";
 import { maskDonorName, maskReference } from "@/lib/privacy";
 import { formatETB, formatDateTime, toNumber } from "@/lib/format";
+import { DashboardNav } from "@/components/dashboard/dashboard-nav";
 
 export const metadata = { title: "Transaction statement" };
 
@@ -78,6 +79,7 @@ export default async function OwnerTransactionsPage({
   return (
     <div className="flex min-h-screen flex-col">
       <SiteHeader user={session.user} />
+      <DashboardNav />
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-10 sm:px-6">
         <Link
           href="/dashboard/payouts"

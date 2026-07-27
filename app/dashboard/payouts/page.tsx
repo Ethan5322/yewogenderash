@@ -15,6 +15,7 @@ import {
 } from "@/components/dashboard/payout-controls";
 import { PayoutAccountForm } from "@/components/dashboard/payout-account-form";
 import { formatETB, formatDate } from "@/lib/format";
+import { DashboardNav } from "@/components/dashboard/dashboard-nav";
 
 export const metadata: Metadata = { title: "Payouts" };
 
@@ -94,6 +95,7 @@ export default async function OwnerPayoutsPage() {
   return (
     <>
       <SiteHeader user={session.user} />
+      <DashboardNav />
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-6">
         <Link
           href="/dashboard"

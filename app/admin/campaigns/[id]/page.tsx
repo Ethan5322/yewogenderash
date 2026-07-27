@@ -417,6 +417,7 @@ export default async function AdminCampaignDetailPage({
                 campaignId={campaign.id}
                 status={campaign.status}
                 isFeatured={campaign.isFeatured}
+                canOverride={me.isSuperAdmin}
               />
             </div>
             <div className="mt-4 border-t pt-4">

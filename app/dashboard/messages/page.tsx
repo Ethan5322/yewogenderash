@@ -8,6 +8,7 @@ import { SiteHeader } from "@/components/site/site-header";
 import { SiteFooter } from "@/components/site/site-footer";
 import { MessageComposer } from "@/components/dashboard/message-composer";
 import { formatDateTime } from "@/lib/format";
+import { DashboardNav } from "@/components/dashboard/dashboard-nav";
 
 export const metadata = { title: "Messages" };
 
@@ -24,6 +25,7 @@ export default async function OwnerMessagesPage() {
     return (
       <div className="flex min-h-screen flex-col">
         <SiteHeader user={session.user} />
+      <DashboardNav />
         <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-10 sm:px-6">
           <h1 className="font-display text-2xl font-bold tracking-tight">Messages</h1>
           <p className="mt-3 rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground">
@@ -45,6 +47,7 @@ export default async function OwnerMessagesPage() {
   return (
     <div className="flex min-h-screen flex-col">
       <SiteHeader user={session.user} />
+      <DashboardNav />
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-10 sm:px-6">
         <Link href="/dashboard" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4" aria-hidden /> Dashboard

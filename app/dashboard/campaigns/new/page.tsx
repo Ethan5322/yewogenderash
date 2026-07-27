@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { SiteHeader } from "@/components/site/site-header";
 import { SiteFooter } from "@/components/site/site-footer";
 import { CampaignForm } from "@/components/campaigns/campaign-form";
+import { DashboardNav } from "@/components/dashboard/dashboard-nav";
 
 export const metadata: Metadata = { title: "New campaign" };
 
@@ -26,6 +27,7 @@ export default async function NewCampaignPage() {
   return (
     <>
       <SiteHeader />
+      <DashboardNav />
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-6">
         <Link
           href="/dashboard/campaigns"

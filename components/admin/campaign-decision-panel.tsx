@@ -25,6 +25,12 @@ const AVAILABLE: Record<CampaignStatus, Decision[]> = {
   ARCHIVED: [],
 };
 
+/** A decision is pointless when the campaign is already in its target state. */
+const SAME_STATE: Record<"suspend" | "archive", CampaignStatus[]> = {
+  suspend: ["SUSPENDED"],
+  archive: ["ARCHIVED"],
+};
+
 const DECISION_META: Record<
   Decision,
   { label: string; icon: React.ElementType; variant: "default" | "destructive" | "outline" | "secondary" }
@@ -40,10 +46,13 @@ export function CampaignDecisionPanel({
   campaignId,
   status,
   isFeatured,
+  canOverride = false,
 }: {
   campaignId: string;
   status: CampaignStatus;
   isFeatured: boolean;
+  /** Main admin: may suspend or remove the campaign from any status. */
+  canOverride?: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = React.useTransition();
@@ -52,7 +61,17 @@ export function CampaignDecisionPanel({
   const [busyOn, setBusyOn] = React.useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = React.useState(false);
 
-  const decisions = AVAILABLE[status];
+  // The main admin can suspend or remove a campaign at any stage, so those two
+  // are offered from every status rather than only where the matrix allows —
+  // the server enforces the same rule, this just stops the button hiding.
+  const decisions: Decision[] = canOverride
+    ? [
+        ...AVAILABLE[status],
+        ...(["suspend", "archive"] as const).filter(
+          (d) => !AVAILABLE[status].includes(d) && !SAME_STATE[d].includes(status)
+        ),
+      ]
+    : AVAILABLE[status];
 
   function run(fn: () => Promise<ActionResult>, key: string) {
     setBusyOn(key);

@@ -29,7 +29,8 @@ export async function decideCampaignAction(
   _prev: ActionResult | null,
   formData: FormData
 ): Promise<ActionResult> {
-  const { id: adminId } = await requirePermission("campaigns");
+  const admin = await requirePermission("campaigns");
+  const adminId = admin.id;
 
   const parsed = reviewDecisionSchema.safeParse({
     campaignId: formData.get("campaignId"),
@@ -45,8 +46,17 @@ export async function decideCampaignAction(
     return { ok: false, error: "A note is required when rejecting a campaign." };
   }
 
+  // The main admin can suspend or remove a campaign at ANY point in its life —
+  // that is the whole point of the power. Everyone else still follows the
+  // transition matrix, so a delegated admin can't resurrect an archived
+  // campaign or suspend one that was never live.
+  const canOverrideState =
+    admin.isSuperAdmin && (decision === "suspend" || decision === "archive");
+
   const updated = await db.campaign.updateMany({
-    where: { id: parsed.data.campaignId, status: { in: rule.from } },
+    where: canOverrideState
+      ? { id: parsed.data.campaignId, status: { not: rule.to } }
+      : { id: parsed.data.campaignId, status: { in: rule.from } },
     data: {
       status: rule.to,
       reviewedAt: new Date(),
@@ -56,7 +66,9 @@ export async function decideCampaignAction(
   if (updated.count === 0) {
     return {
       ok: false,
-      error: "Campaign not found or not in a state that allows this decision.",
+      error: canOverrideState
+        ? `Campaign not found, or it is already ${rule.to.toLowerCase()}.`
+        : "Campaign not found or not in a state that allows this decision.",
     };
   }
 
@@ -65,7 +77,10 @@ export async function decideCampaignAction(
     action: `CAMPAIGN_${decision.toUpperCase()}`,
     entityType: "Campaign",
     entityId: parsed.data.campaignId,
-    detail: note ? { note } : undefined,
+    detail: {
+      ...(note ? { note } : {}),
+      ...(canOverrideState ? { mainAdminOverride: true } : {}),
+    },
   });
 
   revalidatePath("/admin/campaigns");

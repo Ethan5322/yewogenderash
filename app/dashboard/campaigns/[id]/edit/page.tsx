@@ -8,6 +8,7 @@ import { SiteFooter } from "@/components/site/site-footer";
 import { CampaignForm } from "@/components/campaigns/campaign-form";
 import { updateCampaignAction } from "@/app/dashboard/campaigns/actions";
 import { getDictionary } from "@/lib/i18n";
+import { DashboardNav } from "@/components/dashboard/dashboard-nav";
 
 export const metadata = { title: "Edit campaign" };
 
@@ -44,6 +45,7 @@ export default async function EditCampaignPage({
   return (
     <div className="flex min-h-screen flex-col">
       <SiteHeader user={session.user} />
+      <DashboardNav />
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-6">
         <Link
           href={`/dashboard/campaigns/${campaign.id}`}

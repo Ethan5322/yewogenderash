@@ -11,6 +11,7 @@ import { StatusBadge } from "@/components/campaigns/status-badge";
 import { ProgressBar } from "@/components/campaigns/progress-bar";
 import { SubmitCampaignButton } from "@/components/campaigns/submit-campaign-button";
 import { formatETB, progressPercent, formatDate } from "@/lib/format";
+import { DashboardNav } from "@/components/dashboard/dashboard-nav";
 
 export const metadata: Metadata = { title: "My campaigns" };
 
@@ -51,6 +52,7 @@ export default async function MyCampaignsPage() {
   return (
     <>
       <SiteHeader user={session.user} />
+      <DashboardNav />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
