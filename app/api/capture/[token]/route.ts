@@ -35,9 +35,16 @@ export async function POST(
 
   const owner = await db.campaignOwner.findUnique({
     where: { id: ownerId },
-    select: { id: true, userId: true, idPhotoDescriptor: true },
+    select: { id: true, userId: true, idPhotoDescriptor: true, biometricStatus: true },
   });
   if (!owner) return NextResponse.json({ error: "Not found." }, { status: 404 });
+  // Same lock as the desktop capture: a verified fundraiser's face is frozen.
+  if (owner.biometricStatus === "VERIFIED") {
+    return NextResponse.json(
+      { error: "Your face biometric is locked to your verified identity and can't be changed." },
+      { status: 403 }
+    );
+  }
 
   const form = await req.formData().catch(() => null);
   const file = form?.get("selfie");

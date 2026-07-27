@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { appUrl } from "@/lib/env";
 import { formatDate } from "@/lib/format";
 import { FundraiserIdCard } from "@/components/owner/fundraiser-id-card";
+import { StaffIdentityEditor } from "@/components/admin/staff-identity";
 import { PageHeader, SectionCard, Chip } from "@/components/admin/ui";
 
 export const metadata = { title: "Admin · My staff ID" };
@@ -56,21 +57,34 @@ export default async function AdminStaffIdPage() {
         </div>
 
         <div className="space-y-4">
-          <SectionCard title="Biometric status">
-            <div className="flex items-center gap-2">
+          <SectionCard
+            title="My ID photo & biometric"
+            sub="Staff credentials stay under your control — update either at any time."
+          >
+            <div className="mb-4 flex items-center gap-2">
               <Fingerprint className="h-4 w-4 text-primary" aria-hidden />
               {enrolled ? (
                 <Chip tone="success">
-                  Enrolled · {formatDate(user.biometricEnrolledAt!)}
+                  Biometric enrolled · {formatDate(user.biometricEnrolledAt!)}
                 </Chip>
               ) : (
-                <Chip tone="warning">Not enrolled</Chip>
+                <Chip tone="warning">Biometric not enrolled</Chip>
               )}
             </div>
-            <p className="mt-3 text-sm text-muted-foreground">
-              Your photo and biometric are fixed to your verified identity and
-              cannot be changed here — a deliberate anti-fraud control. Contact a
-              main admin if a correction is genuinely required.
+            <StaffIdentityEditor
+              photoUrl={user.idPhotoUrl}
+              enrolledAt={
+                user.biometricEnrolledAt ? formatDate(user.biometricEnrolledAt) : null
+              }
+            />
+            <p className="mt-4 rounded-md border bg-muted/40 p-3 text-xs text-muted-foreground">
+              Once enrolled you can sign in at{" "}
+              <span className="font-medium text-foreground">/admin-login</span> with
+              your staff code{" "}
+              <span className="font-mono font-medium text-foreground">{code}</span>{" "}
+              and your face — no emailed code needed. Fundraiser photos and
+              biometrics work differently: theirs are frozen at verification and
+              can never be changed.
             </p>
           </SectionCard>
 

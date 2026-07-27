@@ -7,6 +7,12 @@ import { db } from "@/lib/db";
 import { hashPassword } from "@/lib/auth/password";
 import { generateUniqueAdminCode } from "@/lib/querycode";
 import { writeAudit } from "@/lib/audit";
+import { parseDescriptor } from "@/lib/face/distance";
+import {
+  ALLOWED_IMAGE_TYPES,
+  MAX_UPLOAD_BYTES,
+  uploadMediaFile,
+} from "@/lib/supabase/server";
 import {
   ADMIN_PERMISSION_KEYS,
   currentAdmin,
@@ -56,6 +62,20 @@ export async function createSubAdminAction(
   const email = parsed.data.email.toLowerCase().trim();
   const permissions = readPerms(formData);
 
+  // Optional identity captured by the main admin at creation (in person): the
+  // ID-card portrait from the gallery, and the face template the new admin will
+  // sign in with. Both stay editable by the sub-admin afterwards.
+  const photo = formData.get("photo");
+  const descriptor = parseDescriptor(formData.get("descriptor"));
+  if (photo instanceof File && photo.size > 0) {
+    if (!ALLOWED_IMAGE_TYPES.includes(photo.type as (typeof ALLOWED_IMAGE_TYPES)[number])) {
+      return { ok: false, error: "The ID photo must be a JPEG, PNG or WebP image." };
+    }
+    if (photo.size > MAX_UPLOAD_BYTES) {
+      return { ok: false, error: "The ID photo is too large — keep it under 5 MB." };
+    }
+  }
+
   try {
     const created = await db.user.create({
       data: {
@@ -67,16 +87,54 @@ export async function createSubAdminAction(
         adminPermissions: permissions as Prisma.InputJsonValue,
         adminCode: await generateUniqueAdminCode(),
         emailVerifiedAt: new Date(),
+        ...(descriptor
+          ? {
+              faceDescriptor: JSON.stringify(descriptor),
+              biometricEnrolledAt: new Date(),
+            }
+          : {}),
       },
       select: { id: true },
     });
+
+    // Photo upload happens after the row exists so it can be keyed by user id.
+    // A failed upload must not undo a created admin — report it, keep the account.
+    let photoError: string | null = null;
+    if (photo instanceof File && photo.size > 0) {
+      const ext =
+        photo.type === "image/png" ? "png" : photo.type === "image/webp" ? "webp" : "jpg";
+      const up = await uploadMediaFile(
+        `staff/${created.id}/id-${Date.now()}.${ext}`,
+        new Uint8Array(await photo.arrayBuffer()),
+        photo.type
+      );
+      if (up.ok) {
+        await db.user.update({ where: { id: created.id }, data: { idPhotoUrl: up.url } });
+      } else {
+        photoError = up.error;
+      }
+    }
+
     await writeAudit({
       actorId: admin.id,
       action: "ADMIN_CREATED",
       entityType: "User",
       entityId: created.id,
-      detail: { email, permissions },
+      detail: {
+        email,
+        permissions,
+        idPhoto: photo instanceof File && photo.size > 0 && !photoError,
+        biometric: !!descriptor,
+      },
     });
+
+    if (photoError) {
+      revalidatePath("/admin/team");
+      return {
+        ok: false,
+        error: `Admin created, but the ID photo failed to upload (${photoError}). Add it from their row.`,
+      };
+    }
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
       return { ok: false, error: "A user with this email already exists." };

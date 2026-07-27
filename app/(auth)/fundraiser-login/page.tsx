@@ -39,7 +39,7 @@ function FundraiserLoginForm() {
     setPending(false);
     if (res?.error) {
       setError(
-        "Sign-in failed. Check your code and password, and scan your face if your account has face verification enabled."
+        "Sign-in failed. Check your verification code, then either scan the face you registered with or enter your password."
       );
       return;
     }
@@ -55,8 +55,8 @@ function FundraiserLoginForm() {
         </div>
         <CardTitle className="text-2xl">Fundraiser sign-in</CardTitle>
         <CardDescription>
-          Sign in with the verification code on your Fundraiser ID and the
-          password you set when you registered.
+          Enter the verification code from your Fundraiser ID, then sign in the
+          way you prefer — a face scan or your password.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -72,9 +72,34 @@ function FundraiserLoginForm() {
               required
             />
           </div>
+          {/* Then EITHER credential — whichever the fundraiser prefers. */}
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <Label>Face verification</Label>
+              <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium text-secondary-foreground">
+                Option 1
+              </span>
+            </div>
+            <FaceScan onDescriptor={setFaceDescriptor} />
+            <p className="text-xs text-muted-foreground">
+              Scan the face you registered with — nothing else needed.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <span className="h-px flex-1 bg-border" />
+            <span className="text-xs font-medium text-muted-foreground">or</span>
+            <span className="h-px flex-1 bg-border" />
+          </div>
+
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label htmlFor="password">Password</Label>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="password">Password</Label>
+                <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium text-secondary-foreground">
+                  Option 2
+                </span>
+              </div>
               <Link
                 href="/forgot-password"
                 className="text-xs font-medium text-primary hover:underline"
@@ -87,15 +112,9 @@ function FundraiserLoginForm() {
               name="password"
               type="password"
               autoComplete="current-password"
-              required
             />
-          </div>
-
-          <div className="space-y-1.5">
-            <Label>Face verification</Label>
-            <FaceScan onDescriptor={setFaceDescriptor} />
             <p className="text-xs text-muted-foreground">
-              If your account has face verification, scan your face to sign in.
+              The password you chose when you registered.
             </p>
           </div>
 

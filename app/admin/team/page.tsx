@@ -31,6 +31,7 @@ export default async function AdminTeamPage() {
       isSuperAdmin: true,
       isBanned: true,
       idPhotoUrl: true,
+      biometricEnrolledAt: true,
       adminPermissions: true,
       createdAt: true,
     },
@@ -48,6 +49,9 @@ export default async function AdminTeamPage() {
     isSuperAdmin: a.isSuperAdmin,
     isBanned: a.isBanned,
     idPhotoUrl: a.idPhotoUrl,
+    biometricEnrolledAt: a.biometricEnrolledAt
+      ? a.biometricEnrolledAt.toISOString().slice(0, 10)
+      : null,
     issued: a.createdAt.toISOString().slice(0, 10),
     permissions: permsFrom(a.adminPermissions) as Record<string, boolean>,
   }));

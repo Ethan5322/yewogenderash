@@ -247,6 +247,22 @@ export async function captureBiometricAction(
   if (!selfie.ok) return { ok: false, error: selfie.error };
 
   const owner = await ensureOwnerProfile(userId);
+
+  // Anti-fraud: a fundraiser's face is captured ONCE. After an admin verifies
+  // it, the template is frozen — it is the credential they sign in with and the
+  // face donors see on the ID, so it can never be swapped for another person's.
+  // Only an admin sending the application back (RESUBMIT) reopens capture.
+  const locked = await db.campaignOwner.findUnique({
+    where: { id: owner.id },
+    select: { biometricStatus: true },
+  });
+  if (locked?.biometricStatus === "VERIFIED") {
+    return {
+      ok: false,
+      error:
+        "Your face biometric is locked to your verified identity and can't be changed. Contact support if a correction is genuinely needed.",
+    };
+  }
   const selfieFile = formData.get("selfie") as File;
   const path = `owners/${owner.id}/selfie-${Date.now()}.${EXT[selfie.type]}`;
 

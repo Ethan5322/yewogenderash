@@ -2,10 +2,23 @@
 
 import * as React from "react";
 import { useActionState } from "react";
-import { Loader2, CheckCircle2, UserPlus, ShieldCheck, Crown, Ban, IdCard } from "lucide-react";
+import {
+  Loader2,
+  CheckCircle2,
+  UserPlus,
+  ShieldCheck,
+  Crown,
+  Ban,
+  IdCard,
+  ImagePlus,
+  Fingerprint,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FundraiserIdCard } from "@/components/owner/fundraiser-id-card";
+import { FaceScan } from "@/components/auth/face-scan";
+import { StaffIdentityEditor } from "@/components/admin/staff-identity";
+import { IdPhotoPicker } from "@/components/admin/id-photo-picker";
 import {
   createSubAdminAction,
   updatePermissionsAction,
@@ -26,6 +39,8 @@ export type AdminRowData = {
   isSuperAdmin: boolean;
   isBanned: boolean;
   idPhotoUrl: string | null;
+  /** Formatted enrolment date, or null when no face template is stored. */
+  biometricEnrolledAt: string | null;
   issued: string;
   permissions: Record<string, boolean>;
 };
@@ -68,14 +83,28 @@ export function CreateAdminForm({
     null
   );
   const formRef = React.useRef<HTMLFormElement>(null);
+  const photoInputRef = React.useRef<HTMLInputElement>(null);
   const [perms, setPerms] = React.useState<Record<string, boolean>>({});
+  const [hasPhoto, setHasPhoto] = React.useState(false);
+  const [descriptor, setDescriptor] = React.useState<number[] | null>(null);
 
   React.useEffect(() => {
     if (state?.ok) {
       formRef.current?.reset();
       setPerms({});
+      setDescriptor(null);
+      setHasPhoto(false);
     }
   }, [state]);
+
+  /** The picker returns an already-cropped portrait; mirror it into the hidden
+   *  file input so it travels with the form submission. */
+  function onPhoto(file: File) {
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    if (photoInputRef.current) photoInputRef.current.files = dt.files;
+    setHasPhoto(true);
+  }
 
   const applyPreset = (keys: string[]) =>
     setPerms(Object.fromEntries(keys.map((k) => [k, true])));
@@ -96,6 +125,56 @@ export function CreateAdminForm({
           <Input id="password" name="password" type="text" className="mt-1.5" placeholder="8+ chars, 1 number" />
         </div>
       </div>
+
+      {/* Identity for their staff ID — set here in person, and editable by the
+          sub-admin themselves afterwards from "My staff ID". */}
+      <fieldset className="rounded-lg border p-4">
+        <legend className="px-1 text-sm font-medium">
+          ID photo &amp; biometric{" "}
+          <span className="font-normal text-muted-foreground">(optional)</span>
+        </legend>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            {/* The picker fills this input with the cropped file. */}
+            <input
+              ref={photoInputRef}
+              type="file"
+              name="photo"
+              accept="image/jpeg,image/png,image/webp"
+              className="sr-only"
+              tabIndex={-1}
+              aria-hidden
+            />
+            <IdPhotoPicker
+              photoUrl={null}
+              onPhoto={onPhoto}
+              hint="Goes on their staff ID card — gallery or camera, cropped for you."
+            />
+            {hasPhoto ? (
+              <p className="mt-1 inline-flex items-center gap-1.5 text-xs text-success">
+                <CheckCircle2 className="h-3.5 w-3.5" aria-hidden /> Photo ready
+              </p>
+            ) : null}
+          </div>
+
+          <div className="space-y-1.5">
+            <input
+              type="hidden"
+              name="descriptor"
+              value={descriptor ? JSON.stringify(descriptor) : ""}
+            />
+            <FaceScan
+              onDescriptor={setDescriptor}
+              requireLiveness
+              label="Capture their face biometric"
+            />
+            <p className="text-xs text-muted-foreground">
+              Captured live (head turn + blink). Once enrolled they can sign in
+              with their staff code and face — no emailed code.
+            </p>
+          </div>
+        </div>
+      </fieldset>
 
       <fieldset>
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -154,7 +233,10 @@ export function AdminRow({
   const [pending, startTransition] = React.useTransition();
   const [msg, setMsg] = React.useState<string | null>(null);
   const [showId, setShowId] = React.useState(false);
+  const [showIdentity, setShowIdentity] = React.useState(false);
   const isSelf = admin.id === currentAdminId;
+  // Own record always; anyone else's only as the main admin.
+  const canEditIdentity = isSelf || currentIsSuper;
 
   function run(fn: () => Promise<ActionResult>) {
     setMsg(null);
@@ -199,6 +281,16 @@ export function AdminRow({
               Staff ID · {admin.adminCode}
             </p>
           ) : null}
+          <p className="mt-1 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Fingerprint className="h-3.5 w-3.5" aria-hidden />
+            {admin.biometricEnrolledAt ? (
+              <span className="text-success">
+                Face enrolled · {admin.biometricEnrolledAt}
+              </span>
+            ) : (
+              <span className="text-warning">No face biometric</span>
+            )}
+          </p>
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -206,6 +298,13 @@ export function AdminRow({
           <Button size="sm" variant="outline" onClick={() => setShowId((v) => !v)}>
             <IdCard className="h-3.5 w-3.5" aria-hidden /> {showId ? "Hide ID" : "Staff ID"}
           </Button>
+
+          {canEditIdentity ? (
+            <Button size="sm" variant="outline" onClick={() => setShowIdentity((v) => !v)}>
+              <ImagePlus className="h-3.5 w-3.5" aria-hidden />
+              {showIdentity ? "Hide photo & face" : "Photo & face"}
+            </Button>
+          ) : null}
 
           {currentIsSuper && !isSelf ? (
             <>
@@ -254,6 +353,17 @@ export function AdminRow({
               { label: "Staff ID", value: admin.adminCode ?? "STAFF" },
               { label: "Platform", value: "Yewogen Derash" },
             ]}
+          />
+        </div>
+      ) : null}
+
+      {showIdentity && canEditIdentity ? (
+        <div className="mt-4 border-t pt-4">
+          <StaffIdentityEditor
+            targetId={isSelf ? undefined : admin.id}
+            photoUrl={admin.idPhotoUrl}
+            enrolledAt={admin.biometricEnrolledAt}
+            compact
           />
         </div>
       ) : null}
