@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
@@ -15,7 +16,13 @@ export const ADMIN_PERMISSIONS = {
   content: "Site content editing",
   messages: "Fundraiser messages & notices",
   audit: "Audit log (read-only)",
-  admins: "Manage admins & permissions",
+  // NOTE: there is deliberately no delegable "manage admins" capability.
+  // Creating admins, granting capabilities, suspending staff and handing over
+  // the main-admin role are reserved for the main admin (isSuperAdmin) and
+  // guarded by requireSuperAdmin() — so a sub-admin can never widen its own or
+  // anyone else's access. A previous `admins` key existed here but every
+  // admin-management surface was already super-only, so granting it did nothing
+  // except unlock the audit log; use `audit` for that instead.
 } as const;
 
 export type AdminPermission = keyof typeof ADMIN_PERMISSIONS;
@@ -78,8 +85,12 @@ export type CurrentAdmin = {
 /**
  * The current admin, loaded FRESH from the DB — permissions must never be
  * trusted from a stale JWT. Redirects non-admins away.
+ *
+ * React-`cache`d, so the layout, the page and any number of per-row permission
+ * checks in one render share a single query. The cache is per-request, so a
+ * capability revoked between requests still takes effect immediately.
  */
-export async function currentAdmin(): Promise<CurrentAdmin> {
+export const currentAdmin = cache(async function currentAdmin(): Promise<CurrentAdmin> {
   const session = await auth();
   if (!session?.user?.id) redirect("/login?callbackUrl=/admin");
   const user = await db.user.findUnique({
@@ -103,7 +114,7 @@ export async function currentAdmin(): Promise<CurrentAdmin> {
     isSuperAdmin: user.isSuperAdmin,
     adminPermissions: user.adminPermissions,
   };
-}
+});
 
 /**
  * Guard a specific capability for pages and server actions. Returns the admin
@@ -114,15 +125,6 @@ export async function requirePermission(
 ): Promise<CurrentAdmin> {
   const admin = await currentAdmin();
   if (!hasPermission(admin, key)) redirect(`/admin?denied=${key}`);
-  return admin;
-}
-
-/** Guard a page/action that any ONE of several capabilities may open. */
-export async function requireAnyPermission(
-  keys: AdminPermission[]
-): Promise<CurrentAdmin> {
-  const admin = await currentAdmin();
-  if (!keys.some((k) => hasPermission(admin, k))) redirect(`/admin?denied=${keys[0]}`);
   return admin;
 }
 

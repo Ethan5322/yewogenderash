@@ -14,6 +14,7 @@ import {
   EmptyRow,
 } from "@/components/admin/ui";
 import { Pager, pageFrom } from "@/components/admin/pager";
+import { PermLink } from "@/components/admin/perm-link";
 
 export const metadata = { title: "Admin · Notifications" };
 
@@ -116,9 +117,14 @@ export default async function AdminNotificationsPage({
                 <td className="px-4 py-3">
                   <p className="text-sm">{n.owner?.user.name ?? "—"}</p>
                   {n.campaign ? (
-                    <Link href={`/admin/campaigns/${n.campaign.id}`} className="text-xs text-muted-foreground hover:text-primary hover:underline">
+                    <PermLink
+                      perm="campaigns"
+                      href={`/admin/campaigns/${n.campaign.id}`}
+                      className="text-xs text-muted-foreground hover:text-primary hover:underline"
+                      fallbackClassName="text-xs text-muted-foreground"
+                    >
                       {n.campaign.title}
-                    </Link>
+                    </PermLink>
                   ) : null}
                 </td>
                 <td className="px-4 py-3">

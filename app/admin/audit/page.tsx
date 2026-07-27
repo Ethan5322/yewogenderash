@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Search, ExternalLink } from "lucide-react";
 import { db } from "@/lib/db";
 import type { Prisma } from "@prisma/client";
-import { requireAnyPermission } from "@/lib/admin/permissions";
+import { requirePermission } from "@/lib/admin/permissions";
 import { Pager, pageFrom } from "@/components/admin/pager";
 import { PageHeader } from "@/components/admin/ui";
 
@@ -64,21 +64,34 @@ export default async function AdminAuditPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requireAnyPermission(["audit", "admins"]);
+  await requirePermission("audit");
   const sp = await searchParams;
   const q = (typeof sp.q === "string" ? sp.q : "").trim().slice(0, 60);
   const page = pageFrom(sp.page);
+  // ?actor=<userId> scopes the log to one staff member — this is how the main
+  // admin reviews an individual sub-admin's activity from the team page.
+  const actorId = typeof sp.actor === "string" ? sp.actor.trim().slice(0, 40) : "";
 
-  const where: Prisma.AuditLogWhereInput = q
-    ? {
-        OR: [
-          { action: { contains: q, mode: "insensitive" } },
-          { entityType: { contains: q, mode: "insensitive" } },
-          { actor: { name: { contains: q, mode: "insensitive" } } },
-          { actor: { email: { contains: q, mode: "insensitive" } } },
-        ],
-      }
-    : {};
+  const filters: Prisma.AuditLogWhereInput[] = [];
+  if (actorId) filters.push({ actorId });
+  if (q) {
+    filters.push({
+      OR: [
+        { action: { contains: q, mode: "insensitive" } },
+        { entityType: { contains: q, mode: "insensitive" } },
+        { actor: { name: { contains: q, mode: "insensitive" } } },
+        { actor: { email: { contains: q, mode: "insensitive" } } },
+      ],
+    });
+  }
+  const where: Prisma.AuditLogWhereInput = filters.length ? { AND: filters } : {};
+
+  const actor = actorId
+    ? await db.user.findUnique({
+        where: { id: actorId },
+        select: { name: true, email: true, adminCode: true, isSuperAdmin: true },
+      })
+    : null;
 
   const [logs, matchCount] = await Promise.all([
     db.auditLog.findMany({
@@ -103,10 +116,16 @@ export default async function AdminAuditPage({
   return (
     <div>
       <PageHeader
-        title="Audit log"
-        description="Every consequential action on the platform, newest first. Append-only."
+        title={actor ? `Activity · ${actor.name}` : "Audit log"}
+        description={
+          actor
+            ? `Every action recorded for ${actor.email}${actor.adminCode ? ` (${actor.adminCode})` : ""} — ${actor.isSuperAdmin ? "main admin" : "delegated admin"}.`
+            : "Every consequential action on the platform, newest first. Append-only."
+        }
         actions={
           <form action="/admin/audit" className="relative">
+            {/* Keep the actor scope when searching within one staff member. */}
+            {actorId ? <input type="hidden" name="actor" value={actorId} /> : null}
             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
             <input
               name="q"
@@ -117,6 +136,18 @@ export default async function AdminAuditPage({
           </form>
         }
       />
+
+      {actor ? (
+        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm">
+          <span className="font-medium">
+            Showing one staff member&apos;s activity ({matchCount} entr
+            {matchCount === 1 ? "y" : "ies"}).
+          </span>
+          <Link href="/admin/audit" className="font-medium text-primary hover:underline">
+            View the whole log
+          </Link>
+        </div>
+      ) : null}
 
       <div className="overflow-x-auto rounded-xl border bg-card shadow-sm">
         <table className="w-full min-w-[860px] text-sm">
@@ -196,7 +227,7 @@ export default async function AdminAuditPage({
 
       <Pager
         basePath="/admin/audit"
-        baseParams={{ q: q || undefined }}
+        baseParams={{ q: q || undefined, actor: actorId || undefined }}
         page={page}
         pageSize={PAGE_SIZE}
         total={matchCount}

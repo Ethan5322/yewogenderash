@@ -47,6 +47,7 @@ const NAV_GROUPS: GroupDef[] = [
   {
     label: "Finance",
     items: [
+      { href: "/admin/balances", label: "Fundraiser balances", key: "balances", perm: "payouts" },
       { href: "/admin/donations", label: "Donations", key: "donations", perm: "payouts" },
       { href: "/admin/payments", label: "Payments", key: "payments", perm: "payouts" },
       { href: "/admin/payouts", label: "Payouts", key: "payouts", perm: "payouts" },
@@ -64,7 +65,7 @@ const NAV_GROUPS: GroupDef[] = [
     label: "Governance",
     items: [
       { href: "/admin/team", label: "Roles & Team", key: "admins", superOnly: true },
-      { href: "/admin/audit", label: "Audit log", key: "audit", anyPerm: ["audit", "admins"] },
+      { href: "/admin/audit", label: "Audit log", key: "audit", perm: "audit" },
       { href: "/admin/system", label: "System status", key: "system", superOnly: true },
       { href: "/admin/translations", label: "Translations", key: "translations", superOnly: true },
       { href: "/admin/settings", label: "Fees / Settings", key: "settings", superOnly: true },

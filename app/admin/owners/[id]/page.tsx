@@ -10,7 +10,9 @@ import { StatusBadge } from "@/components/campaigns/status-badge";
 import { FundraiserIdCard } from "@/components/owner/fundraiser-id-card";
 import { DocumentPreview, type DocKind } from "@/components/admin/document-preview";
 import { StatusChip, Breadcrumbs } from "@/components/admin/ui";
+import { ownerBalanceSummary } from "@/lib/payouts";
 import { formatDate, formatETB } from "@/lib/format";
+import { PermLink } from "@/components/admin/perm-link";
 
 export const metadata = { title: "Admin · Owner review" };
 
@@ -95,15 +97,11 @@ export default async function AdminOwnerDetailPage({
 
   // Owner 360 — everything this fundraiser touches, in one place.
   const queryCodes = owner.campaigns.map((c) => c.queryCode);
-  const [donationAgg, paidAgg, recentDonations, supportCases] = await Promise.all([
+  const [donationAgg, recentDonations, supportCases] = await Promise.all([
     db.donation.aggregate({
       where: { status: "SUCCESS", campaign: { ownerId: owner.id } },
       _sum: { amount: true, netAmount: true },
       _count: true,
-    }),
-    db.payout.aggregate({
-      where: { ownerId: owner.id, status: "PAID" },
-      _sum: { amount: true },
     }),
     db.donation.findMany({
       where: { campaign: { ownerId: owner.id } },
@@ -124,8 +122,10 @@ export default async function AdminOwnerDetailPage({
         })
       : Promise.resolve([]),
   ]);
-  const totalRaised = Number(donationAgg._sum.amount ?? 0);
-  const totalPaid = Number(paidAgg._sum.amount ?? 0);
+  // Full financial rollup for this fundraiser — only fetched when the viewing
+  // admin holds the finance capability.
+  const canFinance = hasPermission(me, "payouts");
+  const balances = canFinance ? await ownerBalanceSummary(owner.id) : null;
 
   return (
     <div>
@@ -249,23 +249,107 @@ export default async function AdminOwnerDetailPage({
           {/* Owner 360 — money, donations and cases for this fundraiser */}
           <section className="rounded-xl border bg-card p-6 shadow-sm">
             <h2 className="font-display text-base font-semibold">Activity &amp; money</h2>
-            <div className="mt-4 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-lg border bg-muted/30 p-4">
-                <p className="text-xs text-muted-foreground">Raised (all campaigns)</p>
-                <p className="mt-1 font-display text-lg font-bold">{formatETB(totalRaised)}</p>
-                <p className="text-xs text-muted-foreground">{donationAgg._count} donations</p>
+            {canFinance && balances ? (
+              <>
+                <div className="mt-4 grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                  <div className="rounded-lg border bg-muted/30 p-4">
+                    <p className="text-xs text-muted-foreground">Raised (gross)</p>
+                    <p className="mt-1 font-display text-lg font-bold">{formatETB(balances.gross)}</p>
+                    <p className="text-xs text-muted-foreground">{donationAgg._count} donations</p>
+                  </div>
+                  <div className="rounded-lg border bg-muted/30 p-4">
+                    <p className="text-xs text-muted-foreground">Platform fees</p>
+                    <p className="mt-1 font-display text-lg font-bold">{formatETB(balances.fees)}</p>
+                    <p className="text-xs text-muted-foreground">not withdrawable</p>
+                  </div>
+                  <div className="rounded-lg border bg-muted/30 p-4">
+                    <p className="text-xs text-muted-foreground">Net to fundraiser</p>
+                    <p className="mt-1 font-display text-lg font-bold">{formatETB(balances.net)}</p>
+                  </div>
+                  <div className="rounded-lg border bg-muted/30 p-4">
+                    <p className="text-xs text-muted-foreground">Paid out</p>
+                    <p className="mt-1 font-display text-lg font-bold text-success">
+                      {formatETB(balances.paid)}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border bg-muted/30 p-4">
+                    <p className="text-xs text-muted-foreground">Reserved</p>
+                    <p className="mt-1 font-display text-lg font-bold">{formatETB(balances.reserved)}</p>
+                    <p className="text-xs text-muted-foreground">requested / approved</p>
+                  </div>
+                  <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
+                    <p className="text-xs text-muted-foreground">Available balance</p>
+                    <p className="mt-1 font-display text-lg font-bold text-primary">
+                      {formatETB(balances.available)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">still withdrawable</p>
+                  </div>
+                </div>
+
+                {/* Per-campaign, because funds are never pooled across campaigns. */}
+                {balances.campaigns.length > 0 ? (
+                  <>
+                    <h3 className="mt-6 border-t pt-4 text-sm font-medium">
+                      Balance by campaign
+                      <span className="ml-2 font-normal text-xs text-muted-foreground">
+                        funds are held per campaign and never pooled
+                      </span>
+                    </h3>
+                    <div className="mt-2 overflow-x-auto">
+                      <table className="w-full min-w-[640px] text-sm">
+                        <thead>
+                          <tr className="border-b text-left text-xs uppercase text-muted-foreground">
+                            <th className="py-2 pr-3 font-medium">Campaign</th>
+                            <th className="py-2 pr-3 text-right font-medium">Gross</th>
+                            <th className="py-2 pr-3 text-right font-medium">Fees</th>
+                            <th className="py-2 pr-3 text-right font-medium">Net</th>
+                            <th className="py-2 pr-3 text-right font-medium">Paid</th>
+                            <th className="py-2 pr-3 text-right font-medium">Reserved</th>
+                            <th className="py-2 text-right font-medium">Available</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {balances.campaigns.map((c) => (
+                            <tr key={c.id} className="border-b last:border-0">
+                              <td className="py-2 pr-3">
+                                <PermLink
+                                  perm="campaigns"
+                                  href={`/admin/campaigns/${c.id}`}
+                                  className="font-medium text-primary hover:underline"
+                                >
+                                  {c.title}
+                                </PermLink>
+                                <span className="ml-2 text-xs text-muted-foreground">{c.status}</span>
+                              </td>
+                              <td className="py-2 pr-3 text-right">{formatETB(c.gross)}</td>
+                              <td className="py-2 pr-3 text-right text-muted-foreground">{formatETB(c.fees)}</td>
+                              <td className="py-2 pr-3 text-right">{formatETB(c.net)}</td>
+                              <td className="py-2 pr-3 text-right text-success">{formatETB(c.paid)}</td>
+                              <td className="py-2 pr-3 text-right">{formatETB(c.reserved)}</td>
+                              <td className="py-2 text-right font-semibold">{formatETB(c.available)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                ) : null}
+              </>
+            ) : (
+              // A KYC reviewer sees scope, not money — financial detail needs the
+              // payouts capability.
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-lg border bg-muted/30 p-4">
+                  <p className="text-xs text-muted-foreground">Campaigns</p>
+                  <p className="mt-1 font-display text-lg font-bold">{owner.campaigns.length}</p>
+                </div>
+                <div className="rounded-lg border bg-muted/30 p-4">
+                  <p className="text-xs text-muted-foreground">Donations received</p>
+                  <p className="mt-1 font-display text-lg font-bold">{donationAgg._count}</p>
+                  <p className="text-xs text-muted-foreground">amounts need finance access</p>
+                </div>
               </div>
-              <div className="rounded-lg border bg-muted/30 p-4">
-                <p className="text-xs text-muted-foreground">Paid out</p>
-                <p className="mt-1 font-display text-lg font-bold text-success">
-                  {formatETB(totalPaid)}
-                </p>
-              </div>
-              <div className="rounded-lg border bg-muted/30 p-4">
-                <p className="text-xs text-muted-foreground">Campaigns</p>
-                <p className="mt-1 font-display text-lg font-bold">{owner.campaigns.length}</p>
-              </div>
-            </div>
+            )}
 
             {/* Recent donations */}
             <h3 className="mt-6 border-t pt-4 text-sm font-medium">Recent donations</h3>
@@ -277,12 +361,14 @@ export default async function AdminOwnerDetailPage({
                   <li key={d.id} className="flex flex-wrap items-center justify-between gap-2">
                     <span className="min-w-0 truncate text-muted-foreground">
                       {formatDate(d.paidAt ?? d.createdAt)} · {d.donorName ?? "Anonymous"} ·{" "}
-                      <Link
+                      <PermLink
+                        perm="campaigns"
                         href={`/admin/campaigns/${d.campaign.id}`}
                         className="hover:text-primary hover:underline"
+                        fallbackClassName=""
                       >
                         {d.campaign.title}
-                      </Link>
+                      </PermLink>
                     </span>
                     <span className="flex items-center gap-2">
                       <span className="font-medium">
@@ -450,12 +536,14 @@ export default async function AdminOwnerDetailPage({
               <ul className="mt-3 space-y-2">
                 {owner.campaigns.map((c) => (
                   <li key={c.id} className="flex items-center justify-between gap-2 text-sm">
-                    <Link
+                    <PermLink
+                      perm="campaigns"
                       href={`/admin/campaigns/${c.id}`}
                       className="min-w-0 truncate font-medium hover:text-primary hover:underline"
+                      fallbackClassName="min-w-0 truncate font-medium"
                     >
                       {c.title}
-                    </Link>
+                    </PermLink>
                     <StatusBadge status={c.status} />
                   </li>
                 ))}

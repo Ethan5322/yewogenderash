@@ -75,3 +75,104 @@ export async function campaignAvailableBalance(campaignId: string): Promise<numb
   ]);
   return toNumber(netRaised._sum.netAmount ?? 0) - toNumber(reserved._sum.amount ?? 0);
 }
+
+export type OwnerCampaignBalance = {
+  id: string;
+  title: string;
+  slug: string;
+  status: string;
+  gross: number;
+  fees: number;
+  net: number;
+  paid: number;
+  reserved: number;
+  available: number;
+};
+
+export type OwnerBalanceSummary = {
+  gross: number;
+  fees: number;
+  net: number;
+  paid: number;
+  /** Requested + approved but not yet paid — reserved against net. */
+  reserved: number;
+  /** net − paid − reserved: what the fundraiser could still withdraw. */
+  available: number;
+  campaigns: OwnerCampaignBalance[];
+};
+
+/**
+ * Every-campaign financial rollup for one fundraiser, so an admin can answer
+ * "what is this fundraiser holding?" in one place.
+ *
+ * Like campaignAvailableBalance() this is derived from the donation and payout
+ * ledgers rather than the CampaignBalance denorm, so it stays correct even if
+ * the denorm drifts. Funds are still per-campaign — this only *reports* the
+ * total; it never implies a pooled balance the owner can draw against.
+ */
+export async function ownerBalanceSummary(
+  ownerId: string
+): Promise<OwnerBalanceSummary> {
+  const campaigns = await db.campaign.findMany({
+    where: { ownerId },
+    orderBy: { createdAt: "desc" },
+    select: { id: true, title: true, slug: true, status: true },
+  });
+  if (campaigns.length === 0) {
+    return { gross: 0, fees: 0, net: 0, paid: 0, reserved: 0, available: 0, campaigns: [] };
+  }
+
+  const ids = campaigns.map((c) => c.id);
+  const [donationRows, payoutRows] = await Promise.all([
+    db.donation.groupBy({
+      by: ["campaignId"],
+      where: { campaignId: { in: ids }, status: "SUCCESS" },
+      _sum: { amount: true, platformFee: true, netAmount: true },
+    }),
+    db.payout.groupBy({
+      by: ["campaignId", "status"],
+      where: { campaignId: { in: ids }, status: { in: ["REQUESTED", "APPROVED", "PAID"] } },
+      _sum: { amount: true },
+    }),
+  ]);
+
+  const donationBy = new Map(donationRows.map((r) => [r.campaignId, r]));
+  const paidBy = new Map<string, number>();
+  const reservedBy = new Map<string, number>();
+  for (const r of payoutRows) {
+    const amount = toNumber(r._sum.amount ?? 0);
+    const target = r.status === "PAID" ? paidBy : reservedBy;
+    target.set(r.campaignId, (target.get(r.campaignId) ?? 0) + amount);
+  }
+
+  const rows: OwnerCampaignBalance[] = campaigns.map((c) => {
+    const d = donationBy.get(c.id);
+    const gross = toNumber(d?._sum.amount ?? 0);
+    const fees = toNumber(d?._sum.platformFee ?? 0);
+    const net = toNumber(d?._sum.netAmount ?? 0);
+    const paid = paidBy.get(c.id) ?? 0;
+    const reserved = reservedBy.get(c.id) ?? 0;
+    return {
+      ...c,
+      gross,
+      fees,
+      net,
+      paid,
+      reserved,
+      available: net - paid - reserved,
+    };
+  });
+
+  const sum = (pick: (r: OwnerCampaignBalance) => number) =>
+    rows.reduce((acc, r) => acc + pick(r), 0);
+
+  return {
+    gross: sum((r) => r.gross),
+    fees: sum((r) => r.fees),
+    net: sum((r) => r.net),
+    paid: sum((r) => r.paid),
+    reserved: sum((r) => r.reserved),
+    available: sum((r) => r.available),
+    campaigns: rows,
+  };
+}

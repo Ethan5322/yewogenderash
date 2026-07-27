@@ -6,6 +6,7 @@ import { SupportResolveButton, SupportCaseControls } from "@/components/admin/su
 import { PageHeader } from "@/components/admin/ui";
 import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { PermLink } from "@/components/admin/perm-link";
 
 export const metadata = { title: "Admin · Support" };
 
@@ -132,19 +133,22 @@ export default async function AdminSupportPage({
                           const c = byCode.get(m.code!);
                           return c ? (
                             <>
-                              <Link
+                              <PermLink
+                                perm="campaigns"
                                 href={`/admin/campaigns/${c.id}`}
                                 className="font-medium text-primary hover:underline"
                               >
                                 {c.title}
-                              </Link>
+                              </PermLink>
                               <span>·</span>
-                              <Link
+                              <PermLink
+                                perm="kyc"
                                 href={`/admin/owners/${c.owner.id}`}
                                 className="hover:text-primary hover:underline"
+                                fallbackClassName="text-muted-foreground"
                               >
                                 Owner / KYC
-                              </Link>
+                              </PermLink>
                               <span className="font-mono">({m.code})</span>
                             </>
                           ) : (

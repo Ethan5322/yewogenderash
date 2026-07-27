@@ -12,6 +12,7 @@ import { FlagControl } from "@/components/admin/flag-control";
 import { DocumentPreview, type DocKind } from "@/components/admin/document-preview";
 import { CATEGORY_LABELS } from "@/lib/campaign-types";
 import { formatETB, formatDate } from "@/lib/format";
+import { PermLink } from "@/components/admin/perm-link";
 
 export const metadata = { title: "Admin · Campaign review" };
 
@@ -384,12 +385,14 @@ export default async function AdminCampaignDetailPage({
               </p>
             ) : null}
             <div className="mt-4 flex flex-wrap gap-2 border-t pt-4">
-              <Link
-                href={`/admin/owners/${owner.id}`}
-                className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium shadow-sm transition-colors hover:bg-accent"
-              >
-                <ShieldCheck className="h-4 w-4" aria-hidden /> Owner / KYC
-              </Link>
+              {hasPermission(me, "kyc") ? (
+                <Link
+                  href={`/admin/owners/${owner.id}`}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium shadow-sm transition-colors hover:bg-accent"
+                >
+                  <ShieldCheck className="h-4 w-4" aria-hidden /> Owner / KYC
+                </Link>
+              ) : null}
               {hasPermission(me, "messages") ? (
                 <Link
                   href={`/admin/messages/${owner.id}`}

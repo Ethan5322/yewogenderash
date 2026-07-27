@@ -8,6 +8,7 @@ import { Pager, pageFrom } from "@/components/admin/pager";
 import { PageHeader, StatusChip } from "@/components/admin/ui";
 import { formatETB, formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { PermLink } from "@/components/admin/perm-link";
 
 const PAGE_SIZE = 50;
 
@@ -135,14 +136,15 @@ export default async function AdminDonationsPage({
                   <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">{formatDateTime(d.paidAt ?? d.createdAt)}</td>
                   <td className="px-4 py-3">{d.donorName ?? "Anonymous"}</td>
                   <td className="px-4 py-3">
-                    <Link href={`/admin/campaigns/${d.campaign.id}`} className="font-medium hover:text-primary hover:underline">{d.campaign.title}</Link>
-                    <Link
+                    <PermLink perm="campaigns" href={`/admin/campaigns/${d.campaign.id}`} className="font-medium hover:text-primary hover:underline">{d.campaign.title}</PermLink>
+                    <PermLink
+                      perm="kyc"
                       href={`/admin/owners/${d.campaign.owner.id}`}
                       className="mt-0.5 block text-xs text-muted-foreground hover:text-primary hover:underline"
-                      title="Open this fundraiser's KYC record"
+                      fallbackClassName="mt-0.5 block text-xs text-muted-foreground"
                     >
                       {d.campaign.owner.user.name}
-                    </Link>
+                    </PermLink>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     <span className="font-semibold">{formatETB(Number(d.amount), d.currency)}</span>

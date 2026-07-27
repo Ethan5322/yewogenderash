@@ -8,6 +8,7 @@ import { Pager, pageFrom } from "@/components/admin/pager";
 import { PageHeader, StatusChip } from "@/components/admin/ui";
 import { formatETB, formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { PermLink } from "@/components/admin/perm-link";
 
 const PAGE_SIZE = 50;
 
@@ -131,23 +132,25 @@ export default async function AdminPayoutsPage({
                       {formatDate(p.createdAt)}
                     </td>
                     <td className="px-4 py-3">
-                      <Link
+                      <PermLink
+                        perm="campaigns"
                         href={`/admin/campaigns/${p.campaign.id}`}
                         className="font-medium hover:text-primary hover:underline"
                       >
                         {p.campaign.title}
-                      </Link>
+                      </PermLink>
                       {p.note ? (
                         <p className="mt-0.5 text-xs text-muted-foreground">{p.note}</p>
                       ) : null}
                     </td>
                     <td className="px-4 py-3">
-                      <Link
+                      <PermLink
+                        perm="kyc"
                         href={`/admin/owners/${p.owner.id}`}
                         className="font-medium hover:text-primary hover:underline"
                       >
                         {p.owner.user.name}
-                      </Link>
+                      </PermLink>
                       {/* KYC at a glance — never release money to an unverified owner */}
                       <span className="mt-0.5 block">
                         <StatusChip status={p.owner.user.verificationStatus} />

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useActionState } from "react";
+import Link from "next/link";
 import {
   Loader2,
   CheckCircle2,
@@ -12,6 +13,7 @@ import {
   IdCard,
   ImagePlus,
   Fingerprint,
+  ScrollText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -303,6 +305,15 @@ export function AdminRow({
             <Button size="sm" variant="outline" onClick={() => setShowIdentity((v) => !v)}>
               <ImagePlus className="h-3.5 w-3.5" aria-hidden />
               {showIdentity ? "Hide photo & face" : "Photo & face"}
+            </Button>
+          ) : null}
+
+          {/* How the main admin reviews what a delegated admin has been doing. */}
+          {currentIsSuper ? (
+            <Button asChild size="sm" variant="outline">
+              <Link href={`/admin/audit?actor=${admin.id}`}>
+                <ScrollText className="h-3.5 w-3.5" aria-hidden /> Activity
+              </Link>
             </Button>
           ) : null}
 
