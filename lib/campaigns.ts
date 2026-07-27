@@ -258,3 +258,61 @@ export async function listRecentSupporters(
     at: d.paidAt ?? d.createdAt,
   }));
 }
+
+export type DeliveredCampaign = {
+  id: string;
+  slug: string;
+  title: string;
+  category: CampaignCategory;
+  currency: string;
+  raised: number;
+  target: number;
+  heroImageUrl: string | null;
+  completedAt: Date;
+  /** The owner's most recent update — the closest thing to an outcome report. */
+  latestUpdate: { title: string; body: string; createdAt: Date } | null;
+};
+
+/**
+ * Campaigns that finished — the answer to "did any of this actually help?".
+ *
+ * Nothing on the public site showed what happened after a campaign was funded,
+ * which is the single hardest question a first-time donor asks. Ordered by most
+ * recently completed, and carries the owner's latest update so the outcome is
+ * shown in their words rather than as a bare number.
+ */
+export async function listDeliveredCampaigns(take = 3): Promise<DeliveredCampaign[]> {
+  const rows = await db.campaign.findMany({
+    where: { status: "COMPLETED" },
+    orderBy: [{ updatedAt: "desc" }],
+    take,
+    select: {
+      id: true,
+      slug: true,
+      title: true,
+      category: true,
+      currency: true,
+      currentAmount: true,
+      targetAmount: true,
+      heroImageUrl: true,
+      updatedAt: true,
+      updates: {
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: { title: true, body: true, createdAt: true },
+      },
+    },
+  });
+  return rows.map((c) => ({
+    id: c.id,
+    slug: c.slug,
+    title: c.title,
+    category: c.category,
+    currency: c.currency,
+    raised: toNumber(c.currentAmount),
+    target: toNumber(c.targetAmount),
+    heroImageUrl: c.heroImageUrl,
+    completedAt: c.updatedAt,
+    latestUpdate: c.updates[0] ?? null,
+  }));
+}

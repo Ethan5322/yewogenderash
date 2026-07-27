@@ -10,7 +10,8 @@ import {
 } from "@/components/ui/card";
 import { CampaignCard } from "@/components/campaigns/campaign-card";
 import { HomeHero } from "@/components/site/home-hero";
-import { listPublicCampaigns } from "@/lib/campaigns";
+import { DeliveredCampaigns } from "@/components/campaigns/delivered-campaigns";
+import { listPublicCampaigns, listDeliveredCampaigns } from "@/lib/campaigns";
 import { getPlatformTotals } from "@/lib/platform-stats";
 import { getDictionary } from "@/lib/i18n";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, pageMeta } from "@/lib/seo";
@@ -29,10 +30,11 @@ export const dynamic = "force-dynamic";
 export default async function HomePage() {
   // Opens with a short statement of what the platform is, then ongoing
   // campaigns. Still no owner CTA here — that lives once, in the footer.
-  const [campaigns, dict, totals] = await Promise.all([
+  const [campaigns, dict, totals, delivered] = await Promise.all([
     listPublicCampaigns({ sort: "newest" }),
     getDictionary(),
     getPlatformTotals(),
+    listDeliveredCampaigns(),
   ]);
   const active = campaigns.slice(0, 9);
   const h = dict.home;
@@ -95,6 +97,19 @@ export default async function HomePage() {
           </div>
         )}
       </section>
+
+      {/* What happened to campaigns that finished. Hidden when there are none. */}
+      <DeliveredCampaigns
+        campaigns={delivered}
+        copy={{
+          title: h.deliveredTitle,
+          sub: h.deliveredSub,
+          raisedLabel: h.deliveredRaised,
+          completedLabel: h.deliveredCompleted,
+          viewLabel: h.deliveredView,
+          noUpdate: h.deliveredNoUpdate,
+        }}
+      />
 
       {/* Why donors can trust it (informational — no CTA) */}
       <section className="border-t bg-card">

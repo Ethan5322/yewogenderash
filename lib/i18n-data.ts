@@ -49,7 +49,7 @@ const en = {
 
   trust: {
     verified: "Verified campaigns",
-    payments: "Local & international payments",
+    payments: "telebirr, CBE Birr & cards",
     secure: "Secure checkout",
   },
 
@@ -70,6 +70,12 @@ const en = {
       "Verified causes raising funds right now — every owner is identity-checked and every payout is audited.",
     viewAll: "View all campaigns",
     empty: "No active campaigns yet — please check back soon.",
+    deliveredTitle: "Funded & delivered",
+    deliveredSub: "Campaigns that finished — and what the fundraiser told their donors happened.",
+    deliveredRaised: "Raised in total",
+    deliveredCompleted: "Completed",
+    deliveredView: "See the campaign",
+    deliveredNoUpdate: "This campaign reached its goal and has been completed.",
     trustTitle: "Built for trust, end to end",
     trustSub: "No mixed funds. No anonymous campaigns. No unverified payouts.",
     fees: {
@@ -165,7 +171,15 @@ const en = {
     isolated: "Your gift is isolated to this campaign — funds are never pooled.",
     closed:
       "This campaign is fully funded and no longer accepting donations. Thank you to everyone who contributed!",
-    secureFee: "Secure checkout · a 3% platform fee applies ·",
+    secureFee: "Secure checkout · see how fees work below ·",
+    methodsTitle: "Ways to pay",
+    methodsSub:
+      "Charged in Ethiopian birr. The options available to you are shown at checkout.",
+    methodsLocal: "telebirr · CBE Birr · Ethiopian bank transfer",
+    methodsCard: "Visa · Mastercard — works from outside Ethiopia",
+    methodsNote:
+      "Giving from abroad? Cards are accepted worldwide. Your bank converts to birr at its own rate and may add its own charge.",
+    approxNote: "Approximate only — you are charged in birr.",
   },
 
   categories: {
@@ -354,7 +368,7 @@ const am: Dict = {
 
   trust: {
     verified: "የተረጋገጡ ዘመቻዎች",
-    payments: "የአገር ውስጥና ዓለም አቀፍ ክፍያዎች",
+    payments: "ቴሌብር፣ ሲቢኢ ብር እና ካርዶች",
     secure: "ደህንነቱ የተጠበቀ ክፍያ",
   },
 
@@ -375,6 +389,12 @@ const am: Dict = {
       "አሁን ገንዘብ እያሰባሰቡ ያሉ የተረጋገጡ ዓላማዎች — የእያንዳንዱ አዘጋጅ ማንነት ተረጋግጧል፣ እያንዳንዱም ክፍያ ተመርምሯል።",
     viewAll: "ሁሉንም ዘመቻዎች ይመልከቱ",
     empty: "እስካሁን ንቁ ዘመቻ የለም — እባክዎ ቆየት ብለው እንደገና ይመልከቱ።",
+    deliveredTitle: "ተሰብስቦ ተላልፏል",
+    deliveredSub: "የተጠናቀቁ ዘመቻዎች — እና አዘጋጁ ለለጋሾቹ ምን እንደተፈጸመ የነገራቸው።",
+    deliveredRaised: "በአጠቃላይ የተሰበሰበ",
+    deliveredCompleted: "ተጠናቅቋል",
+    deliveredView: "ዘመቻውን ይመልከቱ",
+    deliveredNoUpdate: "ይህ ዘመቻ ግቡን አሳክቶ ተጠናቅቋል።",
     trustTitle: "ከመጀመሪያው እስከ መጨረሻው ለመተማመን የተገነባ",
     trustSub:
       "የተቀላቀለ ገንዘብ የለም። ማንነታቸው የማይታወቅ ዘመቻዎች የሉም። ያልተረጋገጡ ክፍያዎችም የሉም።",
@@ -468,6 +488,13 @@ const am: Dict = {
     back: "ወደ ዘመቻው ተመለስ",
     title: "ልገሳ ያድርጉ",
     isolated: "ስጦታዎ ለዚህ ዘመቻ ብቻ የተለየ ነው — ገንዘቦች ፈጽሞ አይቀላቀሉም።",
+    methodsTitle: "የመክፈያ መንገዶች",
+    methodsSub: "በኢትዮጵያ ብር ይከፈላል። ለእርስዎ የሚገኙት አማራጮች በክፍያ ገጹ ላይ ይታያሉ።",
+    methodsLocal: "ቴሌብር · ሲቢኢ ብር · የኢትዮጵያ ባንክ ዝውውር",
+    methodsCard: "ቪዛ · ማስተርካርድ — ከኢትዮጵያ ውጭም ይሠራል",
+    methodsNote:
+      "ከውጭ አገር ይለግሳሉ? ካርዶች በዓለም ዙሪያ ተቀባይነት አላቸው። ባንክዎ በራሱ የምንዛሬ ተመን ወደ ብር ይቀይራል፤ የራሱንም ክፍያ ሊጨምር ይችላል።",
+    approxNote: "ግምታዊ ብቻ — የሚከፍሉት በብር ነው።",
     closed:
       "ይህ ዘመቻ ሙሉ በሙሉ ተሸፍኗል፤ ከእንግዲህ ልገሳ አይቀበልም። ላበረከታችሁ ሁሉ እናመሰግናለን!",
     secureFee: "ደህንነቱ የተጠበቀ ክፍያ · 3% የመድረክ ክፍያ ይተገበራል ·",

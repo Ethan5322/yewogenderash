@@ -9,6 +9,8 @@ import { getPublicCampaignBySlug } from "@/lib/campaigns";
 import { formatETB, progressPercent } from "@/lib/format";
 import { getDictionary } from "@/lib/i18n";
 import { FeeDisclosure } from "@/components/site/fee-disclosure";
+import { PaymentMethods } from "@/components/donate/payment-methods";
+import { indicativeUsd } from "@/lib/currency";
 
 type Params = { params: Promise<{ slug: string }> };
 
@@ -34,6 +36,8 @@ export default async function DonatePage({ params }: Params) {
 
   const t = dict.donate;
   const pct = progressPercent(campaign.currentAmount, campaign.targetAmount);
+  // Secondary figure for donors abroad; null unless a rate is configured.
+  const raisedUsd = indicativeUsd(campaign.currentAmount);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-12">
@@ -90,6 +94,14 @@ export default async function DonatePage({ params }: Params) {
             <div className="mt-2 flex items-baseline justify-between text-sm">
               <span className="font-semibold">
                 {formatETB(campaign.currentAmount, campaign.currency)}
+                {raisedUsd ? (
+                  <span
+                    className="ml-1.5 font-normal text-white/70"
+                    title={t.approxNote}
+                  >
+                    {raisedUsd}
+                  </span>
+                ) : null}
               </span>
               <span className="text-white/80">
                 {pct}% of {formatETB(campaign.targetAmount, campaign.currency)}
@@ -117,6 +129,10 @@ export default async function DonatePage({ params }: Params) {
             <p className="text-center text-sm text-muted-foreground">{t.closed}</p>
           )}
         </div>
+        <div className="mt-4">
+          <PaymentMethods copy={t} />
+        </div>
+
         {/* Where the money goes — shown at the point of giving, where the donor
             is actually deciding, not only on the fees page. */}
         <div className="-mx-4 mt-8 sm:-mx-6">
