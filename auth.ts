@@ -32,12 +32,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const valid = await verifyPassword(parsed.data.password, user.passwordHash);
         if (!valid) return null;
 
-        // Second factor is MANDATORY for the MAIN admin: they hold every
-        // capability, including creating admins and changing fee settings, so a
-        // password alone never grants that session. Delegated (sub-)admins sign
-        // in with their password — the same standing they already have on the
-        // staff-code route, which has never required a second factor.
-        if (user.role === "ADMIN" && user.isSuperAdmin) {
+        // Second factor is MANDATORY for admins — they can only sign in through
+        // the /admin-login flow, which supplies a valid one-time code. Password
+        // alone never grants an admin session.
+        if (user.role === "ADMIN") {
           const code = typeof credentials?.code === "string" ? credentials.code : "";
           const otp = await verifyOtp(user.id, "LOGIN_2FA", code);
           if (!otp.ok) return null;
