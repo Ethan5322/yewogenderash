@@ -99,6 +99,9 @@ export function DocumentsForm() {
             label="Upload your ID document"
             file={primaryFile}
             onFileChange={setPrimaryFile}
+            /* A phone photo of an ID is several megabytes; shrink it here so the
+               upload body stays small. 2000px still resolves the ID's text. */
+            maxImageDimension={2000}
           />
 
           <Field label="Supporting document type">
@@ -115,6 +118,7 @@ export function DocumentsForm() {
             label="Upload your supporting document"
             file={supportingFile}
             onFileChange={setSupportingFile}
+            maxImageDimension={2000}
           />
         </div>
       </fieldset>

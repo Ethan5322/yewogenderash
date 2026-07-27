@@ -72,6 +72,8 @@ export default async function AdminStaffIdPage() {
               )}
             </div>
             <StaffIdentityEditor
+              personName={user.name}
+              personCode={user.adminCode}
               photoUrl={user.idPhotoUrl}
               enrolledAt={
                 user.biometricEnrolledAt ? formatDate(user.biometricEnrolledAt) : null

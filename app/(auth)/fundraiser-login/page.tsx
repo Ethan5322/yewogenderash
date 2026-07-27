@@ -24,6 +24,10 @@ function FundraiserLoginForm() {
   const [error, setError] = React.useState<string | null>(null);
   const [pending, setPending] = React.useState(false);
   const [faceDescriptor, setFaceDescriptor] = React.useState<number[] | null>(null);
+  // Mirrored into the face-scan header so the fundraiser can see which ID they
+  // are signing in with. Only the code they typed is echoed — never a name,
+  // which would confirm the code exists before they have authenticated.
+  const [code, setCode] = React.useState("");
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -69,6 +73,8 @@ function FundraiserLoginForm() {
               autoComplete="username"
               placeholder="YWD-XXXXXX"
               className="font-mono uppercase"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
               required
             />
           </div>
@@ -80,7 +86,10 @@ function FundraiserLoginForm() {
                 Option 1
               </span>
             </div>
-            <FaceScan onDescriptor={setFaceDescriptor} />
+            <FaceScan
+              onDescriptor={setFaceDescriptor}
+              personCode={code ? code.toUpperCase() : null}
+            />
             <p className="text-xs text-muted-foreground">
               Scan the face you registered with — nothing else needed.
             </p>

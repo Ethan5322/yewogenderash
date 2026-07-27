@@ -6,11 +6,8 @@ import { Button } from "@/components/ui/button";
 import { describeFace, detectLiveness } from "@/lib/face/faceapi";
 import { assessImageQuality } from "@/lib/face/quality";
 import { cameraErrorMessage } from "@/lib/image-crop";
-
-// Liveness thresholds — same values as the onboarding selfie challenge.
-const TURN_RANGE = 0.28; // left+right head-turn spread (normalised nose offset)
-const BLINK_CLOSED = 0.2; // eye-aspect ratio when the eye is shut
-const BLINK_OPEN = 0.28; // ...and re-opened
+import { createLivenessChallenge, type LivenessProgress } from "@/lib/face/liveness";
+import { LivenessGuide, LivenessSubject } from "@/components/face/liveness-guide";
 
 /**
  * Capture a live face and hand its 128-D descriptor back to the parent form.
@@ -18,30 +15,36 @@ const BLINK_OPEN = 0.28; // ...and re-opened
  * Two modes:
  *  - sign-in (default): a single frame is described and matched server-side
  *    against the enrolled template.
- *  - `requireLiveness` (enrolment): the subject must turn their head and blink
- *    before the frame is taken, so a held-up photo can never be enrolled.
+ *  - `requireLiveness` (enrolment): the subject is guided through the four-step
+ *    challenge (look ahead, turn left, turn right, blink) before the frame is
+ *    taken, so a held-up photo can never be enrolled.
  */
 export function FaceScan({
   onDescriptor,
   requireLiveness = false,
   label,
+  personName,
+  personCode,
 }: {
   onDescriptor: (descriptor: number[] | null) => void;
   requireLiveness?: boolean;
   label?: string;
+  /** Who is being captured/verified — named on screen during the scan. */
+  personName?: string;
+  personCode?: string | null;
 }) {
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const streamRef = React.useRef<MediaStream | null>(null);
   const loopRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
-  // Liveness accumulators live in a ref — the setInterval sampler would read
-  // stale values off React state.
-  const live = React.useRef({ minX: 1, maxX: -1, armed: false, turnOk: false, blinkOk: false });
+  // The challenge lives in a ref — the setInterval sampler would read stale
+  // values off React state.
+  const challenge = React.useRef(createLivenessChallenge());
 
   const [mode, setMode] = React.useState<"idle" | "camera" | "done">("idle");
   const [busy, setBusy] = React.useState(false);
-  const [turnOk, setTurnOk] = React.useState(false);
-  const [blinkOk, setBlinkOk] = React.useState(false);
-  const [prompt, setPrompt] = React.useState("Position your face in the frame");
+  const [progress, setProgress] = React.useState<LivenessProgress>(() =>
+    challenge.current.progress()
+  );
   const [error, setError] = React.useState<string | null>(null);
 
   const stop = React.useCallback(() => {
@@ -53,10 +56,8 @@ export function FaceScan({
   React.useEffect(() => () => stop(), [stop]);
 
   function resetLiveness() {
-    live.current = { minX: 1, maxX: -1, armed: false, turnOk: false, blinkOk: false };
-    setTurnOk(false);
-    setBlinkOk(false);
-    setPrompt("Position your face in the frame");
+    challenge.current.reset();
+    setProgress(challenge.current.progress());
   }
 
   async function start() {
@@ -108,40 +109,22 @@ export function FaceScan({
     return true;
   }
 
-  /** Liveness sampler (enrolment only): head turn, then a blink, then capture. */
+  /** Liveness sampler (enrolment only): guided steps, then capture. */
   async function sample() {
     const video = videoRef.current;
     if (!video || video.readyState < 2) return;
     const s = await detectLiveness(video).catch(() => null);
-    if (!s) {
-      setPrompt("Position your face in the frame");
-      return;
-    }
-    live.current.minX = Math.min(live.current.minX, s.faceX);
-    live.current.maxX = Math.max(live.current.maxX, s.faceX);
-    if (live.current.maxX - live.current.minX >= TURN_RANGE && !live.current.turnOk) {
-      live.current.turnOk = true;
-      setTurnOk(true);
-    }
-    if (s.ear < BLINK_CLOSED) live.current.armed = true;
-    if (live.current.armed && s.ear > BLINK_OPEN && !live.current.blinkOk) {
-      live.current.blinkOk = true;
-      live.current.armed = false;
-      setBlinkOk(true);
-    }
+    const next = challenge.current.feed(s);
+    setProgress(next);
+    if (!next.complete) return;
 
-    if (!live.current.turnOk) setPrompt("Slowly turn your head left, then right");
-    else if (!live.current.blinkOk) setPrompt("Great — now blink");
-    else {
-      setPrompt("Hold still…");
-      if (loopRef.current) clearInterval(loopRef.current);
-      loopRef.current = null;
-      const ok = await grab(true);
-      if (!ok) {
-        // Quality/descriptor failed — run the challenge again.
-        resetLiveness();
-        loopRef.current = setInterval(sample, 150);
-      }
+    if (loopRef.current) clearInterval(loopRef.current);
+    loopRef.current = null;
+    const ok = await grab(true);
+    if (!ok) {
+      // Quality/descriptor failed — run the challenge again.
+      resetLiveness();
+      loopRef.current = setInterval(sample, 150);
     }
   }
 
@@ -178,25 +161,18 @@ export function FaceScan({
   if (mode === "camera") {
     return (
       <div className="space-y-2">
+        <LivenessSubject
+          name={personName}
+          code={personCode}
+          purpose={requireLiveness ? "Live identity check" : "Signing in as"}
+        />
         <video
           ref={videoRef}
           playsInline
           muted
           className="mx-auto aspect-square w-40 rounded-lg bg-muted object-cover"
         />
-        {requireLiveness ? (
-          <>
-            <p className="text-center text-sm font-medium">{prompt}</p>
-            <div className="flex justify-center gap-4 text-xs">
-              <span className={turnOk ? "text-success" : "text-muted-foreground"}>
-                {turnOk ? "✓" : "○"} Head turn
-              </span>
-              <span className={blinkOk ? "text-success" : "text-muted-foreground"}>
-                {blinkOk ? "✓" : "○"} Blink
-              </span>
-            </div>
-          </>
-        ) : null}
+        {requireLiveness ? <LivenessGuide progress={progress} /> : null}
         {error ? <p className="text-center text-xs text-destructive">{error}</p> : null}
         <div className="flex justify-center gap-2">
           <Button

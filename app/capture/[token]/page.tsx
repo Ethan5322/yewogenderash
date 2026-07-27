@@ -17,7 +17,7 @@ export default async function CapturePage({
   const owner = ownerId
     ? await db.campaignOwner.findUnique({
         where: { id: ownerId },
-        select: { user: { select: { name: true } } },
+        select: { authorCode: true, user: { select: { name: true } } },
       })
     : null;
 
@@ -33,5 +33,7 @@ export default async function CapturePage({
     );
   }
 
-  return <MobileCapture token={token} name={owner.user.name} />;
+  return (
+    <MobileCapture token={token} name={owner.user.name} code={owner.authorCode} />
+  );
 }

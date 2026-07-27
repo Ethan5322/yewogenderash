@@ -169,6 +169,7 @@ export function CreateAdminForm({
               onDescriptor={setDescriptor}
               requireLiveness
               label="Capture their face biometric"
+              personName="New sub-admin"
             />
             <p className="text-xs text-muted-foreground">
               Captured live (head turn + blink). Once enrolled they can sign in
@@ -372,6 +373,8 @@ export function AdminRow({
         <div className="mt-4 border-t pt-4">
           <StaffIdentityEditor
             targetId={isSelf ? undefined : admin.id}
+            personName={admin.name}
+            personCode={admin.adminCode}
             photoUrl={admin.idPhotoUrl}
             enrolledAt={admin.biometricEnrolledAt}
             compact

@@ -24,11 +24,16 @@ export function StaffIdentityEditor({
   targetId,
   photoUrl,
   enrolledAt,
+  personName,
+  personCode,
   compact = false,
 }: {
   targetId?: string;
   photoUrl: string | null;
   enrolledAt: string | null;
+  /** Whose identity this is — named on screen during the face capture. */
+  personName?: string;
+  personCode?: string | null;
   compact?: boolean;
 }) {
   const router = useRouter();
@@ -122,6 +127,8 @@ export function StaffIdentityEditor({
           onDescriptor={onFace}
           requireLiveness
           label={enrolledAt ? "Re-capture face" : "Capture face biometric"}
+          personName={personName}
+          personCode={personCode}
         />
         <p className="text-xs text-muted-foreground">
           A live check (head turn + blink) proves a real person. Capturing again

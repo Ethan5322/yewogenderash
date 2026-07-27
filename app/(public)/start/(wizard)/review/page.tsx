@@ -113,6 +113,8 @@ export default async function ReviewStep() {
               captureToken={
                 ctx.ownerProfile ? createCaptureToken(ctx.ownerProfile.id) : undefined
               }
+              personName={ctx.name}
+              personCode={ctx.ownerProfile?.authorCode ?? null}
             />
           )}
         </div>

@@ -8,12 +8,13 @@ import { FileDropzone } from "@/components/onboarding/file-dropzone";
 import { captureBiometricAction } from "@/app/(public)/start/(wizard)/actions";
 import { describeFace, detectLiveness } from "@/lib/face/faceapi";
 import { assessImageQuality } from "@/lib/face/quality";
+import { cropToIdPortrait } from "@/lib/image-crop";
+import {
+  createLivenessChallenge,
+  type LivenessProgress,
+} from "@/lib/face/liveness";
+import { LivenessGuide, LivenessSubject } from "@/components/face/liveness-guide";
 import { realtimeClient, captureChannelName } from "@/lib/supabase/realtime";
-
-// Liveness thresholds.
-const TURN_RANGE = 0.28; // left+right head-turn spread (normalised nose offset)
-const BLINK_CLOSED = 0.2; // eye-aspect ratio when the eye is shut
-const BLINK_OPEN = 0.28; // ...and re-opened
 
 function fileToImage(file: File): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -31,20 +32,29 @@ function fileToImage(file: File): Promise<HTMLImageElement> {
   });
 }
 
-export function SelfieCapture({ captureToken }: { captureToken?: string }) {
+export function SelfieCapture({
+  captureToken,
+  personName,
+  personCode,
+}: {
+  captureToken?: string;
+  /** Who is being verified — shown on screen during the check. */
+  personName?: string;
+  personCode?: string | null;
+}) {
   const router = useRouter();
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const streamRef = React.useRef<MediaStream | null>(null);
   const loopRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
-  // Liveness accumulators live in a ref so the setInterval sampler never reads
-  // stale React state.
-  const live = React.useRef({ minX: 1, maxX: -1, armed: false, turnOk: false, blinkOk: false });
+  // The challenge lives in a ref so the setInterval sampler never reads stale
+  // React state; its progress is mirrored into state for rendering.
+  const challenge = React.useRef(createLivenessChallenge());
 
   const [mode, setMode] = React.useState<"idle" | "camera" | "captured" | "upload" | "phone">("idle");
   const [qrDataUrl, setQrDataUrl] = React.useState<string | null>(null);
-  const [turnOk, setTurnOk] = React.useState(false);
-  const [blinkOk, setBlinkOk] = React.useState(false);
-  const [prompt, setPrompt] = React.useState("Position your face in the frame");
+  const [progress, setProgress] = React.useState<LivenessProgress>(() =>
+    challenge.current.progress()
+  );
   const [captured, setCaptured] = React.useState<File | null>(null);
   const [descriptor, setDescriptor] = React.useState<number[] | null>(null);
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
@@ -69,9 +79,8 @@ export function SelfieCapture({ captureToken }: { captureToken?: string }) {
   }, [captured]);
 
   function resetLiveness() {
-    live.current = { minX: 1, maxX: -1, armed: false, turnOk: false, blinkOk: false };
-    setTurnOk(false);
-    setBlinkOk(false);
+    challenge.current.reset();
+    setProgress(challenge.current.progress());
   }
 
   async function grabFrame(): Promise<File | null> {
@@ -93,13 +102,19 @@ export function SelfieCapture({ captureToken }: { captureToken?: string }) {
       return null;
     }
     setDescriptor(desc);
-    return await new Promise<File | null>((resolve) =>
-      canvas.toBlob(
-        (b) => resolve(b ? new File([b], "selfie.jpg", { type: "image/jpeg" }) : null),
-        "image/jpeg",
-        0.92
-      )
-    );
+    // Store the ID portrait framing (face-aware 3:4, modest JPEG) rather than
+    // the raw camera frame — this photo becomes the fundraiser's ID picture.
+    try {
+      return await cropToIdPortrait(canvas);
+    } catch {
+      return await new Promise<File | null>((resolve) =>
+        canvas.toBlob(
+          (b) => resolve(b ? new File([b], "selfie.jpg", { type: "image/jpeg" }) : null),
+          "image/jpeg",
+          0.92
+        )
+      );
+    }
   }
 
   async function startCamera() {
@@ -160,42 +175,22 @@ export function SelfieCapture({ captureToken }: { captureToken?: string }) {
     const video = videoRef.current;
     if (!video || video.readyState < 2) return;
     const s = await detectLiveness(video).catch(() => null);
-    if (!s) {
-      setPrompt("Position your face in the frame");
-      return;
-    }
-    // Head-turn spread.
-    live.current.minX = Math.min(live.current.minX, s.faceX);
-    live.current.maxX = Math.max(live.current.maxX, s.faceX);
-    const spread = live.current.maxX - live.current.minX;
-    if (spread >= TURN_RANGE && !live.current.turnOk) {
-      live.current.turnOk = true;
-      setTurnOk(true);
-    }
-    // Blink: eye closes then re-opens.
-    if (s.ear < BLINK_CLOSED) live.current.armed = true;
-    if (live.current.armed && s.ear > BLINK_OPEN && !live.current.blinkOk) {
-      live.current.blinkOk = true;
-      live.current.armed = false;
-      setBlinkOk(true);
-    }
+    const next = challenge.current.feed(s);
+    setProgress(next);
+    if (!next.complete) return;
 
-    if (!live.current.turnOk) setPrompt("Slowly turn your head left, then right");
-    else if (!live.current.blinkOk) setPrompt("Great — now blink");
-    else {
-      setPrompt("Hold still…");
-      if (loopRef.current) clearInterval(loopRef.current);
-      loopRef.current = null;
-      const file = await grabFrame();
-      if (file) {
-        stopCamera();
-        setCaptured(file);
-        setMode("captured");
-      } else {
-        // Quality/descriptor failed — let them retry the challenge.
-        resetLiveness();
-        loopRef.current = setInterval(sample, 150);
-      }
+    // Every instruction satisfied — take the frame.
+    if (loopRef.current) clearInterval(loopRef.current);
+    loopRef.current = null;
+    const file = await grabFrame();
+    if (file) {
+      stopCamera();
+      setCaptured(file);
+      setMode("captured");
+    } else {
+      // Quality/descriptor failed — walk them through the challenge again.
+      resetLiveness();
+      loopRef.current = setInterval(sample, 150);
     }
   }
 
@@ -243,8 +238,12 @@ export function SelfieCapture({ captureToken }: { captureToken?: string }) {
   if (mode === "captured" && captured && previewUrl) {
     return (
       <div className="space-y-3">
+        {personName ? (
+          <LivenessSubject name={personName} code={personCode} purpose="Captured for" />
+        ) : null}
         <div className="flex items-center justify-center gap-1.5 text-sm text-success">
-          <Check className="h-4 w-4" aria-hidden /> Liveness confirmed
+          <Check className="h-4 w-4" aria-hidden /> Liveness confirmed — turn left,
+          turn right and blink all passed
         </div>
         {/* eslint-disable-next-line @next/next/no-img-element -- local capture preview */}
         <img src={previewUrl} alt="Your selfie" className="mx-auto aspect-square w-56 rounded-lg object-cover" />
@@ -274,16 +273,16 @@ export function SelfieCapture({ captureToken }: { captureToken?: string }) {
   if (mode === "camera") {
     return (
       <div className="space-y-3">
-        <video ref={videoRef} playsInline muted className="mx-auto aspect-square w-56 rounded-full border-4 border-primary/30 bg-muted object-cover" />
-        <p className="text-center text-sm font-medium">{prompt}</p>
-        <div className="flex justify-center gap-4 text-xs">
-          <span className={turnOk ? "text-success" : "text-muted-foreground"}>
-            {turnOk ? "✓" : "○"} Head turn
-          </span>
-          <span className={blinkOk ? "text-success" : "text-muted-foreground"}>
-            {blinkOk ? "✓" : "○"} Blink
-          </span>
-        </div>
+        {personName ? (
+          <LivenessSubject name={personName} code={personCode} purpose="Live identity check" />
+        ) : null}
+        <video
+          ref={videoRef}
+          playsInline
+          muted
+          className="mx-auto aspect-square w-56 rounded-full border-4 border-primary/30 bg-muted object-cover"
+        />
+        <LivenessGuide progress={progress} />
         {error ? <p className="text-center text-xs text-destructive">{error}</p> : null}
         <div className="flex justify-center">
           <Button variant="ghost" size="sm" onClick={() => { stopCamera(); setMode("idle"); }}>
@@ -303,9 +302,20 @@ export function SelfieCapture({ captureToken }: { captureToken?: string }) {
           label="Upload a clear selfie"
           accept="image/jpeg,image/png,image/webp"
           file={captured}
-          onFileChange={(f) => {
-            setCaptured(f);
+          maxImageDimension={1400}
+          onFileChange={async (f) => {
             setDescriptor(null);
+            if (!f) {
+              setCaptured(null);
+              return;
+            }
+            // Frame and shrink the chosen picture here — the full-size gallery
+            // image is never uploaded.
+            try {
+              setCaptured(await cropToIdPortrait(f));
+            } catch {
+              setCaptured(f);
+            }
           }}
         />
         {captured ? (
@@ -364,7 +374,8 @@ export function SelfieCapture({ captureToken }: { captureToken?: string }) {
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">
-        A live check confirms a real person: you&apos;ll turn your head and blink.
+        A live check confirms a real person. You&apos;ll be guided through four
+        steps: look straight ahead, turn your head left, turn right, then blink.
       </p>
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
       <div className="flex flex-wrap gap-2">

@@ -146,7 +146,10 @@ export default function AdminLoginPage() {
                   Option 1
                 </span>
               </div>
-              <FaceScan onDescriptor={setFaceDescriptor} />
+              <FaceScan
+                onDescriptor={setFaceDescriptor}
+                personCode={staffCode ? staffCode.toUpperCase() : null}
+              />
               <p className="text-xs text-muted-foreground">
                 Your enrolled face — no emailed code needed.
               </p>

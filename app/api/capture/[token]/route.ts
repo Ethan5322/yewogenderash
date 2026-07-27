@@ -17,8 +17,10 @@ const EXT: Record<string, string> = {
  * Phone → laptop biometric handoff. A phone (not logged in) uploads the live
  * selfie for an owner, authorised ONLY by the short-lived capture token in the
  * URL. Stores the selfie + face descriptor exactly like the on-computer path,
- * so the reviewer sees the same evidence. livenessPassed is false here (the
- * phone path is a no-camera fallback; the admin still reviews + face-matches).
+ * so the reviewer sees the same evidence — including the guided liveness
+ * challenge (look ahead, turn left, turn right, blink), which the phone reports
+ * back. That claim comes from an unauthenticated device, so it is recorded as
+ * evidence only; the admin still reviews and face-matches every capture.
  */
 export async function POST(
   req: Request,
@@ -62,6 +64,11 @@ export async function POST(
   if (!descriptor) {
     return NextResponse.json({ error: "No clear face detected. Retake." }, { status: 400 });
   }
+  // The phone now runs the same guided liveness challenge as the computer, and
+  // says so here. Anything other than the exact flag counts as NOT passed —
+  // this is a claim from an unauthenticated device, so it only records what the
+  // client reported; the admin still reviews and face-matches every capture.
+  const livenessPassed = form?.get("liveness") === "passed";
 
   const path = `owners/${owner.id}/selfie-${Date.now()}.${EXT[file.type]}`;
   const up = await uploadKycFile(path, new Uint8Array(await file.arrayBuffer()), file.type);
@@ -80,7 +87,7 @@ export async function POST(
       data: {
         biometricStatus: "PENDING",
         faceDescriptor: descriptor as Prisma.InputJsonValue,
-        livenessPassed: false,
+        livenessPassed,
         ...(matchScore !== undefined ? { faceMatchScore: matchScore } : {}),
       },
     }),
