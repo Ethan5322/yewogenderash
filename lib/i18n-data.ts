@@ -54,6 +54,17 @@ const en = {
   },
 
   home: {
+    hero: {
+      eyebrow: "Verified crowdfunding for Ethiopia",
+      title: "Give with confidence. Every campaign is checked.",
+      sub: "Yewogen Derash verifies the identity of every fundraiser before their campaign goes live, sends your donation to exactly one campaign, and audits every payout. You can see where your money went.",
+      browse: "Browse campaigns",
+      how: "How it works",
+      statRaised: "Raised for verified causes",
+      statDonations: "Donations delivered",
+      statCampaigns: "Campaigns published",
+      statFundraisers: "Identity-verified fundraisers",
+    },
     activeTitle: "Active campaigns",
     activeSub:
       "Verified causes raising funds right now — every owner is identity-checked and every payout is audited.",
@@ -343,6 +354,17 @@ const am: Dict = {
   },
 
   home: {
+    hero: {
+      eyebrow: "ለኢትዮጵያ የተረጋገጠ የገንዘብ ማሰባሰብ",
+      title: "በእምነት ይለግሱ። እያንዳንዱ ዘመቻ ተመርምሯል።",
+      sub: "የወገን ደራሽ የእያንዳንዱን አዘጋጅ ማንነት ዘመቻው ከመጀመሩ በፊት ያረጋግጣል፣ ልገሳዎን በትክክል ወደ አንድ ዘመቻ ብቻ ይልካል፣ እያንዳንዱንም ክፍያ ይመረምራል። ገንዘብዎ ወዴት እንደሄደ ማየት ይችላሉ።",
+      browse: "ዘመቻዎችን ይመልከቱ",
+      how: "እንዴት እንደሚሠራ",
+      statRaised: "ለተረጋገጡ ዓላማዎች የተሰበሰበ",
+      statDonations: "የተላለፉ ልገሳዎች",
+      statCampaigns: "የታተሙ ዘመቻዎች",
+      statFundraisers: "ማንነታቸው የተረጋገጠ አዘጋጆች",
+    },
     activeTitle: "ንቁ ዘመቻዎች",
     activeSub:
       "አሁን ገንዘብ እያሰባሰቡ ያሉ የተረጋገጡ ዓላማዎች — የእያንዳንዱ አዘጋጅ ማንነት ተረጋግጧል፣ እያንዳንዱም ክፍያ ተመርምሯል።",

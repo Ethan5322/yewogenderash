@@ -9,8 +9,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { CampaignCard } from "@/components/campaigns/campaign-card";
-import { FeeDisclosure } from "@/components/site/fee-disclosure";
+import { HomeHero } from "@/components/site/home-hero";
 import { listPublicCampaigns } from "@/lib/campaigns";
+import { getPlatformTotals } from "@/lib/platform-stats";
 import { getDictionary } from "@/lib/i18n";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, pageMeta } from "@/lib/seo";
 
@@ -26,10 +27,12 @@ export const metadata = pageMeta({
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  // The homepage leads with ongoing campaigns — no banner, no owner CTA.
-  const [campaigns, dict] = await Promise.all([
+  // Opens with a short statement of what the platform is, then ongoing
+  // campaigns. Still no owner CTA here — that lives once, in the footer.
+  const [campaigns, dict, totals] = await Promise.all([
     listPublicCampaigns({ sort: "newest" }),
     getDictionary(),
+    getPlatformTotals(),
   ]);
   const active = campaigns.slice(0, 9);
   const h = dict.home;
@@ -44,6 +47,9 @@ export default async function HomePage() {
 
   return (
     <div>
+      {/* What this is, and that others have already given through it. */}
+      <HomeHero copy={h.hero} totals={totals} />
+
       {/* Trust strip — reassurance before anything else */}
       <div className="border-b bg-card">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-center gap-x-8 gap-y-2 px-4 py-3 text-sm font-medium text-muted-foreground sm:flex-row sm:px-6">
@@ -63,9 +69,9 @@ export default async function HomePage() {
       <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">
+            <h2 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">
               {h.activeTitle}
-            </h1>
+            </h2>
             <p className="mt-2 max-w-2xl text-muted-foreground">{h.activeSub}</p>
           </div>
           {active.length > 0 ? (
@@ -116,9 +122,6 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
-
-      {/* Fees, stated on the front page and before anyone donates. */}
-      <FeeDisclosure copy={h.fees} />
     </div>
   );
 }

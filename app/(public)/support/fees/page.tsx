@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { PageHeader, Prose } from "@/components/site/page-header";
 import { pageMeta } from "@/lib/seo";
 import { PLATFORM_FEE_RATE, WITHHOLDING_FEE_RATE } from "@/lib/fees";
+import { FeeDisclosure } from "@/components/site/fee-disclosure";
+import { getDictionary } from "@/lib/i18n";
 
 export const metadata: Metadata = pageMeta({
   title: "Fees & payouts",
@@ -16,7 +18,8 @@ const holdPct = Math.round(WITHHOLDING_FEE_RATE * 100);
 const creditedPct = 100 - feePct;
 const receivesPct = 100 - feePct - holdPct;
 
-export default function FeesPage() {
+export default async function FeesPage() {
+  const dict = await getDictionary();
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
       <PageHeader
@@ -24,30 +27,13 @@ export default function FeesPage() {
         title="Clear fees. Audited payouts."
         description="We believe donors and owners deserve to know exactly what happens to every birr. Nothing is hidden."
       />
-      <Prose>
-        <h2>The short version</h2>
-        <p>
-          There are exactly two deductions. On every{" "}
-          <strong>ETB 100</strong> donated:
-        </p>
-        <ul>
-          <li>
-            <strong>ETB {feePct} — transaction fee</strong>, taken from the
-            donation when it is paid.
-          </li>
-          <li>
-            <strong>ETB {creditedPct} is credited to the campaign</strong> — this
-            is the balance a campaign owner sees.
-          </li>
-          <li>
-            <strong>ETB {holdPct} — safety &amp; guarantee withholding</strong>,
-            taken once per campaign when funds are withdrawn.
-          </li>
-          <li>
-            <strong>ETB {receivesPct} reaches the campaign owner.</strong>
-          </li>
-        </ul>
+      {/* The worked ETB 100 example — not on the homepage; this is the page
+          people reach when they want to know what we charge. */}
+      <div className="-mx-4 mb-10 sm:-mx-6">
+        <FeeDisclosure copy={dict.home.fees} />
+      </div>
 
+      <Prose>
         <h2>1. Transaction fee — {feePct}% of every donation</h2>
         <p>
           Charged on the gross amount each donor pays, at the moment the donation
