@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, ChevronRight, Download } from "lucide-react";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { campaignAvailableBalance, campaignWithholdingDue } from "@/lib/payouts";
@@ -55,6 +55,8 @@ export default async function OwnerPayoutsPage() {
         select: {
           id: true,
           amount: true,
+          withholdingFee: true,
+          netPaidAmount: true,
           currency: true,
           status: true,
           payoutReference: true,
@@ -212,8 +214,15 @@ export default async function OwnerPayoutsPage() {
                 <li key={p.id} className="flex items-start justify-between gap-3 py-3">
                   <div className="min-w-0">
                     <p className="text-sm font-medium">
-                      {formatETB(Number(p.amount), p.currency)} · {p.campaign.title}
+                      {formatETB(Number(p.netPaidAmount ?? p.amount), p.currency)} ·{" "}
+                      {p.campaign.title}
                     </p>
+                    {Number(p.withholdingFee) > 0 ? (
+                      <p className="text-xs text-muted-foreground">
+                        requested {formatETB(Number(p.amount), p.currency)} · withheld{" "}
+                        {formatETB(Number(p.withholdingFee), p.currency)}
+                      </p>
+                    ) : null}
                     <p className="mt-0.5 text-xs text-muted-foreground">
                       Requested {formatDate(p.createdAt)}
                       {p.paidAt ? ` · paid ${formatDate(p.paidAt)}` : ""}
@@ -230,6 +239,13 @@ export default async function OwnerPayoutsPage() {
                     {p.status === "REQUESTED" ? (
                       <CancelPayoutButton payoutId={p.id} />
                     ) : null}
+                    {/* A row on a screen is not a document — this is one. */}
+                    <a
+                      href={`/dashboard/payouts/${p.id}/receipt`}
+                      className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                    >
+                      <Download className="h-3.5 w-3.5" aria-hidden /> PDF
+                    </a>
                   </div>
                 </li>
               ))}

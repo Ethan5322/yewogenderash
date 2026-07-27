@@ -339,47 +339,55 @@ function drawSeal(
   const verified = /VERIFIED|ACTIVE|STAFF/.test(label);
   const tone = verified ? GOLD : MUTED;
 
+  // Everything scales off the radius. The seal was originally drawn at r=62 in
+  // the holder block; it now sits in the footer at roughly two-thirds that, and
+  // fixed ring offsets left the lettering cramped against the rings.
+  const k = r / 62;
+  const ringGap = 9 * k;
+  const textRadius = r - 20 * k;
+  const ringFont = `700 ${(11 * k).toFixed(1)}px ${font}`;
+
   ctx.save();
   ctx.globalAlpha = 0.95;
   ctx.strokeStyle = tone;
-  ctx.lineWidth = 2.5;
+  ctx.lineWidth = 2.5 * k;
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2);
   ctx.stroke();
-  ctx.lineWidth = 1;
+  ctx.lineWidth = Math.max(0.75, k);
   ctx.beginPath();
-  ctx.arc(cx, cy, r - 9, 0, Math.PI * 2);
+  ctx.arc(cx, cy, r - ringGap, 0, Math.PI * 2);
   ctx.stroke();
 
-  ringText(ctx, "YEWOGEN DERASH", cx, cy, r - 20, Math.PI * 0.78, Math.PI * 2.22, `700 11px ${font}`, tone);
+  ringText(ctx, "YEWOGEN DERASH", cx, cy, textRadius, Math.PI * 0.78, Math.PI * 2.22, ringFont, tone);
   ringText(
     ctx,
     label || "ISSUED",
     cx,
     cy,
-    r - 20,
+    textRadius,
     Math.PI * 0.72,
     Math.PI * 0.28,
-    `700 11px ${font}`,
+    ringFont,
     tone,
     "in"
   );
 
   // Tick (verified) or a neutral dot rule (pending).
   ctx.strokeStyle = verified ? accent : MUTED;
-  ctx.lineWidth = 5;
+  ctx.lineWidth = 5 * k;
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
   if (verified) {
     ctx.beginPath();
-    ctx.moveTo(cx - 15, cy);
-    ctx.lineTo(cx - 4, cy + 11);
-    ctx.lineTo(cx + 16, cy - 12);
+    ctx.moveTo(cx - 15 * k, cy);
+    ctx.lineTo(cx - 4 * k, cy + 11 * k);
+    ctx.lineTo(cx + 16 * k, cy - 12 * k);
     ctx.stroke();
   } else {
     ctx.beginPath();
-    ctx.moveTo(cx - 13, cy);
-    ctx.lineTo(cx + 13, cy);
+    ctx.moveTo(cx - 13 * k, cy);
+    ctx.lineTo(cx + 13 * k, cy);
     ctx.stroke();
   }
   ctx.restore();
@@ -509,10 +517,13 @@ async function drawCard(ctx: CanvasRenderingContext2D, o: IdCardData) {
 
   // ── Holder block ──────────────────────────────────────────────
   const dx = px + pw2 + 46;
-  const sealCx = W - 122;
-  const sealCy = 224;
-  const sealR = 62;
-  const dw = sealCx - sealR - dx - 26;
+  // Top-right slot beside the holder details. The QR sits here so the thing a
+  // verifier actually scans is the most prominent mark on the card; the struck
+  // seal moved down to the footer verification zone.
+  const markCx = W - 122;
+  const markCy = 224;
+  const markR = 62;
+  const dw = markCx - markR - dx - 26;
 
   ctx.fillStyle = accent;
   ctx.font = `700 10px ${font}`;
@@ -542,8 +553,27 @@ async function drawCard(ctx: CanvasRenderingContext2D, o: IdCardData) {
   ctx.font = `700 24px ${MONO}`;
   ctx.fillText(fit(ctx, o.verificationCode, boxW - 32), dx + 16, boxY + 46);
 
-  // Seal
-  drawSeal(ctx, sealCx, sealCy, sealR, o.status, accent, font);
+  // Scan-to-verify QR, in the prominent top-right slot.
+  if (o.qrUrl) {
+    const QRCode = (await import("qrcode")).default;
+    const qrData = await QRCode.toDataURL(o.qrUrl, {
+      margin: 1,
+      width: 360,
+      errorCorrectionLevel: "H",
+    });
+    const qimg = await loadImg(qrData);
+    const qSize = markR * 2;
+    const qLeft = markCx - markR;
+    const qTop = markCy - markR;
+    ctx.fillStyle = "#FFFFFF";
+    roundRectPath(ctx, qLeft - 6, qTop - 6, qSize + 12, qSize + 12, 6);
+    ctx.fill();
+    if (qimg) ctx.drawImage(qimg, qLeft, qTop, qSize, qSize);
+    ctx.fillStyle = GOLD;
+    ctx.font = `600 9px ${font}`;
+    const sw = trackedWidth(ctx, "SCAN TO VERIFY", 1.6);
+    tracked(ctx, "SCAN TO VERIFY", markCx - sw / 2, qTop + qSize + 22, 1.6);
+  }
 
   // ── Holder detail grid ────────────────────────────────────────
   const fields = (o.fields || []).filter((f) => f && f.value);
@@ -568,29 +598,19 @@ async function drawCard(ctx: CanvasRenderingContext2D, o: IdCardData) {
     });
   }
 
-  // ── Footer: the verification zone (QR + barcode) then the credit ──
+  // ── Footer: the verification zone (seal + barcode) then the credit ──
   const qz = 82;
   const qx = 56;
   const qy = FOOTER_Y + 22;
-  if (o.qrUrl) {
-    const QRCode = (await import("qrcode")).default;
-    const qrData = await QRCode.toDataURL(o.qrUrl, {
-      margin: 1,
-      width: 320,
-      errorCorrectionLevel: "H",
-    });
-    const qimg = await loadImg(qrData);
-    ctx.fillStyle = "#FFFFFF";
-    roundRectPath(ctx, qx - 5, qy - 5, qz + 10, qz + 10, 4);
-    ctx.fill();
-    if (qimg) ctx.drawImage(qimg, qx, qy, qz, qz);
-  }
+  // The struck seal now anchors the footer, where the QR used to sit.
+  drawSeal(ctx, qx + qz / 2, qy + qz / 2 + 4, qz / 2 + 8, o.status, accent, font);
 
   if (o.verificationCode) {
     const bx = qx + qz + 32;
-    const bw = 264;
-    const bh = 38;
-    const by = qy + 2;
+    // Wider and taller than before so it scans reliably off a printed card.
+    const bw = 330;
+    const bh = 50;
+    const by = qy - 2;
     ctx.fillStyle = "#FFFFFF";
     roundRectPath(ctx, bx - 7, by - 5, bw + 14, bh + 10, 4);
     ctx.fill();
