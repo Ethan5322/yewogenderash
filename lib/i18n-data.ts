@@ -61,6 +61,22 @@ const en = {
     empty: "No active campaigns yet — please check back soon.",
     trustTitle: "Built for trust, end to end",
     trustSub: "No mixed funds. No anonymous campaigns. No unverified payouts.",
+    fees: {
+      title: "What happens to your donation",
+      sub: "Our fees, stated plainly and before you give.",
+      donationLabel: "Every ETB 100 donated",
+      transactionFee: "Transaction fee",
+      transactionFeeDesc:
+        "Taken from each donation when it is paid. Covers payment processing, identity verification and fraud checks.",
+      toCampaign: "Credited to the campaign",
+      toCampaignDesc:
+        "Goes to that one campaign's own ledger — never a shared pool.",
+      withholding: "Safety & guarantee withholding",
+      withholdingDesc:
+        "Deducted when the fundraiser withdraws, once per campaign. It funds donor protection: refunds on proven fraud, and the guarantee behind every verified campaign.",
+      fundraiserReceives: "The fundraiser receives",
+      readMore: "Read the full fee terms",
+    },
     pillars: {
       verifiedOwners: "Verified owners",
       verifiedOwnersDesc:
@@ -335,6 +351,21 @@ const am: Dict = {
     trustTitle: "ከመጀመሪያው እስከ መጨረሻው ለመተማመን የተገነባ",
     trustSub:
       "የተቀላቀለ ገንዘብ የለም። ማንነታቸው የማይታወቅ ዘመቻዎች የሉም። ያልተረጋገጡ ክፍያዎችም የሉም።",
+    fees: {
+      title: "የእርስዎ ልገሳ ምን ይሆናል",
+      sub: "ክፍያዎቻችን፣ ከመስጠትዎ በፊት በግልጽ የተቀመጡ።",
+      donationLabel: "ለሚለግሱት እያንዳንዱ ETB 100",
+      transactionFee: "የግብይት ክፍያ",
+      transactionFeeDesc:
+        "ከእያንዳንዱ ልገሳ ሲከፈል ይቀነሳል። የክፍያ አገልግሎትን፣ የማንነት ማረጋገጫንና የማጭበርበር ምርመራን ይሸፍናል።",
+      toCampaign: "ለዘመቻው ገቢ የሆነ",
+      toCampaignDesc: "ወደዚያ አንድ ዘመቻ ወደራሱ መዝገብ ይገባል — ወደ ጋራ ገንዘብ ፈጽሞ አይገባም።",
+      withholding: "የደህንነትና የዋስትና ተቀናሽ",
+      withholdingDesc:
+        "አዘጋጁ ገንዘብ ሲወስድ በአንድ ዘመቻ አንድ ጊዜ ብቻ ይቀነሳል። የለጋሽ ጥበቃን ይደግፋል፦ ማጭበርበር ሲረጋገጥ ተመላሽ ገንዘብ፣ እንዲሁም ከየተረጋገጠ ዘመቻ ጀርባ ያለው ዋስትና።",
+      fundraiserReceives: "አዘጋጁ የሚቀበለው",
+      readMore: "ሙሉ የክፍያ ውሎችን ያንብቡ",
+    },
     pillars: {
       verifiedOwners: "የተረጋገጡ አዘጋጆች",
       verifiedOwnersDesc:

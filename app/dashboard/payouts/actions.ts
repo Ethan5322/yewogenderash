@@ -9,8 +9,11 @@ import { writeAudit } from "@/lib/audit";
 import {
   campaignAvailableBalance,
   evaluateWithdrawalApproval,
+  quoteWithdrawal,
 } from "@/lib/payouts";
 import { getPlatformSettings } from "@/lib/settings";
+import { formatETB } from "@/lib/format";
+import { WITHHOLDING_FEE_RATE } from "@/lib/fees";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -31,7 +34,12 @@ async function requireOwner() {
       payoutAccounts: {
         where: { isDefault: true, isVerified: true },
         take: 1,
-        select: { id: true },
+        select: {
+          id: true,
+          bankName: true,
+          accountName: true,
+          accountNumber: true,
+        },
       },
     },
   });
@@ -72,7 +80,7 @@ export async function requestPayoutAction(
   // The campaign must belong to this owner.
   const campaign = await db.campaign.findFirst({
     where: { id: parsed.data.campaignId, ownerId: owner.id },
-    select: { id: true, currency: true, status: true },
+    select: { id: true, title: true, queryCode: true, currency: true, status: true },
   });
   if (!campaign) return { ok: false, error: "Campaign not found." };
   if (campaign.status !== "ACTIVE" && campaign.status !== "COMPLETED") {
@@ -86,6 +94,11 @@ export async function requestPayoutAction(
       error: `Only ETB ${available.toLocaleString()} is available on this campaign.`,
     };
   }
+
+  // Safety & guarantee withholding: 7% of the campaign's gross, charged once.
+  // Quoted here from the server so the recorded figures are authoritative — the
+  // breakdown shown on the form is only a preview.
+  const quote = await quoteWithdrawal(campaign.id, parsed.data.amount);
 
   // Automated approval gate — conservative; most requests still reach a human.
   const decision = await evaluateWithdrawalApproval({
@@ -101,11 +114,40 @@ export async function requestPayoutAction(
       ownerId: owner.id,
       amount: parsed.data.amount,
       currency: campaign.currency,
+      withholdingFee: quote.withholding,
+      netPaidAmount: quote.net,
       payoutAccountId: account.id,
       status: decision.autoApprove ? "APPROVED" : "REQUESTED",
       autoApproved: decision.autoApprove,
       reviewReason: decision.reason,
       approvedAt: decision.autoApprove ? new Date() : null,
+    },
+  });
+
+  // Automatic report to the admin team. This lands in the admin message queue,
+  // which drives the unread badge and the alert feed, so a withdrawal request is
+  // never something an admin has to go looking for.
+  await db.message.create({
+    data: {
+      ownerId: owner.id,
+      senderUserId: owner.userId,
+      fromAdmin: false,
+      subject: `Withdrawal request — ${formatETB(quote.requested, campaign.currency)}`,
+      body: [
+        `A withdrawal has been requested and is awaiting transfer.`,
+        ``,
+        `Campaign: ${campaign.title}`,
+        `Querycode: ${campaign.queryCode}`,
+        `Requested: ${formatETB(quote.requested, campaign.currency)}`,
+        `Safety & guarantee withholding (${Math.round(WITHHOLDING_FEE_RATE * 100)}% of gross, charged once): ${formatETB(quote.withholding, campaign.currency)}`,
+        `Amount to transfer: ${formatETB(quote.net, campaign.currency)}`,
+        ``,
+        `Payout account: ${account.bankName} · ${account.accountName} · ${account.accountNumber}`,
+        ``,
+        decision.autoApprove
+          ? `Status: auto-approved (${decision.reason}) — awaiting transfer.`
+          : `Status: awaiting admin approval (${decision.reason}).`,
+      ].join("\n"),
     },
   });
 
@@ -117,6 +159,8 @@ export async function requestPayoutAction(
     detail: {
       campaignId: campaign.id,
       amount: parsed.data.amount,
+      withholdingFee: quote.withholding,
+      netPaidAmount: quote.net,
       autoApproved: decision.autoApprove,
       reason: decision.reason,
     },

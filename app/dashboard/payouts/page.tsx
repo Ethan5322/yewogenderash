@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ChevronRight } from "lucide-react";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { campaignAvailableBalance } from "@/lib/payouts";
+import { campaignAvailableBalance, campaignWithholdingDue } from "@/lib/payouts";
+import { WITHHOLDING_FEE_RATE, PLATFORM_FEE_RATE } from "@/lib/fees";
 import { listChapaBanks } from "@/lib/chapa";
 import { SiteHeader } from "@/components/site/site-header";
 import { SiteFooter } from "@/components/site/site-footer";
@@ -66,11 +67,20 @@ export default async function OwnerPayoutsPage() {
   });
   if (!owner) redirect("/start");
 
+  const withholdingRatePct = Math.round(WITHHOLDING_FEE_RATE * 100);
   const campaignsWithBalance = await Promise.all(
-    owner.campaigns.map(async (c) => ({
-      ...c,
-      available: await campaignAvailableBalance(c.id),
-    }))
+    owner.campaigns.map(async (c) => {
+      const [available, withholding] = await Promise.all([
+        campaignAvailableBalance(c.id),
+        campaignWithholdingDue(c.id),
+      ]);
+      return {
+        ...c,
+        available,
+        withholdingDue: withholding.due,
+        withholdingRatePct,
+      };
+    })
   );
   const requestable = campaignsWithBalance.filter((c) => c.available >= 100);
 
@@ -131,8 +141,55 @@ export default async function OwnerPayoutsPage() {
           </div>
         </section>
 
+        {/* Balances — each one clicks through to its full transaction statement,
+            so a fundraiser can always see exactly what the figure is made of. */}
         <section className="mt-6 rounded-xl border bg-card p-6 shadow-sm">
-          <h2 className="font-display text-base font-semibold">Request a payout</h2>
+          <h2 className="font-display text-base font-semibold">Your balances</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Each figure is what remains after the {Math.round(PLATFORM_FEE_RATE * 100)}%
+            transaction fee has been deducted from every donation — that is{" "}
+            {Math.round((1 - PLATFORM_FEE_RATE) * 100)}% of what your donors gave.
+            Tap a campaign to see every transaction.
+          </p>
+          {campaignsWithBalance.length === 0 ? (
+            <p className="mt-4 text-sm text-muted-foreground">
+              You don&apos;t have any campaigns yet.
+            </p>
+          ) : (
+            <ul className="mt-4 divide-y rounded-lg border">
+              {campaignsWithBalance.map((c) => (
+                <li key={c.id}>
+                  <Link
+                    href={`/dashboard/campaigns/${c.id}/transactions`}
+                    className="group flex items-center justify-between gap-4 p-4 transition-colors hover:bg-muted/40"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate font-medium">{c.title}</span>
+                      <span className="text-xs text-muted-foreground">
+                        View transaction statement
+                        {c.withholdingDue > 0
+                          ? ` · ${formatETB(c.withholdingDue, c.currency)} safety withholding still due`
+                          : ""}
+                      </span>
+                    </span>
+                    <span className="flex shrink-0 items-center gap-2">
+                      <span className="font-display text-lg font-bold tabular-nums text-primary">
+                        {formatETB(c.available, c.currency)}
+                      </span>
+                      <ChevronRight
+                        className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5"
+                        aria-hidden
+                      />
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section className="mt-6 rounded-xl border bg-card p-6 shadow-sm">
+          <h2 className="font-display text-base font-semibold">Withdraw funds</h2>
           {!account?.isVerified ? (
             <p className="mt-2 text-sm text-warning">
               Add a verified payout account above before requesting a payout.

@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { CampaignCard } from "@/components/campaigns/campaign-card";
+import { FeeDisclosure } from "@/components/site/fee-disclosure";
 import { listPublicCampaigns } from "@/lib/campaigns";
 import { getDictionary } from "@/lib/i18n";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, pageMeta } from "@/lib/seo";
@@ -115,6 +116,9 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Fees, stated on the front page and before anyone donates. */}
+      <FeeDisclosure copy={h.fees} />
     </div>
   );
 }

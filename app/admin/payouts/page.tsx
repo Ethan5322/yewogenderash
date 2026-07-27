@@ -47,6 +47,8 @@ export default async function AdminPayoutsPage({
     select: {
       id: true,
       amount: true,
+      withholdingFee: true,
+      netPaidAmount: true,
       currency: true,
       status: true,
       payoutReference: true,
@@ -111,7 +113,7 @@ export default async function AdminPayoutsPage({
               <th className="px-4 py-3 font-medium">Requested</th>
               <th className="px-4 py-3 font-medium">Campaign</th>
               <th className="px-4 py-3 font-medium">Owner / account</th>
-              <th className="px-4 py-3 font-medium">Amount</th>
+              <th className="px-4 py-3 font-medium">Amount to transfer</th>
               <th className="px-4 py-3 font-medium">Status</th>
               <th className="px-4 py-3 font-medium">Action</th>
             </tr>
@@ -164,8 +166,21 @@ export default async function AdminPayoutsPage({
                           : "no verified payout account"}
                       </p>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap font-semibold">
-                      {formatETB(Number(p.amount), p.currency)}
+                    {/* The figure that matters to whoever makes the transfer is
+                        the NET, after the safety & guarantee withholding. */}
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <p className="font-semibold">
+                        {formatETB(
+                          Number(p.netPaidAmount ?? p.amount),
+                          p.currency
+                        )}
+                      </p>
+                      {Number(p.withholdingFee) > 0 ? (
+                        <p className="text-xs text-muted-foreground">
+                          requested {formatETB(Number(p.amount), p.currency)} · withheld{" "}
+                          {formatETB(Number(p.withholdingFee), p.currency)}
+                        </p>
+                      ) : null}
                     </td>
                     <td className="px-4 py-3">
                       <StatusChip status={p.status} />

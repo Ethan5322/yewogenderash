@@ -415,6 +415,15 @@ model Payout {
   autoApproved      Boolean       @default(false)
   /// Snapshot of which rule decided this request, for audit.
   reviewReason      String?
+  /// Safety & guarantee withholding taken from THIS withdrawal (see
+  /// lib/fees.ts WITHHOLDING_FEE_RATE). The campaign owes 7% of its gross once;
+  /// whatever is still outstanding is charged here, so instalment withdrawals
+  /// are never double-charged. Retained by the platform.
+  withholdingFee    Decimal       @default(0) @db.Decimal(12, 2)
+  /// What is actually transferred to the fundraiser: amount − withholdingFee.
+  /// Stored rather than derived so a historical payout still reads correctly if
+  /// the rate ever changes.
+  netPaidAmount     Decimal?      @db.Decimal(12, 2)
   /// The payout account (verified bank / Chapa subaccount) funds are sent to.
   payoutAccountId   String?
   payoutAccountRef  PayoutAccount? @relation(fields: [payoutAccountId], references: [id])

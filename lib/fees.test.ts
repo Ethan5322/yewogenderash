@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { computeFeeSplit, PLATFORM_FEE_RATE } from "./fees";
+import {
+  computeFeeSplit,
+  computeWithdrawal,
+  withholdingTotalFor,
+  PLATFORM_FEE_RATE,
+  WITHHOLDING_FEE_RATE,
+} from "./fees";
 
 describe("computeFeeSplit", () => {
   it("takes 3% by default and reconciles to gross exactly", () => {
@@ -36,5 +42,78 @@ describe("computeFeeSplit", () => {
     const { fee, net } = computeFeeSplit(200, 0.05);
     expect(fee).toBe(10);
     expect(net).toBe(190);
+  });
+});
+
+describe("safety & guarantee withholding (7%)", () => {
+  it("is 7% of gross donated", () => {
+    expect(WITHHOLDING_FEE_RATE).toBe(0.07);
+    expect(withholdingTotalFor(1000)).toBe(70);
+    expect(withholdingTotalFor(0)).toBe(0);
+  });
+
+  it("rounds to birr cents", () => {
+    // 7% of 99.99 = 6.9993 -> 7.00
+    expect(withholdingTotalFor(99.99)).toBe(7);
+  });
+
+  it("takes the whole outstanding withholding from one withdrawal", () => {
+    const w = computeWithdrawal(500, 70);
+    expect(w.withholding).toBe(70);
+    expect(w.net).toBe(430);
+    expect(w.withholding + w.net).toBe(w.requested);
+  });
+
+  it("charges nothing more once the 7% has been collected", () => {
+    const second = computeWithdrawal(470, 0);
+    expect(second.withholding).toBe(0);
+    expect(second.net).toBe(470);
+  });
+
+  it("never withholds more than the amount being withdrawn", () => {
+    // Asked for 50 while 70 is still outstanding: take 50 now, 20 rolls over.
+    const w = computeWithdrawal(50, 70);
+    expect(w.withholding).toBe(50);
+    expect(w.net).toBe(0);
+  });
+
+  it("end to end, the fundraiser receives 90% of what donors gave", () => {
+    const donated = 1000;
+    const { fee, net: balance } = computeFeeSplit(donated);
+    expect(fee).toBe(30);
+    expect(balance).toBe(970); // what the fundraiser sees
+
+    // Withdraw the whole balance; the one-off 7% of GROSS comes out of it.
+    const w = computeWithdrawal(balance, withholdingTotalFor(donated));
+    expect(w.withholding).toBe(70);
+    expect(w.net).toBe(900);
+
+    // Platform keeps 3% + 7% = 10%; nothing is unaccounted for.
+    expect(fee + w.withholding + w.net).toBe(donated);
+  });
+
+  it("reconciles across instalment withdrawals", () => {
+    const donated = 1000;
+    const balance = computeFeeSplit(donated).net; // 970
+    let due = withholdingTotalFor(donated); // 70
+    let received = 0;
+
+    const first = computeWithdrawal(500, due);
+    due -= first.withholding;
+    received += first.net;
+
+    const second = computeWithdrawal(balance - first.requested, due);
+    due -= second.withholding;
+    received += second.net;
+
+    expect(first.net).toBe(430);
+    expect(second.net).toBe(470);
+    expect(received).toBe(900);
+    expect(due).toBe(0);
+  });
+
+  it("guards against negative or nonsense input", () => {
+    expect(computeWithdrawal(-10, 70)).toEqual({ requested: 0, withholding: 0, net: 0 });
+    expect(computeWithdrawal(100, -5)).toEqual({ requested: 100, withholding: 0, net: 100 });
   });
 });

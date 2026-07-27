@@ -2,6 +2,7 @@ import "server-only";
 import { db } from "@/lib/db";
 import { toNumber } from "@/lib/format";
 import { getPlatformSettings } from "@/lib/settings";
+import { computeWithdrawal, withholdingTotalFor } from "@/lib/fees";
 
 export const MIN_PAYOUT_ETB = 100;
 
@@ -175,4 +176,46 @@ export async function ownerBalanceSummary(
     available: sum((r) => r.available),
     campaigns: rows,
   };
+}
+
+/**
+ * How much of a campaign's one-off safety & guarantee withholding (7% of its
+ * gross) has yet to be charged.
+ *
+ * Counts withholding already taken on payouts that still stand — a rejected or
+ * cancelled request never collected anything, so its share becomes due again.
+ */
+export async function campaignWithholdingDue(campaignId: string): Promise<{
+  total: number;
+  charged: number;
+  due: number;
+}> {
+  const [donations, charged] = await Promise.all([
+    db.donation.aggregate({
+      where: { campaignId, status: "SUCCESS" },
+      _sum: { amount: true },
+    }),
+    db.payout.aggregate({
+      where: { campaignId, status: { in: ["REQUESTED", "APPROVED", "PAID"] } },
+      _sum: { withholdingFee: true },
+    }),
+  ]);
+  const total = withholdingTotalFor(toNumber(donations._sum.amount ?? 0));
+  const already = toNumber(charged._sum.withholdingFee ?? 0);
+  return {
+    total,
+    charged: already,
+    due: Math.max(0, Math.round((total - already) * 100) / 100),
+  };
+}
+
+/**
+ * What a fundraiser would actually receive for a given withdrawal request, and
+ * the deduction that explains the difference. Used to show the breakdown on the
+ * request form BEFORE they commit, and again when the request is recorded.
+ */
+export async function quoteWithdrawal(campaignId: string, requested: number) {
+  const { due, total, charged } = await campaignWithholdingDue(campaignId);
+  const quote = computeWithdrawal(requested, due);
+  return { ...quote, withholdingDue: due, withholdingTotal: total, withholdingCharged: charged };
 }
