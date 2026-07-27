@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { PageHeader, Prose } from "@/components/site/page-header";
 import { pageMeta } from "@/lib/seo";
 import { PLATFORM_FEE_RATE, WITHHOLDING_FEE_RATE } from "@/lib/fees";
+import { LegalLanguageNotice } from "@/components/site/legal-language-notice";
 
 export const metadata: Metadata = pageMeta({
   title: "Terms & conditions",
@@ -19,13 +20,14 @@ const holdPct = Math.round(WITHHOLDING_FEE_RATE * 100);
 const creditedPct = 100 - feePct;
 const receivesPct = 100 - feePct - holdPct;
 
-export default function TermsPage() {
+export default async function TermsPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
       <PageHeader eyebrow="Legal" title="Terms & conditions" />
       <p className="mb-8 text-sm text-muted-foreground">
         Last updated: {LAST_UPDATED}
       </p>
+      <LegalLanguageNotice />
       <Prose>
         <p>
           These Terms &amp; Conditions (the &ldquo;Terms&rdquo;) govern your

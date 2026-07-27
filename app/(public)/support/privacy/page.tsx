@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PageHeader, Prose } from "@/components/site/page-header";
 import { pageMeta } from "@/lib/seo";
+import { LegalLanguageNotice } from "@/components/site/legal-language-notice";
 
 export const metadata: Metadata = pageMeta({
   title: "Privacy policy",
@@ -11,13 +12,14 @@ export const metadata: Metadata = pageMeta({
 
 const LAST_UPDATED = "20 July 2026";
 
-export default function PrivacyPage() {
+export default async function PrivacyPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
       <PageHeader eyebrow="Legal" title="Privacy policy" />
       <p className="mb-8 text-sm text-muted-foreground">
         Last updated: {LAST_UPDATED}
       </p>
+      <LegalLanguageNotice />
       <Prose>
         <p>
           This policy explains what personal data Yewogen Derash collects, why we

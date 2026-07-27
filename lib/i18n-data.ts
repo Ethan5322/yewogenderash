@@ -47,6 +47,13 @@ const en = {
     builtBy: "Designed & built by",
   },
 
+  legal: {
+    englishOnlyTitle: "This document is available in English only",
+    englishOnlyBody:
+      "Our Terms and Privacy Policy are published in English, and the English text is the legally binding version. We have not published an Amharic translation because an inexact translation of a binding document could mislead you. If you would like any part of it explained in Amharic, contact our support team and we will walk you through it.",
+    contactLink: "Contact support",
+  },
+
   trust: {
     verified: "Verified campaigns",
     payments: "telebirr, CBE Birr & cards",
@@ -364,6 +371,13 @@ const am: Dict = {
     registerOwner: "እንደ ዘመቻ አዘጋጅ ይመዝገቡ",
     rights: "መብቱ በሕግ የተጠበቀ ነው።",
     builtBy: "ተነድፎና ተገንብቷል በ",
+  },
+
+  legal: {
+    englishOnlyTitle: "ይህ ሰነድ በእንግሊዝኛ ብቻ ይገኛል",
+    englishOnlyBody:
+      "የአገልግሎት ውሎቻችንና የግላዊነት መመሪያችን በእንግሊዝኛ የታተሙ ናቸው፤ በሕግ የሚያስገድደውም የእንግሊዝኛው ጽሑፍ ነው። ትክክል ያልሆነ ትርጉም ሊያሳስትዎ ስለሚችል የአማርኛ ትርጉም አላሳተምንም። ማንኛውንም ክፍል በአማርኛ እንዲብራራልዎ ከፈለጉ የድጋፍ ቡድናችንን ያግኙ፤ አብረን እናብራራልዎታለን።",
+    contactLink: "ድጋፍ ያግኙ",
   },
 
   trust: {
