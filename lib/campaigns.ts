@@ -211,3 +211,50 @@ export async function getCampaignUpdates(slug: string) {
     },
   });
 }
+
+export type RecentSupporter = {
+  id: string;
+  /** Masked display name, or "Anonymous". */
+  name: string;
+  amount: number;
+  currency: string;
+  at: Date;
+};
+
+/**
+ * The most recent confirmed donations to a campaign, for the public supporter
+ * feed. Seeing that other people have just given is the strongest single
+ * encouragement to give — and it is also evidence the campaign is real and
+ * active, which is the whole promise of this platform.
+ *
+ * Only SUCCESS donations, so nothing pending or failed is ever displayed as
+ * support. Names are masked to a first name and an initial, the same as in the
+ * fundraiser's own statement: a donor agreed to appear as a supporter, not to
+ * have their full identity published.
+ */
+export async function listRecentSupporters(
+  campaignId: string,
+  take = 8
+): Promise<RecentSupporter[]> {
+  const { maskDonorName } = await import("@/lib/privacy");
+  const rows = await db.donation.findMany({
+    where: { campaignId, status: "SUCCESS" },
+    orderBy: [{ paidAt: "desc" }, { createdAt: "desc" }],
+    take,
+    select: {
+      id: true,
+      amount: true,
+      currency: true,
+      donorName: true,
+      paidAt: true,
+      createdAt: true,
+    },
+  });
+  return rows.map((d) => ({
+    id: d.id,
+    name: maskDonorName(d.donorName),
+    amount: toNumber(d.amount),
+    currency: d.currency,
+    at: d.paidAt ?? d.createdAt,
+  }));
+}

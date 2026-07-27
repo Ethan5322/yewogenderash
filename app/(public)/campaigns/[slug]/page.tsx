@@ -17,7 +17,7 @@ import { ProgressBar } from "@/components/campaigns/progress-bar";
 import { MulesooStamp } from "@/components/campaigns/verified-badges";
 import { MobileDonateBar } from "@/components/campaigns/mobile-donate-bar";
 import { ShareCampaign } from "@/components/campaigns/share-campaign";
-import { getPublicCampaignBySlug, CATEGORY_LABELS } from "@/lib/campaigns";
+import { listRecentSupporters, getPublicCampaignBySlug, CATEGORY_LABELS } from "@/lib/campaigns";
 import { formatETB, progressPercent, formatDate } from "@/lib/format";
 import { getDictionary } from "@/lib/i18n";
 import { campaignJsonLd, jsonLdScript, SITE_URL } from "@/lib/seo";
@@ -57,6 +57,9 @@ export default async function CampaignDetailPage({ params }: Params) {
     getDictionary(),
   ]);
   if (!campaign) notFound();
+
+  // Needs the campaign id, so it follows the lookup rather than joining it.
+  const supporters = await listRecentSupporters(campaign.id);
 
   const t = dict.campaign;
   const pct = progressPercent(campaign.currentAmount, campaign.targetAmount);
@@ -175,6 +178,46 @@ export default async function CampaignDetailPage({ params }: Params) {
               </div>
             </div>
           ) : null}
+
+          {/* Recent supporters — social proof, and evidence the campaign is live */}
+          <div className="mt-10 border-t pt-8">
+            <h2 className="font-display text-xl font-semibold tracking-tight">
+              {t.recentSupporters}
+            </h2>
+            {supporters.length === 0 ? (
+              <p className="mt-3 text-sm text-muted-foreground">
+                {t.recentSupportersNone}
+              </p>
+            ) : (
+              <>
+                <ul className="mt-4 space-y-3">
+                  {supporters.map((sup) => (
+                    <li key={sup.id} className="flex items-center gap-3 text-sm">
+                      <span
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground"
+                        aria-hidden
+                      >
+                        {sup.name.slice(0, 1).toUpperCase()}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="font-medium">{sup.name}</span>{" "}
+                        <span className="text-muted-foreground">{t.justGave}</span>{" "}
+                        <span className="font-medium">
+                          {formatETB(sup.amount, sup.currency)}
+                        </span>
+                      </span>
+                      <span className="shrink-0 text-xs text-muted-foreground">
+                        {formatDate(sup.at)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-4 text-xs text-muted-foreground">
+                  {t.supporterPrivacy}
+                </p>
+              </>
+            )}
+          </div>
 
           {/* Updates preview */}
           <div className="mt-10 border-t pt-8">

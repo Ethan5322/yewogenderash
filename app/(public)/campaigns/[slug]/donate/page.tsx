@@ -8,6 +8,7 @@ import { DonationForm } from "@/components/donate/donation-form";
 import { getPublicCampaignBySlug } from "@/lib/campaigns";
 import { formatETB, progressPercent } from "@/lib/format";
 import { getDictionary } from "@/lib/i18n";
+import { FeeDisclosure } from "@/components/site/fee-disclosure";
 
 type Params = { params: Promise<{ slug: string }> };
 
@@ -116,6 +117,12 @@ export default async function DonatePage({ params }: Params) {
             <p className="text-center text-sm text-muted-foreground">{t.closed}</p>
           )}
         </div>
+        {/* Where the money goes — shown at the point of giving, where the donor
+            is actually deciding, not only on the fees page. */}
+        <div className="-mx-4 mt-8 sm:-mx-6">
+          <FeeDisclosure copy={dict.home.fees} />
+        </div>
+
         <p className="mt-3 text-center text-xs text-muted-foreground">
           {t.secureFee}{" "}
           <Link href="/support/fees" className="underline hover:text-foreground">

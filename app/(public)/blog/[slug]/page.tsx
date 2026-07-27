@@ -6,7 +6,11 @@ import { getPublishedPost } from "@/lib/blog";
 import { formatDate } from "@/lib/format";
 import { pageMeta } from "@/lib/seo";
 
-export const dynamic = "force-dynamic";
+// Cached and revalidated rather than rendered per request: a blog post barely
+// changes, and force-dynamic meant every visitor AND every crawler triggered a
+// fresh render plus a database query with no CDN caching. Admin edits appear
+// within the window below.
+export const revalidate = 300;
 
 export async function generateMetadata({
   params,

@@ -131,6 +131,11 @@ const en = {
     noUpdates: "No updates yet. The owner will post progress here.",
     raisedOfGoal: "raised of {goal} goal",
     supporters: "Supporters",
+    recentSupporters: "Recent supporters",
+    recentSupportersNone: "Be the first to support this campaign.",
+    justGave: "gave",
+    supporterPrivacy:
+      "Supporters are shown by first name and initial. Donate anonymously to appear as Anonymous.",
     stillNeeded: "Still needed",
     donate: "Donate securely",
     secureLine: "Secure checkout · funds isolated to this campaign",
@@ -431,6 +436,11 @@ const am: Dict = {
     noUpdates: "እስካሁን ዝማኔ የለም። አዘጋጁ የሥራውን እድገት እዚህ ላይ ይለጥፋል።",
     raisedOfGoal: "ከ{goal} ግብ ውስጥ ተሰብስቧል",
     supporters: "ደጋፊዎች",
+    recentSupporters: "የቅርብ ጊዜ ደጋፊዎች",
+    recentSupportersNone: "ይህን ዘመቻ በመደገፍ የመጀመሪያው ይሁኑ።",
+    justGave: "ለግሰዋል",
+    supporterPrivacy:
+      "ደጋፊዎች በስም መጠሪያና በመጀመሪያ ፊደል ይታያሉ። ማንነትዎ እንዳይታወቅ ከፈለጉ ስም ሳይጠቅሱ ይለግሱ።",
     stillNeeded: "ቀሪ የሚያስፈልግ",
     donate: "በደህንነት ይለግሱ",
     secureLine: "ደህንነቱ የተጠበቀ ክፍያ · ገንዘቡ ለዚህ ዘመቻ ብቻ ተለይቷል",
