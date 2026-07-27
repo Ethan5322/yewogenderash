@@ -2,11 +2,14 @@ import type { Metadata } from "next";
 import { Mail, Phone, MapPin } from "lucide-react";
 import { PageHeader } from "@/components/site/page-header";
 import { MessageForm } from "@/components/support/message-form";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta({
   title: "Contact us",
-  description: "Get in touch with the Yewogen Derash support team.",
-};
+  description:
+    "Get in touch with the Yewogen Derash support team.",
+  path: "/support/contact",
+});
 
 const CHANNELS = [
   { icon: Mail, label: "Email", value: "support@yewogenderash.com" },

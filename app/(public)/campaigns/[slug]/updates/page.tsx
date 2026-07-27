@@ -4,15 +4,20 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Megaphone } from "lucide-react";
 import { getCampaignUpdates } from "@/lib/campaigns";
 import { formatDate } from "@/lib/format";
+import { pageMeta } from "@/lib/seo";
 
 type Params = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params;
   const campaign = await getCampaignUpdates(slug);
-  return {
-    title: campaign ? `Updates · ${campaign.title}` : "Campaign not found",
-  };
+  if (!campaign) return { title: "Campaign not found", robots: { index: false, follow: false } };
+  return pageMeta({
+    title: `Updates · ${campaign.title}`,
+    description: `Progress updates posted by the owner of “${campaign.title}” on Yewogen Derash.`,
+    path: `/campaigns/${slug}/updates`,
+    type: "article",
+  });
 }
 
 export default async function CampaignUpdatesPage({ params }: Params) {

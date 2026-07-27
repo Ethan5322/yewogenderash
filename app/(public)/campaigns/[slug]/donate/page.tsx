@@ -16,6 +16,10 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const campaign = await getPublicCampaignBySlug(slug);
   return {
     title: campaign ? `Donate to ${campaign.title}` : "Campaign not found",
+    // A checkout step, not a landing page: keep it out of the index and let the
+    // campaign page be the one canonical result, but follow links out of it.
+    robots: { index: false, follow: true },
+    alternates: { canonical: `/campaigns/${slug}` },
   };
 }
 

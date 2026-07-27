@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import { PageHeader, Prose } from "@/components/site/page-header";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta({
   title: "Privacy policy",
   description:
     "How Yewogen Derash collects, uses, and protects your personal and biometric data.",
-};
+  path: "/support/privacy",
+});
 
 const LAST_UPDATED = "20 July 2026";
 

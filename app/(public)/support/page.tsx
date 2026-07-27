@@ -11,12 +11,14 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/site/page-header";
 import { getDictionary } from "@/lib/i18n";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta({
   title: "Support & legal",
   description:
     "Fees, policies, FAQs, and contact information for Yewogen Derash — transparency you can verify.",
-};
+  path: "/support",
+});
 
 const CARDS = [
   { href: "/support/fees", icon: Receipt, key: "fees" },

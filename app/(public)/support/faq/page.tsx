@@ -2,11 +2,14 @@ import type { Metadata } from "next";
 import { ChevronDown } from "lucide-react";
 import { PageHeader } from "@/components/site/page-header";
 import { getContent } from "@/lib/content";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta({
   title: "FAQ",
-  description: "Answers to common questions from donors and campaign owners.",
-};
+  description:
+    "Answers to common questions from donors and campaign owners.",
+  path: "/support/faq",
+});
 
 export default async function FaqPage() {
   const { items } = await getContent("support.faq");

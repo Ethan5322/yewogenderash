@@ -11,6 +11,15 @@ import {
 import { CampaignCard } from "@/components/campaigns/campaign-card";
 import { listPublicCampaigns } from "@/lib/campaigns";
 import { getDictionary } from "@/lib/i18n";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, pageMeta } from "@/lib/seo";
+
+// The homepage must state its own canonical — the root layout deliberately sets
+// none, so that pages can't inherit a wrong one. See lib/seo.ts pageMeta().
+export const metadata = pageMeta({
+  title: `${SITE_NAME} — ${SITE_TAGLINE}`,
+  description: SITE_DESCRIPTION,
+  path: "/",
+});
 
 // Campaign data is live — render per-request.
 export const dynamic = "force-dynamic";

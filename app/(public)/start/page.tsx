@@ -16,12 +16,14 @@ import { auth } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getDictionary } from "@/lib/i18n";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta({
   title: "Start a campaign",
   description:
     "Become a verified campaign owner on Yewogen Derash. Complete identity verification, get the Mulesoo trust seal, and raise funds transparently.",
-};
+  path: "/start",
+});
 
 const STEP_ICONS = [UserPlus, FileText, IdCard, ScanFace, ClipboardCheck, Rocket] as const;
 const REQUIREMENT_ICONS = [IdCard, ScanFace, Landmark, FileCheck2] as const;

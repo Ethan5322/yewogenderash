@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { getPublishedPost } from "@/lib/blog";
 import { formatDate } from "@/lib/format";
+import { pageMeta } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
@@ -14,8 +15,13 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const post = await getPublishedPost(slug);
-  if (!post) return { title: "Post not found" };
-  return { title: post.title, description: post.excerpt };
+  if (!post) return { title: "Post not found", robots: { index: false, follow: false } };
+  return pageMeta({
+    title: post.title,
+    description: post.excerpt,
+    path: `/blog/${slug}`,
+    type: "article",
+  });
 }
 
 export default async function BlogPostPage({

@@ -33,16 +33,18 @@ export function FooterOwnerCta({
         <p className="font-medium">{heading}</p>
         <p className="mt-0.5 text-sm text-muted-foreground">{sub}</p>
       </div>
-      <div className="flex shrink-0 gap-3">
+      {/* Full-width stacked on phones — side by side these labels wrapped to two
+          lines inside a fixed-height button and clipped. */}
+      <div className="flex w-full flex-col gap-3 sm:w-auto sm:shrink-0 sm:flex-row">
         <Link
           href="/login"
-          className="inline-flex h-9 items-center rounded-md border border-input px-4 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+          className="inline-flex h-9 items-center justify-center whitespace-nowrap rounded-md border border-input px-4 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
         >
           {signIn}
         </Link>
         <Link
           href="/start"
-          className="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+          className="inline-flex h-9 items-center justify-center whitespace-nowrap rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
         >
           {register}
         </Link>

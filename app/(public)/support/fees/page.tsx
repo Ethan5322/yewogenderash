@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import { PageHeader, Prose } from "@/components/site/page-header";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta({
   title: "Fees & payouts",
   description:
     "Transparent hosting and platform fees, and how and when campaign funds are paid out on Yewogen Derash.",
-};
+  path: "/support/fees",
+});
 
 export default function FeesPage() {
   return (

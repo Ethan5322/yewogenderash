@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import { PageHeader, Prose } from "@/components/site/page-header";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta({
   title: "Terms & conditions",
-  description: "The terms that govern use of the Yewogen Derash platform.",
-};
+  description:
+    "The terms that govern use of the Yewogen Derash platform.",
+  path: "/support/terms",
+});
 
 const LAST_UPDATED = "20 July 2026";
 

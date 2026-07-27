@@ -12,6 +12,53 @@ export const SITE_TAGLINE = "Verified Crowdfunding, Worldwide";
 export const SITE_DESCRIPTION =
   "Yewogen Derash is a secure, verified crowdfunding platform for causes worldwide. Every campaign owner passes identity and biometric verification, every donation goes to exactly one campaign via its own querycode, and every payout is audited.";
 
+/**
+ * Build a page's metadata with a CORRECT canonical URL and matching Open Graph.
+ *
+ * Why this exists: Next merges metadata shallowly per top-level field, so any
+ * page that omits `alternates` or `openGraph` silently inherits the ROOT
+ * layout's. That made every public page declare `<link rel="canonical" href="/">`
+ * — telling search engines the page is a duplicate of the homepage — and made
+ * social shares of /blog, /campaigns etc. show the generic homepage card.
+ *
+ * Always use this for a static public page instead of a bare `{ title, description }`.
+ * `path` is root-relative and must start with "/" ("/" for the homepage).
+ */
+export function pageMeta({
+  title,
+  description,
+  path,
+  type = "website",
+}: {
+  title: string;
+  description: string;
+  path: string;
+  type?: "website" | "article";
+}) {
+  const url = `${SITE_URL}${path === "/" ? "" : path}`;
+  return {
+    title,
+    description,
+    alternates: { canonical: path },
+    openGraph: {
+      type,
+      siteName: SITE_NAME,
+      url,
+      // Pages render `title` through the root template ("%s | Yewogen Derash"),
+      // but Open Graph has no template — so spell the suffix out here.
+      title: path === "/" ? title : `${title} | ${SITE_NAME}`,
+      description,
+      images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: SITE_NAME }],
+    },
+    twitter: {
+      card: "summary_large_image" as const,
+      title: path === "/" ? title : `${title} | ${SITE_NAME}`,
+      description,
+      images: ["/opengraph-image"],
+    },
+  };
+}
+
 /** Organization + WebSite JSON-LD for the whole site (helps Google + AI tools). */
 export function siteJsonLd() {
   return {

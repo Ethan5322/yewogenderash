@@ -3,12 +3,14 @@ import Link from "next/link";
 import { listPublishedPosts } from "@/lib/blog";
 import { formatDate } from "@/lib/format";
 import { getDictionary } from "@/lib/i18n";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta({
   title: "Blog",
   description:
     "Updates, guides, and stories from Yewogen Derash — how verified fundraising works worldwide.",
-};
+  path: "/blog",
+});
 
 // Public copy should reflect the latest published posts.
 export const dynamic = "force-dynamic";

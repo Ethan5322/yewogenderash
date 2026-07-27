@@ -2,12 +2,14 @@ import type { Metadata } from "next";
 import { ShieldAlert } from "lucide-react";
 import { PageHeader } from "@/components/site/page-header";
 import { MessageForm } from "@/components/support/message-form";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta({
   title: "Report a campaign",
   description:
     "Report a campaign or owner you believe is fraudulent or misleading on Yewogen Derash.",
-};
+  path: "/support/report",
+});
 
 export default function ReportPage() {
   return (

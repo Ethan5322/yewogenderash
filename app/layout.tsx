@@ -31,7 +31,11 @@ export const metadata: Metadata = {
     "global crowdfunding",
   ],
   robots: { index: true, follow: true, "max-image-preview": "large" },
-  alternates: { canonical: "/" },
+  // NOTE: deliberately no `alternates.canonical` here. Next inherits metadata
+  // per-field, so a canonical set at the root would be emitted by every page
+  // that doesn't override it — declaring each one a duplicate of the homepage.
+  // Public pages set their own via `pageMeta()` in lib/seo.ts; a page that
+  // forgets now emits none, and search engines self-canonicalize correctly.
   openGraph: {
     type: "website",
     siteName: SITE_NAME,
