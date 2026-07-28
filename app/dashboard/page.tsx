@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { DashboardNav } from "@/components/dashboard/dashboard-nav";
 import { BalanceSummary } from "@/components/dashboard/balance-summary";
 import { DashboardFooter } from "@/components/dashboard/dashboard-footer";
+import { getDictionary } from "@/lib/i18n";
 
 export const metadata = { title: "Dashboard" };
 
@@ -31,16 +32,17 @@ export default async function DashboardPage() {
     },
   });
 
+  const t = (await getDictionary()).dashboard.home;
   const status = user?.verificationStatus ?? "UNVERIFIED";
   const isOwner = status === "VERIFIED" && !!user?.ownerProfile;
   const authorCode = user?.ownerProfile?.authorCode ?? null;
   const inReview = status === "PENDING";
 
   const statusBadge = isOwner
-    ? { icon: BadgeCheck, label: "Verified owner", cls: "bg-success/15 text-success" }
+    ? { icon: BadgeCheck, label: t.verified, cls: "bg-success/15 text-success" }
     : inReview
-      ? { icon: Clock, label: "Verification in review", cls: "bg-warning/15 text-warning" }
-      : { icon: ShieldQuestion, label: "Not yet a verified owner", cls: "bg-muted text-muted-foreground" };
+      ? { icon: Clock, label: t.inReview, cls: "bg-warning/15 text-warning" }
+      : { icon: ShieldQuestion, label: t.notOwner, cls: "bg-muted text-muted-foreground" };
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -50,10 +52,10 @@ export default async function DashboardPage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="font-display text-2xl font-bold tracking-tight">
-              Welcome, {session.user.name ?? "there"}
+              {t.welcome}, {session.user.name ?? ""}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Your campaign owner workspace.
+              {t.subtitle}
             </p>
           </div>
           <span
@@ -73,19 +75,19 @@ export default async function DashboardPage() {
             <CardHeader>
               <CardTitle className="text-base">
                 {inReview
-                  ? "Your verification is being reviewed"
-                  : "Become a verified campaign owner"}
+                  ? t.reviewTitle
+                  : t.becomeTitle}
               </CardTitle>
               <CardDescription>
                 {inReview
-                  ? "Our team is reviewing your identity documents. You'll be able to create campaigns as soon as you're approved."
-                  : "To raise funds, complete identity verification — ID upload and a live face capture. Once approved, you can create campaigns with their own QR code and separated ledger."}
+                  ? t.reviewBody
+                  : t.becomeBody}
               </CardDescription>
             </CardHeader>
             {!inReview ? (
               <CardContent>
                 <Button asChild>
-                  <Link href="/start/verify">Continue owner verification</Link>
+                  <Link href="/start/verify">{t.continueVerification}</Link>
                 </Button>
               </CardContent>
             ) : null}
@@ -96,7 +98,7 @@ export default async function DashboardPage() {
         {isOwner && authorCode ? (
           <Card className="mt-8">
             <CardHeader>
-              <CardTitle className="text-base">Your Fundraiser ID</CardTitle>
+              <CardTitle className="text-base">{t.idTitle}</CardTitle>
               <CardDescription>
                 Your official corporate ID card · verification code{" "}
                 <span className="font-mono font-medium">{authorCode}</span>. Add
@@ -114,10 +116,10 @@ export default async function DashboardPage() {
                 className="rounded border bg-white p-1"
               />
               <Button asChild size="sm">
-                <Link href="/dashboard/id">Open my Fundraiser ID</Link>
+                <Link href="/dashboard/id">{t.openId}</Link>
               </Button>
               <Button asChild variant="outline" size="sm">
-                <Link href={`/a/${authorCode}`}>Public profile</Link>
+                <Link href={`/a/${authorCode}`}>{t.publicProfile}</Link>
               </Button>
             </CardContent>
           </Card>
@@ -127,38 +129,38 @@ export default async function DashboardPage() {
         <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           <DashCard
             icon={Megaphone}
-            title="My campaigns"
+            title={t.cardCampaigns}
             description={
               isOwner
-                ? "Create and manage your campaigns, QR codes, and updates."
-                : "Available once you're a verified owner."
+                ? t.cardCampaignsDesc
+                : t.cardLocked
             }
             href="/dashboard/campaigns"
-            cta="Open campaigns"
+            cta={t.openCampaigns}
             disabled={!isOwner}
           />
           <DashCard
             icon={Landmark}
-            title="Payouts"
-            description="Request and track payouts from your campaign balances."
+            title={t.cardPayouts}
+            description={t.cardPayoutsDesc}
             href="/dashboard/payouts"
-            cta="View payouts"
+            cta={t.viewPayouts}
             disabled={!isOwner}
           />
           <DashCard
             icon={MessageSquare}
-            title="Messages"
-            description="Message the Yewogen Derash team and read their notices."
+            title={t.cardMessages}
+            description={t.cardMessagesDesc}
             href="/dashboard/messages"
-            cta="Open messages"
+            cta={t.openMessages}
             disabled={false}
           />
           <DashCard
             icon={Settings}
-            title="Settings"
-            description="Notification preferences and your account details."
+            title={t.cardSettings}
+            description={t.cardSettingsDesc}
             href="/dashboard/settings"
-            cta="Open settings"
+            cta={t.openSettings}
             disabled={false}
           />
         </div>

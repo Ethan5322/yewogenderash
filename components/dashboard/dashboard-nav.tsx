@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { ownerUnreadCount } from "@/lib/messages";
+import { getDictionary } from "@/lib/i18n";
 import { DashboardNavBar, type DashboardNavItem } from "./dashboard-nav-bar";
 
 /**
@@ -19,6 +20,7 @@ export async function DashboardNav() {
   const session = await auth();
   if (!session?.user?.id) return null;
 
+  const t = (await getDictionary()).dashboard.nav;
   const user = await db.user.findUnique({
     where: { id: session.user.id },
     select: { ownerProfile: { select: { id: true } } },
@@ -27,17 +29,17 @@ export async function DashboardNav() {
   const unread = ownerId ? await ownerUnreadCount(ownerId) : 0;
 
   const items: DashboardNavItem[] = [
-    { href: "/dashboard", label: "Overview", key: "overview" },
-    { href: "/dashboard/campaigns", label: "Campaigns", key: "campaigns" },
+    { href: "/dashboard", label: t.overview, key: "overview" },
+    { href: "/dashboard/campaigns", label: t.campaigns, key: "campaigns" },
   ];
   if (ownerId) {
     items.push(
-      { href: "/dashboard/payouts", label: "Payouts", key: "payouts" },
-      { href: "/dashboard/messages", label: "Messages", key: "messages", badge: unread },
-      { href: "/dashboard/id", label: "My ID", key: "id" }
+      { href: "/dashboard/payouts", label: t.payouts, key: "payouts" },
+      { href: "/dashboard/messages", label: t.messages, key: "messages", badge: unread },
+      { href: "/dashboard/id", label: t.id, key: "id" }
     );
   }
-  items.push({ href: "/dashboard/settings", label: "Settings", key: "settings" });
+  items.push({ href: "/dashboard/settings", label: t.settings, key: "settings" });
 
   return <DashboardNavBar items={items} />;
 }
