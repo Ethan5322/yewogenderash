@@ -8,7 +8,6 @@ import { campaignAvailableBalance, campaignWithholdingDue } from "@/lib/payouts"
 import { WITHHOLDING_FEE_RATE, PLATFORM_FEE_RATE } from "@/lib/fees";
 import { listChapaBanks } from "@/lib/chapa";
 import { SiteHeader } from "@/components/site/site-header";
-import { SiteFooter } from "@/components/site/site-footer";
 import {
   PayoutRequestForm,
   CancelPayoutButton,
@@ -16,6 +15,7 @@ import {
 import { PayoutAccountForm } from "@/components/dashboard/payout-account-form";
 import { formatETB, formatDate } from "@/lib/format";
 import { DashboardNav } from "@/components/dashboard/dashboard-nav";
+import { DashboardFooter } from "@/components/dashboard/dashboard-footer";
 
 export const metadata: Metadata = { title: "Payouts" };
 
@@ -253,7 +253,7 @@ export default async function OwnerPayoutsPage() {
           )}
         </section>
       </main>
-      <SiteFooter />
+      <DashboardFooter />
     </>
   );
 }

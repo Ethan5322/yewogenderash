@@ -4,7 +4,6 @@ import { BadgeCheck, Clock, ShieldQuestion, Megaphone, Landmark, Settings, Messa
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { SiteHeader } from "@/components/site/site-header";
-import { SiteFooter } from "@/components/site/site-footer";
 import {
   Card,
   CardContent,
@@ -15,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { DashboardNav } from "@/components/dashboard/dashboard-nav";
 import { BalanceSummary } from "@/components/dashboard/balance-summary";
+import { DashboardFooter } from "@/components/dashboard/dashboard-footer";
 
 export const metadata = { title: "Dashboard" };
 
@@ -163,7 +163,7 @@ export default async function DashboardPage() {
           />
         </div>
       </main>
-      <SiteFooter />
+      <DashboardFooter />
     </div>
   );
 }

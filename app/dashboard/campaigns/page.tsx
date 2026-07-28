@@ -5,13 +5,13 @@ import { Plus, ExternalLink, QrCode, Megaphone, Download } from "lucide-react";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { SiteHeader } from "@/components/site/site-header";
-import { SiteFooter } from "@/components/site/site-footer";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/campaigns/status-badge";
 import { ProgressBar } from "@/components/campaigns/progress-bar";
 import { SubmitCampaignButton } from "@/components/campaigns/submit-campaign-button";
 import { formatETB, progressPercent, formatDate } from "@/lib/format";
 import { DashboardNav } from "@/components/dashboard/dashboard-nav";
+import { DashboardFooter } from "@/components/dashboard/dashboard-footer";
 
 export const metadata: Metadata = { title: "My campaigns" };
 
@@ -192,7 +192,7 @@ export default async function MyCampaignsPage() {
           </ul>
         )}
       </main>
-      <SiteFooter />
+      <DashboardFooter />
     </>
   );
 }

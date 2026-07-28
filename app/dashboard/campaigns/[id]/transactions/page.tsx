@@ -4,13 +4,13 @@ import { ArrowLeft, ShieldCheck, Info } from "lucide-react";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { SiteHeader } from "@/components/site/site-header";
-import { SiteFooter } from "@/components/site/site-footer";
 import { StatusChip } from "@/components/admin/ui";
 import { campaignAvailableBalance, campaignWithholdingDue } from "@/lib/payouts";
 import { PLATFORM_FEE_RATE, WITHHOLDING_FEE_RATE } from "@/lib/fees";
 import { maskDonorName, maskReference } from "@/lib/privacy";
 import { formatETB, formatDateTime, toNumber } from "@/lib/format";
 import { DashboardNav } from "@/components/dashboard/dashboard-nav";
+import { DashboardFooter } from "@/components/dashboard/dashboard-footer";
 
 export const metadata = { title: "Transaction statement" };
 
@@ -229,7 +229,7 @@ export default async function OwnerTransactionsPage({
           </p>
         </section>
       </main>
-      <SiteFooter />
+      <DashboardFooter />
     </div>
   );
 }

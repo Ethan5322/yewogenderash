@@ -17,7 +17,6 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { campaignAvailableBalance } from "@/lib/payouts";
 import { SiteHeader } from "@/components/site/site-header";
-import { SiteFooter } from "@/components/site/site-footer";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/campaigns/status-badge";
 import { ProgressBar } from "@/components/campaigns/progress-bar";
@@ -25,6 +24,7 @@ import { PostUpdateForm } from "@/components/dashboard/post-update-form";
 import { CATEGORY_LABELS } from "@/lib/campaign-types";
 import { formatETB, formatDate, progressPercent } from "@/lib/format";
 import { DashboardNav } from "@/components/dashboard/dashboard-nav";
+import { DashboardFooter } from "@/components/dashboard/dashboard-footer";
 
 export const metadata = { title: "Campaign details" };
 
@@ -358,7 +358,7 @@ export default async function OwnerCampaignDetailPage({
           </section>
         </div>
       </main>
-      <SiteFooter />
+      <DashboardFooter />
     </div>
   );
 }

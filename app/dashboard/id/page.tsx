@@ -5,11 +5,11 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { appUrl } from "@/lib/env";
 import { SiteHeader } from "@/components/site/site-header";
-import { SiteFooter } from "@/components/site/site-footer";
 import { FundraiserIdCard } from "@/components/owner/fundraiser-id-card";
 import { CopyButton } from "@/components/admin/copy-button";
 import { formatDate } from "@/lib/format";
 import { DashboardNav } from "@/components/dashboard/dashboard-nav";
+import { DashboardFooter } from "@/components/dashboard/dashboard-footer";
 
 export const metadata = { title: "My Fundraiser ID" };
 
@@ -51,7 +51,7 @@ export default async function FundraiserIdPage() {
             <Link href="/start" className="text-primary hover:underline">Get started</Link>.
           </p>
         </main>
-        <SiteFooter />
+        <DashboardFooter />
       </div>
     );
   }
@@ -174,7 +174,7 @@ export default async function FundraiserIdPage() {
           your ID any time above.
         </p>
       </main>
-      <SiteFooter />
+      <DashboardFooter />
     </div>
   );
 }

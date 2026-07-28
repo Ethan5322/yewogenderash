@@ -4,11 +4,11 @@ import { ArrowLeft } from "lucide-react";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { SiteHeader } from "@/components/site/site-header";
-import { SiteFooter } from "@/components/site/site-footer";
 import { CampaignForm } from "@/components/campaigns/campaign-form";
 import { updateCampaignAction } from "@/app/dashboard/campaigns/actions";
 import { getDictionary } from "@/lib/i18n";
 import { DashboardNav } from "@/components/dashboard/dashboard-nav";
+import { DashboardFooter } from "@/components/dashboard/dashboard-footer";
 
 export const metadata = { title: "Edit campaign" };
 
@@ -89,7 +89,7 @@ export default async function EditCampaignPage({
           </div>
         )}
       </main>
-      <SiteFooter />
+      <DashboardFooter />
     </div>
   );
 }

@@ -5,10 +5,10 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { getOwnerMessages, markOwnerThreadRead } from "@/lib/messages";
 import { SiteHeader } from "@/components/site/site-header";
-import { SiteFooter } from "@/components/site/site-footer";
 import { MessageComposer } from "@/components/dashboard/message-composer";
 import { formatDateTime } from "@/lib/format";
 import { DashboardNav } from "@/components/dashboard/dashboard-nav";
+import { DashboardFooter } from "@/components/dashboard/dashboard-footer";
 
 export const metadata = { title: "Messages" };
 
@@ -33,7 +33,7 @@ export default async function OwnerMessagesPage() {
             <Link href="/start" className="text-primary hover:underline">Get started</Link>.
           </p>
         </main>
-        <SiteFooter />
+        <DashboardFooter />
       </div>
     );
   }
@@ -110,7 +110,7 @@ export default async function OwnerMessagesPage() {
           </div>
         </section>
       </main>
-      <SiteFooter />
+      <DashboardFooter />
     </div>
   );
 }

@@ -5,10 +5,10 @@ import { ArrowLeft, BellRing } from "lucide-react";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { SiteHeader } from "@/components/site/site-header";
-import { SiteFooter } from "@/components/site/site-footer";
 import { WhatsappPrefsForm } from "@/components/dashboard/whatsapp-prefs-form";
 import { formatDate } from "@/lib/format";
 import { DashboardNav } from "@/components/dashboard/dashboard-nav";
+import { DashboardFooter } from "@/components/dashboard/dashboard-footer";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -119,7 +119,7 @@ export default async function DashboardSettingsPage() {
           </>
         )}
       </main>
-      <SiteFooter />
+      <DashboardFooter />
     </>
   );
 }

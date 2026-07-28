@@ -10,6 +10,7 @@ import { LanguageSwitcher } from "@/components/site/language-switcher";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Dict } from "@/lib/i18n";
+import { useDictContext } from "@/lib/dict-context";
 
 type HeaderUser = {
   name?: string | null;
@@ -42,7 +43,12 @@ export function SiteHeader({ user, dict }: { user?: HeaderUser; dict?: Dict }) {
     setOpen(false);
   }, [pathname]);
 
-  const t = dict?.nav ?? EN;
+  // The public layout passes the dictionary explicitly. The dashboard pages
+  // don't, but their layout wraps everything in DictProvider — so fall back to
+  // that rather than to English, otherwise a fundraiser reading the site in
+  // Amharic got an English header on every screen behind the login.
+  const ctxDict = useDictContext();
+  const t = (dict ?? ctxDict)?.nav ?? EN;
   const navLinks = [
     { href: "/campaigns", label: t.campaigns },
     { href: "/start", label: t.start },

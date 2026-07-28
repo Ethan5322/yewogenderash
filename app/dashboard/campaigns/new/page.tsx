@@ -5,9 +5,9 @@ import { ArrowLeft } from "lucide-react";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { SiteHeader } from "@/components/site/site-header";
-import { SiteFooter } from "@/components/site/site-footer";
 import { CampaignForm } from "@/components/campaigns/campaign-form";
 import { DashboardNav } from "@/components/dashboard/dashboard-nav";
+import { DashboardFooter } from "@/components/dashboard/dashboard-footer";
 
 export const metadata: Metadata = { title: "New campaign" };
 
@@ -49,7 +49,7 @@ export default async function NewCampaignPage() {
           <CampaignForm requireProof requireHero />
         </div>
       </main>
-      <SiteFooter />
+      <DashboardFooter />
     </>
   );
 }
