@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Search, ExternalLink } from "lucide-react";
 import { db } from "@/lib/db";
 import type { Prisma } from "@prisma/client";
-import { requirePermission } from "@/lib/admin/permissions";
+import { requirePermission, hasPermission } from "@/lib/admin/permissions";
 import { Pager, pageFrom } from "@/components/admin/pager";
 import { PageHeader } from "@/components/admin/ui";
 
@@ -64,7 +64,7 @@ export default async function AdminAuditPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requirePermission("audit");
+  const me = await requirePermission("audit");
   const sp = await searchParams;
   const q = (typeof sp.q === "string" ? sp.q : "").trim().slice(0, 60);
   const page = pageFrom(sp.page);
@@ -74,6 +74,36 @@ export default async function AdminAuditPage({
 
   const filters: Prisma.AuditLogWhereInput[] = [];
   if (actorId) filters.push({ actorId });
+
+  // Who this admin is allowed to read about.
+  //
+  //   main admin            → everyone
+  //   sub-admin + auditOthers → other delegated admins, and unattributed system
+  //                             entries, but NEVER the main admin's actions
+  //   sub-admin             → only their own actions
+  //
+  // Applied as an AND alongside any ?actor= filter, so a sub-admin who guesses
+  // the main admin's id simply gets an empty log rather than a way around this.
+  const canSeeOthers = hasPermission(me, "auditOthers");
+  if (!me.isSuperAdmin) {
+    if (canSeeOthers) {
+      const mainAdmins = await db.user.findMany({
+        where: { isSuperAdmin: true },
+        select: { id: true },
+      });
+      const mainAdminIds = mainAdmins.map((u) => u.id);
+      filters.push({
+        OR: [
+          { actorId: { notIn: mainAdminIds } },
+          // Unattributed (system) entries name no admin, so they are nobody's
+          // private activity — `notIn` would drop them, this keeps them.
+          { actorId: null },
+        ],
+      });
+    } else {
+      filters.push({ actorId: me.id });
+    }
+  }
   if (q) {
     filters.push({
       OR: [
@@ -86,12 +116,21 @@ export default async function AdminAuditPage({
   }
   const where: Prisma.AuditLogWhereInput = filters.length ? { AND: filters } : {};
 
-  const actor = actorId
+  const actorRow = actorId
     ? await db.user.findUnique({
         where: { id: actorId },
-        select: { name: true, email: true, adminCode: true, isSuperAdmin: true },
+        select: { id: true, name: true, email: true, adminCode: true, isSuperAdmin: true },
       })
     : null;
+  // The heading names whoever is being filtered on, so it has to obey the same
+  // rule as the rows — otherwise "Activity · <main admin>" would leak the name
+  // above an empty table.
+  const mayNameActor =
+    !actorRow ||
+    me.isSuperAdmin ||
+    actorRow.id === me.id ||
+    (canSeeOthers && !actorRow.isSuperAdmin);
+  const actor = mayNameActor ? actorRow : null;
 
   const [logs, matchCount] = await Promise.all([
     db.auditLog.findMany({
@@ -147,6 +186,16 @@ export default async function AdminAuditPage({
             View the whole log
           </Link>
         </div>
+      ) : null}
+
+      {/* Say plainly what this admin is looking at, so a short log never reads
+          as a missing one. */}
+      {!me.isSuperAdmin ? (
+        <p className="mb-4 rounded-lg border bg-muted/40 p-3 text-xs text-muted-foreground">
+          {canSeeOthers
+            ? "You can see your own activity and that of other delegated admins. The main admin's activity is not shown."
+            : "You can see your own activity. Ask the main admin if you need visibility of other admins."}
+        </p>
       ) : null}
 
       <div className="overflow-x-auto rounded-xl border bg-card shadow-sm">

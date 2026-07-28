@@ -356,7 +356,9 @@ export function AdminRow({
             status="STAFF"
             subtitle="Official Staff ID"
             roleLabel={admin.isSuperAdmin ? "Super Administrator" : "Administrator"}
-            qrUrl={siteUrl}
+            /* Scanning the card offers two ways on — sign in, or the public
+               site — rather than dropping straight onto the homepage. */
+            qrUrl={admin.adminCode ? `${siteUrl}/s/${admin.adminCode}` : siteUrl}
             photoUrl={admin.idPhotoUrl}
             approved
             showDownload

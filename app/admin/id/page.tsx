@@ -44,7 +44,9 @@ export default async function AdminStaffIdPage() {
             status="STAFF"
             subtitle="Official Staff ID"
             roleLabel={roleLabel}
-            qrUrl={appUrl()}
+            /* Scanning the card offers two ways on — sign in, or the public
+               site — rather than dropping straight onto the homepage. */
+            qrUrl={`${appUrl()}/s/${code}`}
             photoUrl={user.idPhotoUrl}
             approved
             showDownload

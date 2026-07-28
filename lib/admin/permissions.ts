@@ -16,6 +16,13 @@ export const ADMIN_PERMISSIONS = {
   content: "Site content editing",
   messages: "Fundraiser messages & notices",
   audit: "Audit log (read-only)",
+  /**
+   * Widens the audit log from "only what I did" to "what the other delegated
+   * admins did too". Never exposes the MAIN admin's actions — those are visible
+   * to the main admin alone, whoever else holds this. Granted per admin by the
+   * main admin, normally when the account is created.
+   */
+  auditOthers: "Audit log — may also see other admins' activity",
   // NOTE: there is deliberately no delegable "manage admins" capability.
   // Creating admins, granting capabilities, suspending staff and handing over
   // the main-admin role are reserved for the main admin (isSuperAdmin) and
