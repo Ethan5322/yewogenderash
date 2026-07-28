@@ -52,3 +52,7 @@ NEXT-STEPS.md
 # Note: "Yewogen Derash QR Codes/" is intentionally tracked so the codes survive
 # anywhere the repo is cloned. They encode NEXT_PUBLIC_APP_URL, so regenerate
 # them with `node scripts/make-qr.mjs` whenever that URL changes.
+
+# Playwright run artefacts — regenerated on every run, never committed.
+test-results/
+playwright-report/
