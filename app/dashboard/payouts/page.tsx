@@ -16,6 +16,7 @@ import { PayoutAccountForm } from "@/components/dashboard/payout-account-form";
 import { formatETB, formatDate } from "@/lib/format";
 import { DashboardNav } from "@/components/dashboard/dashboard-nav";
 import { DashboardFooter } from "@/components/dashboard/dashboard-footer";
+import { getDictionary } from "@/lib/i18n";
 
 export const metadata: Metadata = { title: "Payouts" };
 
@@ -69,6 +70,7 @@ export default async function OwnerPayoutsPage() {
     },
   });
   if (!owner) redirect("/start");
+  const t = (await getDictionary()).dashboard.payouts;
 
   const withholdingRatePct = Math.round(WITHHOLDING_FEE_RATE * 100);
   const campaignsWithBalance = await Promise.all(
@@ -107,37 +109,34 @@ export default async function OwnerPayoutsPage() {
           Dashboard
         </Link>
         <h1 className="mt-4 font-display text-2xl font-bold tracking-tight">
-          Payouts
+          {t.title}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Each campaign's funds stay in their own ledger. Payouts are released
-          only after admin approval, and every release is recorded.
+          {t.intro}
         </p>
 
         <section className="mt-8 rounded-xl border bg-card p-6 shadow-sm">
-          <h2 className="font-display text-base font-semibold">Payout bank account</h2>
+          <h2 className="font-display text-base font-semibold">{t.accountTitle}</h2>
           {account ? (
             <div className="mt-3 rounded-lg border bg-muted/30 p-4 text-sm">
               <p className="font-medium">
                 {account.accountName} · {account.bankName}
               </p>
               <p className="mt-0.5 text-muted-foreground">
-                Account ending {account.accountNumber.slice(-4)}
+                {t.accountEnding} {account.accountNumber.slice(-4)}
                 {account.isVerified ? (
-                  <span className="ml-2 text-success">✓ verified</span>
+                  <span className="ml-2 text-success">✓ {t.accountVerified}</span>
                 ) : (
-                  <span className="ml-2 text-warning">pending verification</span>
+                  <span className="ml-2 text-warning">{t.accountPending}</span>
                 )}
               </p>
               <p className="mt-2 text-xs text-muted-foreground">
-                Donations to your campaigns settle here automatically, after the
-                3% platform fee. Add a new account below to replace it.
+                {t.accountNote}
               </p>
             </div>
           ) : (
             <p className="mt-2 text-sm text-muted-foreground">
-              Add a verified bank account so donations can settle to you. The
-              platform fee (3%) is taken automatically at payment time.
+              {t.accountNone}
             </p>
           )}
           <div className="mt-4">
@@ -148,16 +147,16 @@ export default async function OwnerPayoutsPage() {
         {/* Balances — each one clicks through to its full transaction statement,
             so a fundraiser can always see exactly what the figure is made of. */}
         <section className="mt-6 rounded-xl border bg-card p-6 shadow-sm">
-          <h2 className="font-display text-base font-semibold">Your balances</h2>
+          <h2 className="font-display text-base font-semibold">{t.balancesTitle}</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Each figure is what remains after the {Math.round(PLATFORM_FEE_RATE * 100)}%
             transaction fee has been deducted from every donation — that is{" "}
             {Math.round((1 - PLATFORM_FEE_RATE) * 100)}% of what your donors gave.
-            Tap a campaign to see every transaction.
+            {t.balancesIntro}
           </p>
           {campaignsWithBalance.length === 0 ? (
             <p className="mt-4 text-sm text-muted-foreground">
-              You don&apos;t have any campaigns yet.
+              {t.noCampaigns}
             </p>
           ) : (
             <ul className="mt-4 divide-y rounded-lg border">
@@ -170,9 +169,9 @@ export default async function OwnerPayoutsPage() {
                     <span className="min-w-0">
                       <span className="block truncate font-medium">{c.title}</span>
                       <span className="text-xs text-muted-foreground">
-                        View transaction statement
+                        {t.viewStatement}
                         {c.withholdingDue > 0
-                          ? ` · ${formatETB(c.withholdingDue, c.currency)} safety withholding still due`
+                          ? ` · ${formatETB(c.withholdingDue, c.currency)} ${t.withholdingDue}`
                           : ""}
                       </span>
                     </span>
@@ -193,10 +192,10 @@ export default async function OwnerPayoutsPage() {
         </section>
 
         <section className="mt-6 rounded-xl border bg-card p-6 shadow-sm">
-          <h2 className="font-display text-base font-semibold">Withdraw funds</h2>
+          <h2 className="font-display text-base font-semibold">{t.withdrawTitle}</h2>
           {!account?.isVerified ? (
             <p className="mt-2 text-sm text-warning">
-              Add a verified payout account above before requesting a payout.
+              {t.needAccount}
             </p>
           ) : null}
           <div className="mt-4">
@@ -205,9 +204,9 @@ export default async function OwnerPayoutsPage() {
         </section>
 
         <section className="mt-6 rounded-xl border bg-card p-6 shadow-sm">
-          <h2 className="font-display text-base font-semibold">Payout history</h2>
+          <h2 className="font-display text-base font-semibold">{t.historyTitle}</h2>
           {owner.payouts.length === 0 ? (
-            <p className="mt-3 text-sm text-muted-foreground">No payouts yet.</p>
+            <p className="mt-3 text-sm text-muted-foreground">{t.noPayouts}</p>
           ) : (
             <ul className="mt-3 divide-y">
               {owner.payouts.map((p) => (

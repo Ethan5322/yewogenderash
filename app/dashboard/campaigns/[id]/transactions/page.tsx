@@ -11,6 +11,7 @@ import { maskDonorName, maskReference } from "@/lib/privacy";
 import { formatETB, formatDateTime, toNumber } from "@/lib/format";
 import { DashboardNav } from "@/components/dashboard/dashboard-nav";
 import { DashboardFooter } from "@/components/dashboard/dashboard-footer";
+import { getDictionary } from "@/lib/i18n";
 
 export const metadata = { title: "Transaction statement" };
 
@@ -64,6 +65,7 @@ export default async function OwnerTransactionsPage({
     },
   });
   if (!campaign) notFound();
+  const t = (await getDictionary()).dashboard.statement;
 
   const [available, withholding] = await Promise.all([
     campaignAvailableBalance(campaign.id),
@@ -85,10 +87,10 @@ export default async function OwnerTransactionsPage({
           href="/dashboard/payouts"
           className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
         >
-          <ArrowLeft className="h-4 w-4" aria-hidden /> Payouts
+          <ArrowLeft className="h-4 w-4" aria-hidden /> {t.backToPayouts}
         </Link>
         <h1 className="mt-4 font-display text-2xl font-bold tracking-tight">
-          Transaction statement
+          {t.title}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {campaign.title} · querycode{" "}
@@ -97,34 +99,34 @@ export default async function OwnerTransactionsPage({
 
         {/* How the balance is built up */}
         <section className="mt-6 rounded-xl border bg-card p-6 shadow-sm">
-          <h2 className="font-display text-base font-semibold">How your balance is calculated</h2>
+          <h2 className="font-display text-base font-semibold">{t.howTitle}</h2>
           <dl className="mt-4 space-y-2 text-sm">
             <div className="flex items-center justify-between gap-4">
               <dt className="text-muted-foreground">
-                Total donated by {settled.length} {settled.length === 1 ? "donor" : "donors"}
+                {t.totalDonated} {settled.length} {settled.length === 1 ? t.donor : t.donors}
               </dt>
               <dd className="font-medium tabular-nums">{formatETB(gross, cur)}</dd>
             </div>
             <div className="flex items-center justify-between gap-4">
               <dt className="text-muted-foreground">
-                Transaction fee ({pct(PLATFORM_FEE_RATE)} of each donation)
+                {t.transactionFee} ({pct(PLATFORM_FEE_RATE)} {t.ofEachDonation})
               </dt>
               <dd className="tabular-nums text-destructive">− {formatETB(fees, cur)}</dd>
             </div>
             <div className="flex items-center justify-between gap-4 border-t pt-2">
               <dt className="font-medium">
-                Credited to your campaign ({pct(1 - PLATFORM_FEE_RATE)})
+                {t.creditedTo} ({pct(1 - PLATFORM_FEE_RATE)})
               </dt>
               <dd className="font-semibold tabular-nums">{formatETB(credited, cur)}</dd>
             </div>
             <div className="flex items-center justify-between gap-4">
-              <dt className="text-muted-foreground">Already withdrawn or reserved</dt>
+              <dt className="text-muted-foreground">{t.alreadyTaken}</dt>
               <dd className="tabular-nums text-muted-foreground">
                 − {formatETB(Math.max(0, credited - available), cur)}
               </dd>
             </div>
             <div className="flex items-center justify-between gap-4 border-t pt-2">
-              <dt className="font-semibold">Available to withdraw now</dt>
+              <dt className="font-semibold">{t.availableNow}</dt>
               <dd className="font-display text-lg font-bold tabular-nums text-primary">
                 {formatETB(available, cur)}
               </dd>
@@ -158,30 +160,30 @@ export default async function OwnerTransactionsPage({
         {/* Per-donation detail */}
         <section className="mt-6 rounded-xl border bg-card shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b p-4">
-            <h2 className="font-display text-base font-semibold">Every transaction</h2>
+            <h2 className="font-display text-base font-semibold">{t.everyTransaction}</h2>
             <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
               <ShieldCheck className="h-3.5 w-3.5 text-success" aria-hidden />
-              Donor identities are protected
+              {t.protected}
             </span>
           </div>
           {campaign.donations.length === 0 ? (
             <p className="p-6 text-sm text-muted-foreground">
-              No donations yet. Share your campaign link to start receiving support.
+              {t.noneYet}
             </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[680px] text-sm">
                 <thead>
                   <tr className="border-b bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                    <th className="px-4 py-3 font-medium">Date</th>
-                    <th className="px-4 py-3 font-medium">Donor</th>
-                    <th className="px-4 py-3 font-medium">Reference</th>
-                    <th className="px-4 py-3 text-right font-medium">Donated</th>
+                    <th className="px-4 py-3 font-medium">{t.colDate}</th>
+                    <th className="px-4 py-3 font-medium">{t.colDonor}</th>
+                    <th className="px-4 py-3 font-medium">{t.colRef}</th>
+                    <th className="px-4 py-3 text-right font-medium">{t.colDonated}</th>
                     <th className="px-4 py-3 text-right font-medium">
-                      Fee ({pct(PLATFORM_FEE_RATE)})
+                      {t.colFee} ({pct(PLATFORM_FEE_RATE)})
                     </th>
-                    <th className="px-4 py-3 text-right font-medium">Credited</th>
-                    <th className="px-4 py-3 font-medium">Status</th>
+                    <th className="px-4 py-3 text-right font-medium">{t.colCredited}</th>
+                    <th className="px-4 py-3 font-medium">{t.colStatus}</th>
                   </tr>
                 </thead>
                 <tbody>

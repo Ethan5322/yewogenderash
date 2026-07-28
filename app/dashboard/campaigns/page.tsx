@@ -12,6 +12,7 @@ import { SubmitCampaignButton } from "@/components/campaigns/submit-campaign-but
 import { formatETB, progressPercent, formatDate } from "@/lib/format";
 import { DashboardNav } from "@/components/dashboard/dashboard-nav";
 import { DashboardFooter } from "@/components/dashboard/dashboard-footer";
+import { getDictionary } from "@/lib/i18n";
 
 export const metadata: Metadata = { title: "My campaigns" };
 
@@ -48,6 +49,7 @@ export default async function MyCampaignsPage() {
 
   const isVerified = user.verificationStatus === "VERIFIED" && !!user.ownerProfile;
   const campaigns = user.ownerProfile?.campaigns ?? [];
+  const t = (await getDictionary()).dashboard.campaigns;
 
   return (
     <>
@@ -57,10 +59,10 @@ export default async function MyCampaignsPage() {
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="font-display text-2xl font-bold tracking-tight">
-              My campaigns
+              {t.title}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Only you and platform administrators can see this list.
+              {t.intro}
             </p>
           </div>
           {isVerified ? (
@@ -82,7 +84,7 @@ export default async function MyCampaignsPage() {
               owner verification to get started.
             </p>
             <Button asChild className="mt-6">
-              <Link href="/start">Begin verification</Link>
+              <Link href="/start">{t.beginVerification}</Link>
             </Button>
           </div>
         ) : campaigns.length === 0 ? (
@@ -149,7 +151,7 @@ export default async function MyCampaignsPage() {
 
                   {c.status === "REJECTED" && c.reviewNote ? (
                     <p className="mt-3 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm">
-                      <span className="font-medium">Reviewer note:</span>{" "}
+                      <span className="font-medium">{t.reviewerNote}</span>{" "}
                       {c.reviewNote}
                     </p>
                   ) : null}

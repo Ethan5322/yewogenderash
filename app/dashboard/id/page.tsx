@@ -10,6 +10,7 @@ import { CopyButton } from "@/components/admin/copy-button";
 import { formatDate } from "@/lib/format";
 import { DashboardNav } from "@/components/dashboard/dashboard-nav";
 import { DashboardFooter } from "@/components/dashboard/dashboard-footer";
+import { getDictionary } from "@/lib/i18n";
 
 export const metadata = { title: "My Fundraiser ID" };
 
@@ -64,6 +65,7 @@ export default async function FundraiserIdPage() {
   // The ID unlocks only once the owner has a campaign — its querycode lives on
   // the card, so scanning it opens that campaign's donor page.
   const approved = verified && !!campaign;
+  const t = (await getDictionary()).dashboard.idPage;
   const code = owner.authorCode ?? "PENDING-REVIEW";
   const donateUrl = campaign ? `${appUrl()}/q/${campaign.queryCode}` : undefined;
 
@@ -76,7 +78,7 @@ export default async function FundraiserIdPage() {
           <ArrowLeft className="h-4 w-4" aria-hidden /> Dashboard
         </Link>
         <h1 className="mt-4 font-display text-2xl font-bold tracking-tight">
-          My Fundraiser ID
+          {t.title}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Your official verification card carries your campaign&apos;s querycode —

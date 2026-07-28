@@ -9,6 +9,7 @@ import { WhatsappPrefsForm } from "@/components/dashboard/whatsapp-prefs-form";
 import { formatDate } from "@/lib/format";
 import { DashboardNav } from "@/components/dashboard/dashboard-nav";
 import { DashboardFooter } from "@/components/dashboard/dashboard-footer";
+import { getDictionary } from "@/lib/i18n";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -37,6 +38,8 @@ export default async function DashboardSettingsPage() {
     },
   });
 
+  const t = (await getDictionary()).dashboard.settings;
+
   return (
     <>
       <SiteHeader user={session.user} />
@@ -50,7 +53,7 @@ export default async function DashboardSettingsPage() {
           Dashboard
         </Link>
         <h1 className="mt-4 font-display text-2xl font-bold tracking-tight">
-          Settings
+          {t.title}
         </h1>
 
         {!owner ? (

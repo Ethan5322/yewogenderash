@@ -9,6 +9,7 @@ import { MessageComposer } from "@/components/dashboard/message-composer";
 import { formatDateTime } from "@/lib/format";
 import { DashboardNav } from "@/components/dashboard/dashboard-nav";
 import { DashboardFooter } from "@/components/dashboard/dashboard-footer";
+import { getDictionary } from "@/lib/i18n";
 
 export const metadata = { title: "Messages" };
 
@@ -20,6 +21,8 @@ export default async function OwnerMessagesPage() {
     where: { userId: session.user.id },
     select: { id: true },
   });
+
+  const t = (await getDictionary()).dashboard.messages;
 
   if (!owner) {
     return (
@@ -52,9 +55,9 @@ export default async function OwnerMessagesPage() {
         <Link href="/dashboard" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4" aria-hidden /> Dashboard
         </Link>
-        <h1 className="mt-4 font-display text-2xl font-bold tracking-tight">Messages</h1>
+        <h1 className="mt-4 font-display text-2xl font-bold tracking-tight">{t.title}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Reach the Yewogen Derash team directly. Replies appear here.
+          {t.intro}
         </p>
 
         {/* Broadcast notices */}
