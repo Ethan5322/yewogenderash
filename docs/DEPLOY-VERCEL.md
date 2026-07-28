@@ -31,6 +31,11 @@ The full list (14 required vars): `NEXT_PUBLIC_APP_URL`, `DATABASE_URL`,
   intend to keep it current**: nothing is displayed when it is unset, which is
   the safe state — a stale rate printed next to a real amount of money is worse
   than no conversion at all. Revisit it whenever the rate moves materially.
+- `CSP_ENFORCE` — leave unset at first. The Content-Security-Policy ships in
+  report-only mode, so the browser reports what it would have blocked without
+  blocking anything. Load the site, open the browser console, and confirm there
+  are no CSP violations; only then set it to `1` to enforce. Anything reported
+  in report-only WILL break once enforced.
 - `FACE_SERVICE_URL` / `FACE_API_KEY` — the InsightFace comparison service. Unset
   means face matching falls back to the in-browser engine.
 
