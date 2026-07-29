@@ -189,6 +189,8 @@ model User {
   otpCodes     OtpCode[]
   auditLogs    AuditLog[]     @relation("AuditActor")
   blogPosts    BlogPost[]
+  staffMessagesSent     StaffMessage[] @relation("StaffMessageSender")
+  staffMessagesReceived StaffMessage[] @relation("StaffMessageRecipient")
 
   @@map("yd_users")
 }
@@ -474,6 +476,33 @@ model Notification {
 // ── Governance ───────────────────────────────────────────────────
 
 /// Append-only log of every admin action (and security-relevant user events).
+/// Internal staff line: a private one-to-one message between two admins.
+///
+/// Deliberately NOT the `Message` model. That one hangs off CampaignOwner and is
+/// the fundraiser line, gated behind the `messages` capability. This one is
+/// between staff, carries no owner, and is open to EVERY admin regardless of
+/// their capability map — a sub-admin who only holds `kyc` must still be able to
+/// answer the main admin. Keeping them as separate tables is what stops one
+/// line's permissions or read state leaking into the other.
+model StaffMessage {
+  id          String    @id @default(cuid())
+  senderId    String
+  sender      User      @relation("StaffMessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  recipientId String
+  recipient   User      @relation("StaffMessageRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  body        String
+  /// Null until the recipient opens the thread. Read state belongs to the
+  /// recipient only — the sender's own message is never "unread" to them.
+  readAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  /// Unread badge: "messages to me I have not read".
+  @@index([recipientId, readAt])
+  /// Thread fetch: both directions between one pair, in order.
+  @@index([senderId, recipientId, createdAt])
+  @@map("yd_staff_messages")
+}
+
 model AuditLog {
   id         String   @id @default(cuid())
   actorId    String?

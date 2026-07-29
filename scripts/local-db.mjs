@@ -11,7 +11,7 @@
  * Connection string it prints:
  *   postgresql://postgres:localdev@127.0.0.1:<port>/yewogen?schema=yewogen
  */
-import { mkdtempSync, readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -33,15 +33,45 @@ async function main() {
   console.log(`[local-db] initialising cluster in ${dataDir} ...`);
   await pg.initialise();
   await pg.start();
-  await pg.createDatabase("yewogen");
+
+  // Create the database as UTF8 explicitly, rather than pg.createDatabase(),
+  // which inherits the cluster's locale. initdb takes that locale from Windows
+  // — here "English_South Africa.1252" — and the resulting WIN1252 database
+  // rejects the migrations outright: they carry box-drawing characters and
+  // Amharic in their comments, and 0001 failed on the first "═" it met.
+  // TEMPLATE template0 is required to change encoding away from the template's.
+  const admin = pg.getPgClient();
+  await admin.connect();
+  await admin.query(
+    `CREATE DATABASE yewogen ENCODING 'UTF8' LC_COLLATE 'C' LC_CTYPE 'C' TEMPLATE template0`
+  );
+  await admin.end();
 
   const client = pg.getPgClient("yewogen");
   await client.connect();
-  const ddl = readFileSync(
-    join(root, "supabase", "migrations", "0001_yd_create_core.sql"),
-    "utf8"
-  );
-  await client.query(ddl);
+
+  // Apply EVERY migration in order, not just the core one. This used to load
+  // 0001 alone, which quietly left the dev database seventeen migrations behind
+  // the real one — code that queried anything added later failed locally in a
+  // way that looked like a bug in the code rather than a missing table.
+  //
+  // The `_yd_` in the pattern is what skips 0002-0007_combined_paste-into-
+  // supabase.sql: that file is a convenience bundle for pasting into the
+  // Supabase console and re-applies migrations already in this list.
+  const dir = join(root, "supabase", "migrations");
+  const files = readdirSync(dir)
+    .filter((f) => /^\d{4}_yd_.*\.sql$/.test(f))
+    .sort();
+
+  for (const file of files) {
+    try {
+      await client.query(readFileSync(join(dir, file), "utf8"));
+      console.log(`[local-db] applied ${file}`);
+    } catch (err) {
+      console.error(`[local-db] FAILED on ${file}:`, err.message);
+      throw err;
+    }
+  }
   await client.end();
 
   const url = `postgresql://postgres:localdev@127.0.0.1:${PORT}/yewogen`;

@@ -5,6 +5,7 @@ import {
 } from "@/lib/admin/permissions";
 import { db } from "@/lib/db";
 import { adminUnreadTotal } from "@/lib/messages";
+import { staffUnreadTotal } from "@/lib/admin/staffMessages";
 import {
   AdminShell,
   type AdminNavGroup,
@@ -29,6 +30,11 @@ const NAV_GROUPS: GroupDef[] = [
     label: "Overview",
     items: [
       { href: "/admin", label: "Dashboard", key: "overview" },
+      // No `perm`, on purpose. The staff line is open to every admin — a
+      // sub-admin holding only `kyc` must still be able to answer the main
+      // admin. The `messages` capability gates the FUNDRAISER line below
+      // ("Notices"), which is a different table and a different page.
+      { href: "/admin/team-chat", label: "Team chat", key: "teamchat" },
       { href: "/admin/id", label: "My staff ID", key: "staffid" },
       { href: "/admin/qr", label: "QR codes", key: "qr" },
     ],
@@ -90,13 +96,16 @@ export default async function AdminLayout({
     (!item.perm || hasPermission(me, item.perm)) &&
     (!item.anyPerm || item.anyPerm.some((p) => hasPermission(me, p)));
 
-  const [pendingKyc, pendingCampaigns, pendingPayouts, unreadMessages, openSupport] =
+  const [pendingKyc, pendingCampaigns, pendingPayouts, unreadMessages, openSupport, unreadStaff] =
     await Promise.all([
       db.user.count({ where: { verificationStatus: "PENDING", ownerProfile: { isNot: null } } }),
       db.campaign.count({ where: { status: "PENDING_REVIEW" } }),
       db.payout.count({ where: { status: { in: ["REQUESTED", "APPROVED"] } } }),
       adminUnreadTotal(),
       db.supportMessage.count({ where: { status: "OPEN" } }),
+      // Per-admin, unlike every other badge here: "staff messages addressed to
+      // ME". A shared count would show one admin another's unread.
+      staffUnreadTotal(me.id),
     ]);
   const badgeFor: Partial<Record<string, number>> = {
     kyc: pendingKyc,
@@ -104,6 +113,7 @@ export default async function AdminLayout({
     payouts: pendingPayouts,
     messages: unreadMessages,
     support: openSupport,
+    teamchat: unreadStaff,
   };
 
   const groups: AdminNavGroup[] = NAV_GROUPS.map((g) => ({

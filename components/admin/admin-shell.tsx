@@ -16,6 +16,7 @@ import {
   FileText,
   Newspaper,
   MessageSquare,
+  MessagesSquare,
   LifeBuoy,
   Users,
   ShieldCheck,
@@ -52,6 +53,10 @@ const ICONS = {
   blog: Newspaper,
   reports: BarChart3,
   messages: MessageSquare,
+  // Internal staff line. MessagesSquare (stacked bubbles) rather than the
+  // single bubble used for the fundraiser line — the two sit in the same
+  // sidebar and must not read as the same feature.
+  teamchat: MessagesSquare,
   support: LifeBuoy,
   admins: ShieldCheck,
   audit: ScrollText,
