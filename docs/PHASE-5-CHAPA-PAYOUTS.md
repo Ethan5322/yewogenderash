@@ -1,6 +1,13 @@
 # Phase 5 — Automated Chapa transfers and reconciliation
 
-**Status: 5a SHIPPED. 5b and 5c still to build.**
+**Status: 5a, 5b and 5c BUILT and tested. Not switched on.**
+
+Remaining before money can move: paste migration 0021 into Supabase, set
+`CRON_SECRET`, confirm the Chapa account can transfer with test keys, then set
+`CHAPA_TRANSFERS_ENABLED=true`. The last of those is the owner's call, on a real
+account, and I will not make it. Also unwired: the `maxAutoTransferEtb` field is
+editable through `updatePlatformSettings` but has no input on the Fees/Settings
+form yet, so it sits at its 25,000 ETB default.
 
 The owner's answers to §6, recorded 30 Jul 2026:
 1. **An admin clicks "Send transfer"** — a human stays between a request and money

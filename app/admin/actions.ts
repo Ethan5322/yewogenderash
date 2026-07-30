@@ -9,6 +9,7 @@ import { requirePermission } from "@/lib/admin/permissions";
 import { sendEmail, emailConfigured } from "@/lib/email";
 import { appUrl } from "@/lib/env";
 import { signedKycUrl, uploadMediaFile } from "@/lib/supabase/server";
+import { sendPayoutTransfer } from "@/lib/payout-transfer";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -537,4 +538,35 @@ export async function deleteCampaignAction(
   revalidatePath("/admin/campaigns");
   revalidatePath("/campaigns");
   return { ok: true };
+}
+
+/**
+ * Send an APPROVED payout to the fundraiser's bank via Chapa.
+ *
+ * Requires the `payouts` capability, like every other payout decision. The heavy
+ * lifting — the ceiling, the atomic claim, what to do when the outcome is unknown
+ * — is in lib/payout-transfer.ts, which is where to read before changing any of
+ * it. This wrapper exists only to authorise the caller and refresh the page.
+ *
+ * Note there is no "retry" action anywhere, deliberately. A transfer whose
+ * outcome is unknown is settled by asking Chapa (the reconciliation job), never
+ * by sending a second instruction.
+ */
+export async function sendPayoutTransferAction(
+  payoutId: string
+): Promise<{ ok: true; message: string } | { ok: false; error: string }> {
+  const admin = await requirePermission("payouts");
+  const res = await sendPayoutTransfer(payoutId, admin.id);
+
+  revalidatePath("/admin/payouts");
+  revalidatePath(`/admin/payouts/${payoutId}`);
+
+  if (!res.ok) return res;
+  return {
+    ok: true,
+    message:
+      res.outcome === "SUCCESS"
+        ? "Transfer confirmed — the payout is marked paid and the fundraiser has been told."
+        : res.message,
+  };
 }
