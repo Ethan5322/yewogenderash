@@ -74,3 +74,34 @@ export function computeWithdrawal(
   const withholding = round2(Math.min(Math.max(0, withholdingDue), req));
   return { requested: req, withholding, net: round2(req - withholding) };
 }
+
+/**
+ * The most a fundraiser can actually take out — the number their form must cap
+ * at, and the number they receive in their bank.
+ *
+ * The 97% balance is not withdrawable in full: the outstanding 7% withholding
+ * comes out of whatever is withdrawn. On a campaign that has raised 1,000 and
+ * withdrawn nothing, the balance reads 970 but only 900 can reach the bank, and
+ * 900 is 90% of gross — the lifetime share the fundraiser is promised.
+ *
+ * The form used to accept the full 970 and quietly hand over 900. Same money,
+ * but the fundraiser typed one number and a different one arrived, which reads
+ * as a deduction nobody mentioned. Now the box will not accept more than 900,
+ * and what they type is what they get.
+ */
+export function withdrawableMax(available: number, withholdingDue: number): number {
+  return round2(Math.max(0, round2(available) - Math.max(0, round2(withholdingDue))));
+}
+
+/**
+ * Turn "what the fundraiser wants in the bank" into "what to charge the
+ * balance", which is the net plus the outstanding withholding.
+ *
+ * Inverse of computeWithdrawal: grossing up by the full `due` works because the
+ * withholding is capped at the request, and requesting net + due always exceeds
+ * due. Feed the result back through computeWithdrawal and the net comes out
+ * exactly as asked — asserted in the tests rather than trusted.
+ */
+export function grossUpForWithholding(net: number, withholdingDue: number): number {
+  return round2(Math.max(0, round2(net)) + Math.max(0, round2(withholdingDue)));
+}

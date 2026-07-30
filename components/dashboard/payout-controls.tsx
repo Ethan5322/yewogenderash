@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useActionState } from "react";
 import { Loader2, Landmark, XCircle, Info, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   requestPayoutAction,
   cancelPayoutAction,
@@ -22,6 +21,9 @@ export type WithdrawableCampaign = {
    *  charged once). Deducted from this withdrawal. */
   withholdingDue: number;
   withholdingRatePct: number;
+  /** The full balance this campaign pays out — computed server-side. The
+   *  fundraiser does not choose an amount, so this is the whole figure. */
+  maxWithdrawable: number;
 };
 
 /** Round to birr cents the same way the server does, for the live preview. */
@@ -38,17 +40,21 @@ export function PayoutRequestForm({
     null
   );
   const [campaignId, setCampaignId] = React.useState(campaigns[0]?.id ?? "");
-  const [amount, setAmount] = React.useState("");
+  const [confirmed, setConfirmed] = React.useState(false);
   const selected = campaigns.find((c) => c.id === campaignId);
 
-  // Live preview of the deduction. The server re-computes this authoritatively
-  // when the request is recorded; this only shows the fundraiser what to expect
-  // BEFORE they commit, so the 7% is never a surprise after the fact.
-  const requested = Number(amount) || 0;
-  const withholding = selected
-    ? round2(Math.min(Math.max(0, selected.withholdingDue), Math.max(0, requested)))
-    : 0;
-  const willReceive = round2(Math.max(0, requested - withholding));
+  // A campaign is withdrawn ONCE, in full, so there is no amount to type and
+  // nothing to validate — the figure comes from the server and is posted back
+  // unchanged. The breakdown below is disclosure, not a calculator.
+  const wanted = selected?.maxWithdrawable ?? 0;
+  const withholding = selected ? round2(Math.max(0, selected.withholdingDue)) : 0;
+  const chargedToBalance = round2(wanted + withholding);
+
+  // Choosing a different campaign must clear the tick: it is a confirmation of
+  // one specific irreversible payout, not a general agreement.
+  React.useEffect(() => {
+    setConfirmed(false);
+  }, [campaignId]);
 
   React.useEffect(() => {
     if (state?.ok) router.refresh();
@@ -85,40 +91,29 @@ export function PayoutRequestForm({
           </select>
         </div>
         <div>
-          <label htmlFor="payout-amount" className="text-sm font-medium">
-            Amount (ETB)
-          </label>
-          <Input
-            id="payout-amount"
-            name="amount"
-            type="number"
-            min={100}
-            max={selected?.available ?? undefined}
-            step={1}
-            required
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            className="mt-1.5"
-          />
-          {selected ? (
-            <button
-              type="button"
-              onClick={() => setAmount(String(Math.floor(selected.available)))}
-              className="mt-1 text-xs font-medium text-primary hover:underline"
-            >
-              Withdraw all {formatETB(selected.available, selected.currency)}
-            </button>
-          ) : null}
+          <span className="text-sm font-medium">You will receive</span>
+          {/* Fixed, not editable. Posted as a hidden field and re-derived on the
+              server, which rejects anything that is not the full balance. */}
+          <p className="mt-1.5 flex h-10 items-center font-display text-lg font-bold tabular-nums text-primary">
+            {selected ? formatETB(wanted, selected.currency) : "—"}
+          </p>
+          <input type="hidden" name="amount" value={wanted} />
+          <p className="text-xs text-muted-foreground">
+            Your whole balance, paid in one transfer.
+          </p>
         </div>
       </div>
 
       {/* What this withdrawal actually pays out — shown before they commit. */}
-      {selected && requested > 0 ? (
+      {selected && wanted > 0 ? (
         <dl className="space-y-1.5 rounded-lg border bg-muted/30 p-4 text-sm">
+          {/* Reads top-down as: this is yours, this is the fee, this is what
+              leaves the balance. The old version led with the charge and made
+              the received figure the surprise at the bottom. */}
           <div className="flex items-center justify-between gap-4">
-            <dt className="text-muted-foreground">You are withdrawing</dt>
-            <dd className="font-medium tabular-nums">
-              {formatETB(requested, selected.currency)}
+            <dt className="font-semibold">You will receive</dt>
+            <dd className="font-display text-base font-bold tabular-nums text-primary">
+              {formatETB(wanted, selected.currency)}
             </dd>
           </div>
           <div className="flex items-start justify-between gap-4">
@@ -126,17 +121,17 @@ export function PayoutRequestForm({
               Safety &amp; guarantee withholding
               <span className="block text-xs">
                 {selected.withholdingRatePct}% of total donated, charged once per campaign
-                {withholding === 0 && selected.withholdingDue === 0
-                  ? " — already collected"
-                  : ""}
+                {withholding === 0 ? " — already collected" : ""}
               </span>
             </dt>
-            <dd className="tabular-nums text-destructive">− {formatETB(withholding, selected.currency)}</dd>
+            <dd className="tabular-nums text-destructive">
+              + {formatETB(withholding, selected.currency)}
+            </dd>
           </div>
           <div className="flex items-center justify-between gap-4 border-t pt-2">
-            <dt className="font-semibold">You will receive</dt>
-            <dd className="font-display text-base font-bold tabular-nums text-primary">
-              {formatETB(willReceive, selected.currency)}
+            <dt className="text-muted-foreground">Taken from your balance</dt>
+            <dd className="font-medium tabular-nums">
+              {formatETB(chargedToBalance, selected.currency)}
             </dd>
           </div>
         </dl>
@@ -159,14 +154,36 @@ export function PayoutRequestForm({
         </p>
       ) : null}
 
-      <Button type="submit" disabled={pending || !selected || selected.available < 100}>
+      {/* This is the campaign's ONLY withdrawal and it cannot be repeated, so it
+          asks for a deliberate tick rather than accepting one stray click. */}
+      {selected && wanted > 0 ? (
+        <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
+          <input
+            type="checkbox"
+            checked={confirmed}
+            onChange={(e) => setConfirmed(e.target.checked)}
+            className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+          />
+          <span>
+            I understand this is the{" "}
+            <strong>only withdrawal for this campaign</strong> and pays out the
+            full balance of {formatETB(wanted, selected.currency)}. It cannot be
+            repeated or split.
+          </span>
+        </label>
+      ) : null}
+
+      <Button
+        type="submit"
+        disabled={pending || !selected || wanted < 100 || !confirmed}
+      >
         {pending ? (
           <Loader2 className="h-4 w-4 animate-spin" />
         ) : (
           <Landmark className="h-4 w-4" aria-hidden />
         )}
         Withdraw
-        {selected && requested > 0 ? ` ${formatETB(willReceive, selected.currency)}` : ""}
+        {selected && wanted > 0 ? ` ${formatETB(wanted, selected.currency)}` : ""}
         <ArrowRight className="h-4 w-4" aria-hidden />
       </Button>
     </form>

@@ -3,6 +3,8 @@ import {
   computeFeeSplit,
   computeWithdrawal,
   withholdingTotalFor,
+  withdrawableMax,
+  grossUpForWithholding,
   PLATFORM_FEE_RATE,
   WITHHOLDING_FEE_RATE,
 } from "./fees";
@@ -115,5 +117,70 @@ describe("safety & guarantee withholding (7%)", () => {
   it("guards against negative or nonsense input", () => {
     expect(computeWithdrawal(-10, 70)).toEqual({ requested: 0, withholding: 0, net: 0 });
     expect(computeWithdrawal(100, -5)).toEqual({ requested: 100, withholding: 0, net: 100 });
+  });
+});
+
+describe("withdrawal ceiling — the fundraiser types what they receive", () => {
+  it("caps a fresh campaign at 90% of gross, not the 97% balance", () => {
+    // Donors gave 1,000. Balance shows 970 after the 3%; 70 of withholding is
+    // still owed, so only 900 can leave — exactly 90% of gross.
+    const gross = 1000;
+    const available = computeFeeSplit(gross).net; // 970
+    const due = withholdingTotalFor(gross); // 70
+
+    expect(available).toBe(970);
+    expect(withdrawableMax(available, due)).toBe(900);
+    expect(withdrawableMax(available, due)).toBe(gross * 0.9);
+  });
+
+  it("grossing up delivers exactly the amount asked for", () => {
+    const due = 70;
+    const wanted = 900;
+    const requested = grossUpForWithholding(wanted, due); // 970
+    const quote = computeWithdrawal(requested, due);
+
+    expect(requested).toBe(970);
+    expect(quote.withholding).toBe(70);
+    expect(quote.net).toBe(wanted); // what they typed is what they get
+  });
+
+  it("charges no withholding twice, so later withdrawals cap at the balance", () => {
+    // Withholding settled on the first withdrawal; the rest is withdrawable 1:1.
+    const remainingBalance = 70;
+    expect(withdrawableMax(remainingBalance, 0)).toBe(70);
+    expect(grossUpForWithholding(70, 0)).toBe(70);
+    expect(computeWithdrawal(70, 0).net).toBe(70);
+  });
+
+  it("a partial withdrawal still totals 90% across the campaign's life", () => {
+    const gross = 1000;
+    let balance = computeFeeSplit(gross).net; // 970
+    let due = withholdingTotalFor(gross); // 70
+    let received = 0;
+
+    // First: asks for 400 in the bank.
+    const firstRequested = grossUpForWithholding(400, due); // 470
+    const first = computeWithdrawal(firstRequested, due);
+    balance -= first.requested;
+    due -= first.withholding;
+    received += first.net;
+
+    expect(first.net).toBe(400);
+    expect(due).toBe(0);
+
+    // Second: withholding is settled, so the whole remaining balance is his.
+    const max = withdrawableMax(balance, due); // 500
+    const second = computeWithdrawal(grossUpForWithholding(max, due), due);
+    received += second.net;
+
+    expect(max).toBe(500);
+    expect(received).toBe(900);
+    expect(received).toBe(gross * 0.9);
+  });
+
+  it("never returns a negative ceiling when withholding exceeds the balance", () => {
+    expect(withdrawableMax(50, 70)).toBe(0);
+    expect(withdrawableMax(0, 0)).toBe(0);
+    expect(withdrawableMax(-10, 70)).toBe(0);
   });
 });

@@ -4,8 +4,12 @@ import { redirect } from "next/navigation";
 import { ArrowLeft, ChevronRight, Download } from "lucide-react";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { campaignAvailableBalance, campaignWithholdingDue } from "@/lib/payouts";
-import { WITHHOLDING_FEE_RATE, PLATFORM_FEE_RATE } from "@/lib/fees";
+import {
+  campaignAvailableBalance,
+  campaignWithholdingDue,
+  campaignWithdrawEligibility,
+} from "@/lib/payouts";
+import { WITHHOLDING_FEE_RATE, PLATFORM_FEE_RATE, withdrawableMax } from "@/lib/fees";
 import { listChapaBanks } from "@/lib/chapa";
 import { SiteHeader } from "@/components/site/site-header";
 import {
@@ -13,6 +17,7 @@ import {
   CancelPayoutButton,
 } from "@/components/dashboard/payout-controls";
 import { PayoutAccountForm } from "@/components/dashboard/payout-account-form";
+import { WITHDRAW_BLOCKED_MESSAGE } from "./actions";
 import { formatETB, formatDate } from "@/lib/format";
 import { DashboardNav } from "@/components/dashboard/dashboard-nav";
 import { DashboardFooter } from "@/components/dashboard/dashboard-footer";
@@ -48,7 +53,7 @@ export default async function OwnerPayoutsPage() {
       },
       campaigns: {
         where: { status: { in: ["ACTIVE", "COMPLETED"] } },
-        select: { id: true, title: true, currency: true },
+        select: { id: true, title: true, currency: true, status: true },
       },
       payouts: {
         orderBy: { createdAt: "desc" },
@@ -79,15 +84,31 @@ export default async function OwnerPayoutsPage() {
         campaignAvailableBalance(c.id),
         campaignWithholdingDue(c.id),
       ]);
+      const maxWithdrawable = withdrawableMax(available, withholding.due);
+      const eligibility = await campaignWithdrawEligibility(
+        c.id,
+        c.status,
+        maxWithdrawable
+      );
       return {
         ...c,
         available,
         withholdingDue: withholding.due,
         withholdingRatePct,
+        maxWithdrawable,
+        // Resolved server-side so the page states the same reason the form would
+        // give on submit, instead of offering a button that is going to fail.
+        blockedReason: eligibility.ok ? null : eligibility.reason,
       };
     })
   );
-  const requestable = campaignsWithBalance.filter((c) => c.available >= 100);
+
+  // A campaign appears in the withdraw form only when it is genuinely
+  // withdrawable. Everything else is listed with the reason it is not.
+  const requestable = campaignsWithBalance.filter((c) => !c.blockedReason);
+  const blocked = campaignsWithBalance.filter(
+    (c) => c.blockedReason && c.blockedReason !== "nothing_available"
+  );
 
   const account = owner.payoutAccounts[0] ?? null;
   // Chapa's supported-bank list drives the account form's dropdown.
@@ -198,9 +219,32 @@ export default async function OwnerPayoutsPage() {
               {t.needAccount}
             </p>
           ) : null}
+          {/* One withdrawal per campaign, for the whole balance, after closing.
+              Said here as a rule rather than only as an error on submit. */}
+          <p className="mt-2 text-sm text-muted-foreground">
+            Each campaign is withdrawn <strong>once, in full</strong>, after it
+            closes. There is no part-withdrawal, so the amount is your whole
+            balance.
+          </p>
           <div className="mt-4">
             <PayoutRequestForm campaigns={requestable} />
           </div>
+
+          {/* Campaigns that cannot be withdrawn yet, each with its reason. A
+              fundraiser whose campaign simply vanished from the dropdown would
+              assume the money had gone, and ask support instead of the page. */}
+          {blocked.length > 0 ? (
+            <ul className="mt-5 space-y-2 border-t pt-4">
+              {blocked.map((c) => (
+                <li key={c.id} className="text-sm">
+                  <span className="font-medium">{c.title}</span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    {WITHDRAW_BLOCKED_MESSAGE[c.blockedReason!]}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </section>
 
         <section className="mt-6 rounded-xl border bg-card p-6 shadow-sm">

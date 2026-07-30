@@ -219,3 +219,48 @@ export async function quoteWithdrawal(campaignId: string, requested: number) {
   const quote = computeWithdrawal(requested, due);
   return { ...quote, withholdingDue: due, withholdingTotal: total, withholdingCharged: charged };
 }
+
+/**
+ * Whether a campaign may be withdrawn from right now, and if not, why.
+ *
+ * A campaign gets ONE withdrawal, for its whole balance, and only after it has
+ * been closed. Both halves of that are anti-fraud: a fundraiser cannot draw the
+ * money down in slices that each stay under a review threshold, and a closed
+ * campaign takes no further donations, so "all of it" is a final figure rather
+ * than a moving one.
+ *
+ * Closing is an ADMIN decision (decideCampaignAction "complete"). Deliberately
+ * not the fundraiser's: the close is what unlocks the money, so letting the
+ * person being paid also flip that switch would hand them both halves of the
+ * control.
+ *
+ * A REJECTED or CANCELLED payout is not counted, so it does not burn the one
+ * chance — an admin decision or a wrong bank number must never permanently lock
+ * a legitimate fundraiser out of their own funds. Only REQUESTED, APPROVED and
+ * PAID block, which also stops two live requests existing at once.
+ */
+export type WithdrawEligibility =
+  | { ok: true }
+  | { ok: false; reason: "not_closed" | "already_withdrawn" | "in_progress" | "nothing_available" };
+
+export async function campaignWithdrawEligibility(
+  campaignId: string,
+  status: string,
+  maxWithdrawable: number
+): Promise<WithdrawEligibility> {
+  if (status !== "COMPLETED") return { ok: false, reason: "not_closed" };
+
+  const existing = await db.payout.findFirst({
+    where: { campaignId, status: { in: ["REQUESTED", "APPROVED", "PAID"] } },
+    select: { status: true },
+  });
+  if (existing) {
+    return {
+      ok: false,
+      reason: existing.status === "PAID" ? "already_withdrawn" : "in_progress",
+    };
+  }
+
+  if (maxWithdrawable <= 0) return { ok: false, reason: "nothing_available" };
+  return { ok: true };
+}
