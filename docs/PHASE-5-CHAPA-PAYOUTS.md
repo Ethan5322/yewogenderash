@@ -1,6 +1,15 @@
 # Phase 5 — Automated Chapa transfers and reconciliation
 
-**Status: PLAN ONLY. No code written. Needs three decisions from the owner (§6).**
+**Status: 5a SHIPPED. 5b and 5c still to build.**
+
+The owner's answers to §6, recorded 30 Jul 2026:
+1. **An admin clicks "Send transfer"** — a human stays between a request and money
+   leaving. Approval alone will not move funds.
+2. **A ceiling, chosen as `PlatformSettings.maxAutoTransferEtb`, default 25,000
+   ETB.** Above it the send button is refused and the transfer is done by hand as
+   today, so a bug in the send path costs at most the ceiling rather than a
+   campaign's whole balance. Editable by the main admin in Fees/Settings.
+3. **The fundraiser is told automatically**, on both success and failure.
 
 This phase is not like phases 1–4. Those changed how the app reasons about money
 it already held. This one makes the app **move money out of the platform to
@@ -41,7 +50,28 @@ destination is partly laid.
 
 ---
 
-## 2. Step 0 — verify Chapa's actual contract before writing anything
+## 2. Step 0 — DONE: Chapa's actual contract
+
+Confirmed against developer.chapa.co, July 2026:
+
+```
+POST /v1/transfers
+  required  account_number, amount, bank_code
+  optional  account_name, currency, reference
+  optional  status   TEST MODE ONLY - simulates success | failed | pending
+GET  /v1/transfers/verify/<reference>
+```
+
+Two things this settles. **`reference` is a merchant-supplied value and is what
+verify looks up** — so it is a real idempotency key, which the whole design
+depended on. And **test mode can simulate failure and pending**, so the unhappy
+paths are testable against Chapa rather than only against a stub.
+
+One thing it does NOT settle: **their docs do not specify the response body for
+either call.** So the code reads a status defensively and treats anything
+unrecognised as UNKNOWN. See `normaliseTransferStatus` and its tests.
+
+### The original Step 0 note, kept for the record
 
 I know Chapa exposes a transfers capability. **I do not know its current exact
 contract from memory, and I am not willing to guess at the shape of a request

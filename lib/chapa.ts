@@ -206,3 +206,222 @@ export async function createChapaSubaccount(params: {
   }
   return { ok: true, subaccountId: subId };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  TRANSFERS — money leaving the platform.
+//
+//  Everything above this line is money coming IN. A payment that fails costs
+//  nothing: the donor retries. These functions move money OUT to a real
+//  person's bank account, and a transfer sent twice is money gone.
+//
+//  Chapa's contract, confirmed against developer.chapa.co (July 2026):
+//    POST /v1/transfers            required: account_number, amount, bank_code
+//                                  optional: account_name, currency, reference
+//                                  optional (TEST MODE ONLY): status, to
+//                                            simulate success/failed/pending
+//    GET  /v1/transfers/verify/:ref
+//
+//  `reference` is a merchant-supplied unique value and is what the verify
+//  endpoint looks up. That makes it our idempotency key: generate one per
+//  payout, store it BEFORE calling, and an interrupted attempt can always be
+//  resolved by asking rather than by guessing or re-sending.
+//
+//  Their published docs do NOT fully specify the response body for either call.
+//  So nothing here infers success from a shape it merely hopes for: an
+//  unrecognised response is UNKNOWN, and UNKNOWN never means paid.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * What we are willing to conclude about a transfer.
+ *
+ * UNKNOWN is the important one and covers a timeout, a dropped connection, an
+ * HTTP error, and a 200 whose body we cannot read. A payout in UNKNOWN must be
+ * left alone and resolved by verifying with Chapa — never by sending again.
+ */
+export type TransferOutcome = "SUCCESS" | "FAILED" | "PENDING" | "UNKNOWN";
+
+/**
+ * Map a Chapa status string onto an outcome.
+ *
+ * Deliberately a whitelist. Anything unrecognised — a new status, a renamed one,
+ * a typo, an empty string — becomes UNKNOWN rather than being optimistically
+ * read as success, because the cost of those two mistakes is not symmetric.
+ */
+export function normaliseTransferStatus(raw: unknown): TransferOutcome {
+  const s = String(raw ?? "").trim().toLowerCase();
+  if (s === "success" || s === "successful" || s === "completed") return "SUCCESS";
+  if (s === "failed" || s === "failure" || s === "cancelled" || s === "canceled")
+    return "FAILED";
+  if (s === "pending" || s === "queued" || s === "processing" || s === "new")
+    return "PENDING";
+  return "UNKNOWN";
+}
+
+/** Pull a transfer status out of a response body without assuming its shape. */
+function readTransferStatus(body: unknown): TransferOutcome {
+  const b = body as Record<string, unknown> | null;
+  if (!b) return "UNKNOWN";
+  const data = (b.data ?? null) as Record<string, unknown> | null;
+  // Chapa puts the meaningful status inside `data` on verify, and uses the
+  // top-level `status` as an envelope ("success" = the CALL worked, which says
+  // nothing about the transfer). Prefer the inner one; fall back only when there
+  // is no data object at all.
+  const inner = data?.status ?? data?.transfer_status;
+  if (inner !== undefined) return normaliseTransferStatus(inner);
+  if (data) return "UNKNOWN";
+  return normaliseTransferStatus(b.status);
+}
+
+/** Chapa's own identifier for the transfer, wherever they put it. */
+function readTransferId(body: unknown): string | null {
+  const data = (body as { data?: Record<string, unknown> } | null)?.data;
+  for (const key of ["transfer_id", "id", "reference", "chapa_transfer_id", "tx_ref"]) {
+    const v = data?.[key];
+    if (typeof v === "string" && v) return v;
+    if (typeof v === "number") return String(v);
+  }
+  return null;
+}
+
+export type TransferResult = {
+  outcome: TransferOutcome;
+  /** Chapa's handle, when they gave us one. */
+  transferId: string | null;
+  /** Verbatim response, stored on the payout so a dispute has evidence. */
+  raw: unknown;
+  /** Present when the outcome is FAILED or UNKNOWN. */
+  error?: string;
+};
+
+/**
+ * Ask Chapa to move money to a bank account.
+ *
+ * NOTE ON THE RETURN VALUE: this never throws for a transport problem. Throwing
+ * would tempt a caller into a catch block that marks the payout failed, and
+ * "the request timed out" is not evidence that money did not move. Transport
+ * failures come back as UNKNOWN, which the caller must persist as PENDING and
+ * leave for reconciliation.
+ *
+ * The caller must have already stored `reference` against the payout.
+ */
+export async function initiateChapaTransfer(params: {
+  accountNumber: string;
+  accountName?: string;
+  amount: number;
+  bankCode: string;
+  reference: string;
+  currency?: string;
+  /** TEST MODE ONLY — asks Chapa to simulate an outcome. Never set in production. */
+  simulateStatus?: "success" | "failed" | "pending";
+}): Promise<TransferResult> {
+  let res: Response;
+  let body: unknown = null;
+  try {
+    res = await fetch(`${CHAPA_BASE}/transfers`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${requiredEnv("CHAPA_SECRET_KEY")}`,
+        "Content-Type": "application/json",
+      },
+      cache: "no-store",
+      body: JSON.stringify({
+        account_number: params.accountNumber,
+        amount: String(params.amount),
+        bank_code: params.bankCode,
+        reference: params.reference,
+        currency: params.currency ?? "ETB",
+        ...(params.accountName ? { account_name: params.accountName } : {}),
+        ...(params.simulateStatus ? { status: params.simulateStatus } : {}),
+      }),
+    });
+    body = await res.json().catch(() => null);
+  } catch (e) {
+    // Timed out, DNS, TLS, connection reset. The request may or may not have
+    // reached them. This is precisely the case that must not look like failure.
+    return {
+      outcome: "UNKNOWN",
+      transferId: null,
+      raw: { transportError: String((e as Error)?.message ?? e) },
+      error: "Could not confirm the transfer — its outcome is unknown.",
+    };
+  }
+
+  const envelope = (body as { status?: unknown; message?: unknown } | null) ?? null;
+  const message =
+    typeof envelope?.message === "string" ? envelope.message : undefined;
+
+  // A 4xx is a refusal to accept the instruction, which is safe to call FAILED —
+  // the transfer was never queued. A 5xx is not: the instruction may have been
+  // taken before their side broke, so that stays UNKNOWN.
+  if (!res.ok) {
+    const definitelyRejected = res.status >= 400 && res.status < 500;
+    return {
+      outcome: definitelyRejected ? "FAILED" : "UNKNOWN",
+      transferId: readTransferId(body),
+      raw: body ?? { httpStatus: res.status },
+      error: message ?? `Transfer call failed (HTTP ${res.status})`,
+    };
+  }
+
+  const outcome = readTransferStatus(body);
+  return {
+    outcome,
+    transferId: readTransferId(body),
+    raw: body,
+    ...(outcome === "FAILED" || outcome === "UNKNOWN"
+      ? { error: message ?? "Chapa did not confirm the transfer." }
+      : {}),
+  };
+}
+
+/**
+ * Ask Chapa what became of a transfer we already sent. This is how a PENDING
+ * payout is resolved — the only safe way, since re-sending would pay twice.
+ */
+export async function verifyChapaTransfer(reference: string): Promise<TransferResult> {
+  let res: Response;
+  let body: unknown = null;
+  try {
+    res = await fetch(
+      `${CHAPA_BASE}/transfers/verify/${encodeURIComponent(reference)}`,
+      {
+        headers: { Authorization: `Bearer ${requiredEnv("CHAPA_SECRET_KEY")}` },
+        cache: "no-store",
+      }
+    );
+    body = await res.json().catch(() => null);
+  } catch (e) {
+    return {
+      outcome: "UNKNOWN",
+      transferId: null,
+      raw: { transportError: String((e as Error)?.message ?? e) },
+      error: "Could not reach Chapa to verify the transfer.",
+    };
+  }
+
+  // A 404 here does NOT mean "no such transfer, therefore it never happened":
+  // a reference can be unknown to them because it was never accepted, or
+  // because it has not propagated yet. Either way we have learned nothing.
+  if (!res.ok) {
+    return {
+      outcome: "UNKNOWN",
+      transferId: null,
+      raw: body ?? { httpStatus: res.status },
+      error: `Verify failed (HTTP ${res.status})`,
+    };
+  }
+
+  return {
+    outcome: readTransferStatus(body),
+    transferId: readTransferId(body),
+    raw: body,
+  };
+}
+
+/**
+ * Whether the app is allowed to move money at all. Off unless explicitly on, so
+ * merging this code changes nothing about who transfers funds.
+ */
+export function chapaTransfersEnabled(): boolean {
+  return process.env.CHAPA_TRANSFERS_ENABLED === "true";
+}

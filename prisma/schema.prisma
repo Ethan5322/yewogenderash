@@ -433,6 +433,28 @@ model Payout {
   /// Stored rather than derived so a historical payout still reads correctly if
   /// the rate ever changes.
   netPaidAmount     Decimal?      @db.Decimal(12, 2)
+  /// ── Provider (Chapa) transfer state ────────────────────────────────────
+  /// Deliberately separate from `status` above: that is the business state, this
+  /// is what the bank did. When they disagree, reconciliation needs both.
+  ///
+  /// `transferReference` is OURS, generated once and stored BEFORE Chapa is
+  /// called. Chapa accepts a merchant `reference` and their verify endpoint looks
+  /// up by it, which makes it the idempotency key — a crash mid-flight leaves
+  /// evidence instead of ambiguity. A partial unique index enforces one per
+  /// payout; Prisma cannot express a WHERE clause on an index, so it lives in
+  /// supabase/migrations/0021_yd_add_payout_transfers.sql. Do not "tidy" it away.
+  ///
+  /// `transferStatus`: null = never attempted, PENDING = attempted and the
+  /// outcome is NOT known (never retry these automatically), SUCCESS/FAILED =
+  /// confirmed by Chapa, never inferred from a timeout.
+  transferReference     String?
+  transferStatus        String?
+  transferAttemptedAt   DateTime?
+  transferFailureReason String?
+  chapaTransferId       String?
+  /// Raw provider response, verbatim. Chapa's verify response shape is not fully
+  /// documented, so this payload is what settles a disputed transfer.
+  transferResponse      Json?
   /// The payout account (verified bank / Chapa subaccount) funds are sent to.
   payoutAccountId   String?
   payoutAccountRef  PayoutAccount? @relation(fields: [payoutAccountId], references: [id])
@@ -546,6 +568,10 @@ model PlatformSettings {
   feeRate           Float    @default(0.03)
   autoApproveMaxEtb Int      @default(5000)
   minPayoutEtb      Int      @default(100)
+  /// Above this, a payout is not transferred from the app — an admin moves it by
+  /// hand as they do today. A ceiling means a bug in the send path costs the
+  /// ceiling, not a campaign's entire balance.
+  maxAutoTransferEtb Int     @default(25000)
   updatedById       String?
   updatedAt         DateTime @updatedAt
 
