@@ -13,7 +13,8 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "check:migrations": "node scripts/check-migration-parity.mjs",
-    "test:db": "node scripts/test-staff-chat.mjs && node scripts/test-payout-race.mjs"
+    "test:db": "node scripts/test-staff-chat.mjs && node scripts/test-payout-race.mjs",
+    "test:integration": "node scripts/test-integration.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
