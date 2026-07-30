@@ -398,6 +398,13 @@ model Donation {
   @@map("yd_donations")
 }
 
+/// NOTE: a partial unique index guarantees ONE live payout per campaign —
+/// unique on campaignId WHERE status IN ('REQUESTED','APPROVED','PAID'). Prisma
+/// cannot express a WHERE clause on an index, so that constraint exists only in
+/// supabase/migrations/0020_yd_one_live_payout_per_campaign.sql. It is recorded
+/// here because an index the schema does not know about is exactly the kind of
+/// drift that hid the missing isSuperAdmin column (migration 0019). Do not
+/// "tidy" it away, and do not expect `prisma db push` to recreate it.
 model Payout {
   id                String        @id @default(cuid())
   campaignId        String

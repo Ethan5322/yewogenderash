@@ -58,6 +58,20 @@ async function requireOwner() {
  * the payouts page shows the SAME sentence it would get on submit — a page that
  * says one thing and a form that says another is how support tickets start.
  */
+/**
+ * A unique-constraint rejection from Postgres, however it reaches us.
+ *
+ * Matched on the shape rather than by importing Prisma's error class: this runs
+ * through a driver adapter, which can surface the same failure as a wrapped
+ * driver error rather than a PrismaClientKnownRequestError. Checking `code`
+ * catches both, and the raw SQLSTATE 23505 catches it if the adapter passes the
+ * database's own code straight through.
+ */
+function isUniqueViolation(e: unknown): boolean {
+  const code = (e as { code?: unknown } | null)?.code;
+  return code === "P2002" || code === "23505";
+}
+
 export const WITHDRAW_BLOCKED_MESSAGE: Record<string, string> = {
   not_closed:
     "Your campaign is still collecting donations. Withdrawals open once the team closes it, so the amount paid out is final.",
@@ -176,7 +190,15 @@ export async function requestPayoutAction(
     amount: quote.requested,
   });
 
-  const payout = await db.payout.create({
+  // The eligibility check above and this insert are two statements, so a
+  // double-submit can get both past the check. The database has the final say —
+  // a partial unique index (migration 0020) permits one live payout per
+  // campaign — and the loser of that race arrives here as P2002. Treated as the
+  // ordinary outcome it is, not a crash: the fundraiser's first request went
+  // through, which is exactly what they wanted.
+  let payout;
+  try {
+    payout = await db.payout.create({
     data: {
       campaignId: campaign.id,
       ownerId: owner.id,
@@ -196,7 +218,13 @@ export async function requestPayoutAction(
       reviewReason: decision.reason,
       approvedAt: decision.autoApprove ? new Date() : null,
     },
-  });
+    });
+  } catch (e) {
+    if (isUniqueViolation(e)) {
+      return { ok: false, error: WITHDRAW_BLOCKED_MESSAGE.in_progress };
+    }
+    throw e;
+  }
 
   // Automatic report to the admin team. This lands in the admin message queue,
   // which drives the unread badge and the alert feed, so a withdrawal request is

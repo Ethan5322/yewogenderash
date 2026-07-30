@@ -1,0 +1,44 @@
+# Typecheck, unit tests, and — the one that matters — a check that the Prisma
+# schema and the hand-written SQL migrations still agree.
+#
+# Every fault found on 2026-07-29 would have been caught here for free:
+#   - isSuperAdmin and adminPermissions declared in schema.prisma but in no
+#     migration, so a rebuilt database had no working admin at all
+#   - scripts/local-db.mjs applying only migration 0001
+#   - the same script unable to run because embedded-postgres was not a
+#     dependency
+# All four sat undetected while 93 tests passed locally and nothing ran them.
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # `npm ci` runs the postinstall (prisma generate), which is required
+      # before tsc can see the generated client types.
+      - run: npm ci
+
+      - name: Typecheck
+        run: node node_modules/typescript/bin/tsc --noEmit
+
+      - name: Unit tests
+        run: node node_modules/vitest/vitest.mjs run
+
+      # The migrations are hand-written while Prisma believes it owns the schema,
+      # so nothing but this step stops the two drifting apart again.
+      - name: Schema and migrations agree
+        run: node scripts/check-migration-parity.mjs
