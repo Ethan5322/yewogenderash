@@ -4,14 +4,11 @@ import { redirect } from "next/navigation";
 import { Plus, ExternalLink, QrCode, Megaphone, Download } from "lucide-react";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { SiteHeader } from "@/components/site/site-header";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/campaigns/status-badge";
 import { ProgressBar } from "@/components/campaigns/progress-bar";
 import { SubmitCampaignButton } from "@/components/campaigns/submit-campaign-button";
 import { formatETB, progressPercent, formatDate } from "@/lib/format";
-import { DashboardNav } from "@/components/dashboard/dashboard-nav";
-import { DashboardFooter } from "@/components/dashboard/dashboard-footer";
 import { getDictionary } from "@/lib/i18n";
 
 export const metadata: Metadata = { title: "My campaigns" };
@@ -53,8 +50,6 @@ export default async function MyCampaignsPage() {
 
   return (
     <>
-      <SiteHeader user={session.user} />
-      <DashboardNav />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
@@ -194,7 +189,6 @@ export default async function MyCampaignsPage() {
           </ul>
         )}
       </main>
-      <DashboardFooter />
     </>
   );
 }

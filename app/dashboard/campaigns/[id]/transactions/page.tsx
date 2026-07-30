@@ -3,14 +3,11 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, ShieldCheck, Info } from "lucide-react";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { SiteHeader } from "@/components/site/site-header";
 import { StatusChip } from "@/components/admin/ui";
 import { campaignAvailableBalance, campaignWithholdingDue } from "@/lib/payouts";
 import { PLATFORM_FEE_RATE, WITHHOLDING_FEE_RATE } from "@/lib/fees";
 import { maskDonorName, maskReference } from "@/lib/privacy";
 import { formatETB, formatDateTime, toNumber } from "@/lib/format";
-import { DashboardNav } from "@/components/dashboard/dashboard-nav";
-import { DashboardFooter } from "@/components/dashboard/dashboard-footer";
 import { getDictionary } from "@/lib/i18n";
 
 export const metadata = { title: "Transaction statement" };
@@ -79,9 +76,7 @@ export default async function OwnerTransactionsPage({
   const cur = campaign.currency;
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <SiteHeader user={session.user} />
-      <DashboardNav />
+    <div className="flex flex-1 flex-col">
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-10 sm:px-6">
         <Link
           href="/dashboard/payouts"
@@ -231,7 +226,6 @@ export default async function OwnerTransactionsPage({
           </p>
         </section>
       </main>
-      <DashboardFooter />
     </div>
   );
 }

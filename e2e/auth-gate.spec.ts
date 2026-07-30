@@ -34,8 +34,21 @@ test.describe("anonymous visitors", () => {
       expect(res.status()).toBeLessThan(400);
       const location = res.headers()["location"] ?? "";
       expect(location).toContain("/login");
-      // Where they were heading has to survive the round trip.
-      expect(location).toContain("callbackUrl");
+
+      // Where they were heading has to survive the round trip — and it has to
+      // be the page they actually asked for, not just any callbackUrl.
+      //
+      // Asserting the VALUE, not merely its presence, because of a regression
+      // caught while moving the shared header into app/dashboard/layout.tsx:
+      // putting the auth redirect in the layout too looks like sensible
+      // de-duplication, but a layout redirect fires before the page's, so every
+      // callbackUrl collapsed to /dashboard and someone heading for their
+      // payouts signed in and landed somewhere else. The loose `toContain`
+      // below passed happily through that.
+      const callbackUrl = new URL(location, "http://localhost").searchParams.get(
+        "callbackUrl"
+      );
+      expect(callbackUrl, `${path} must come back to itself after sign-in`).toBe(path);
     });
   }
 

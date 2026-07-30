@@ -11,7 +11,6 @@ import {
 } from "@/lib/payouts";
 import { WITHHOLDING_FEE_RATE, PLATFORM_FEE_RATE, withdrawableMax } from "@/lib/fees";
 import { listChapaBanks } from "@/lib/chapa";
-import { SiteHeader } from "@/components/site/site-header";
 import {
   PayoutRequestForm,
   CancelPayoutButton,
@@ -19,8 +18,6 @@ import {
 import { PayoutAccountForm } from "@/components/dashboard/payout-account-form";
 import { WITHDRAW_BLOCKED_MESSAGE } from "./actions";
 import { formatETB, formatDate } from "@/lib/format";
-import { DashboardNav } from "@/components/dashboard/dashboard-nav";
-import { DashboardFooter } from "@/components/dashboard/dashboard-footer";
 import { getDictionary } from "@/lib/i18n";
 
 export const metadata: Metadata = { title: "Payouts" };
@@ -119,8 +116,6 @@ export default async function OwnerPayoutsPage() {
 
   return (
     <>
-      <SiteHeader user={session.user} />
-      <DashboardNav />
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-6">
         <Link
           href="/dashboard"
@@ -296,7 +291,6 @@ export default async function OwnerPayoutsPage() {
           )}
         </section>
       </main>
-      <DashboardFooter />
     </>
   );
 }

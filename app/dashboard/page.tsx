@@ -3,7 +3,6 @@ import Link from "next/link";
 import { BadgeCheck, Clock, ShieldQuestion, Megaphone, Landmark, Settings, MessageSquare } from "lucide-react";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { SiteHeader } from "@/components/site/site-header";
 import {
   Card,
   CardContent,
@@ -12,9 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { DashboardNav } from "@/components/dashboard/dashboard-nav";
 import { BalanceSummary } from "@/components/dashboard/balance-summary";
-import { DashboardFooter } from "@/components/dashboard/dashboard-footer";
 import { getDictionary } from "@/lib/i18n";
 
 export const metadata = { title: "Dashboard" };
@@ -45,9 +42,7 @@ export default async function DashboardPage() {
       : { icon: ShieldQuestion, label: t.notOwner, cls: "bg-muted text-muted-foreground" };
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <SiteHeader user={session.user} />
-      <DashboardNav />
+    <div className="flex flex-1 flex-col">
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -165,7 +160,6 @@ export default async function DashboardPage() {
           />
         </div>
       </main>
-      <DashboardFooter />
     </div>
   );
 }

@@ -3,12 +3,9 @@ import { redirect, notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { SiteHeader } from "@/components/site/site-header";
 import { CampaignForm } from "@/components/campaigns/campaign-form";
 import { updateCampaignAction } from "@/app/dashboard/campaigns/actions";
 import { getDictionary } from "@/lib/i18n";
-import { DashboardNav } from "@/components/dashboard/dashboard-nav";
-import { DashboardFooter } from "@/components/dashboard/dashboard-footer";
 
 export const metadata = { title: "Edit campaign" };
 
@@ -43,9 +40,7 @@ export default async function EditCampaignPage({
   const cf = (await getDictionary()).campaignForm;
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <SiteHeader user={session.user} />
-      <DashboardNav />
+    <div className="flex flex-1 flex-col">
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-6">
         <Link
           href={`/dashboard/campaigns/${campaign.id}`}
@@ -89,7 +84,6 @@ export default async function EditCampaignPage({
           </div>
         )}
       </main>
-      <DashboardFooter />
     </div>
   );
 }

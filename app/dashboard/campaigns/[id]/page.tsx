@@ -16,15 +16,12 @@ import {
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { campaignAvailableBalance } from "@/lib/payouts";
-import { SiteHeader } from "@/components/site/site-header";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/campaigns/status-badge";
 import { ProgressBar } from "@/components/campaigns/progress-bar";
 import { PostUpdateForm } from "@/components/dashboard/post-update-form";
 import { CATEGORY_LABELS } from "@/lib/campaign-types";
 import { formatETB, formatDate, progressPercent } from "@/lib/format";
-import { DashboardNav } from "@/components/dashboard/dashboard-nav";
-import { DashboardFooter } from "@/components/dashboard/dashboard-footer";
 
 export const metadata = { title: "Campaign details" };
 
@@ -117,9 +114,7 @@ export default async function OwnerCampaignDetailPage({
   ];
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <SiteHeader user={session.user} />
-      <DashboardNav />
+    <div className="flex flex-1 flex-col">
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-10 sm:px-6">
         <Link
           href="/dashboard/campaigns"
@@ -358,7 +353,6 @@ export default async function OwnerCampaignDetailPage({
           </section>
         </div>
       </main>
-      <DashboardFooter />
     </div>
   );
 }

@@ -4,12 +4,9 @@ import { ArrowLeft, ExternalLink, ShieldCheck, Rocket, Share2, QrCode } from "lu
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { appUrl } from "@/lib/env";
-import { SiteHeader } from "@/components/site/site-header";
 import { FundraiserIdCard } from "@/components/owner/fundraiser-id-card";
 import { CopyButton } from "@/components/admin/copy-button";
 import { formatDate } from "@/lib/format";
-import { DashboardNav } from "@/components/dashboard/dashboard-nav";
-import { DashboardFooter } from "@/components/dashboard/dashboard-footer";
 import { getDictionary } from "@/lib/i18n";
 
 export const metadata = { title: "My Fundraiser ID" };
@@ -39,9 +36,7 @@ export default async function FundraiserIdPage() {
 
   if (!owner) {
     return (
-      <div className="flex min-h-screen flex-col">
-        <SiteHeader user={session.user} />
-      <DashboardNav />
+      <div className="flex flex-1 flex-col">
         <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-10 sm:px-6">
           <Link href="/dashboard" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-4 w-4" aria-hidden /> Dashboard
@@ -52,7 +47,6 @@ export default async function FundraiserIdPage() {
             <Link href="/start" className="text-primary hover:underline">Get started</Link>.
           </p>
         </main>
-        <DashboardFooter />
       </div>
     );
   }
@@ -70,9 +64,7 @@ export default async function FundraiserIdPage() {
   const donateUrl = campaign ? `${appUrl()}/q/${campaign.queryCode}` : undefined;
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <SiteHeader user={session.user} />
-      <DashboardNav />
+    <div className="flex flex-1 flex-col">
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-6">
         <Link href="/dashboard" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4" aria-hidden /> Dashboard
@@ -176,7 +168,6 @@ export default async function FundraiserIdPage() {
           your ID any time above.
         </p>
       </main>
-      <DashboardFooter />
     </div>
   );
 }
