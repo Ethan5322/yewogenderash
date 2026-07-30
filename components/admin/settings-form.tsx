@@ -8,10 +8,12 @@ export function SettingsForm({
   feePercent,
   autoApproveMaxEtb,
   minPayoutEtb,
+  maxAutoTransferEtb,
 }: {
   feePercent: number;
   autoApproveMaxEtb: number;
   minPayoutEtb: number;
+  maxAutoTransferEtb: number;
 }) {
   const [state, action, pending] = useActionState(updatePlatformSettingsAction, null);
 
@@ -84,6 +86,31 @@ export function SettingsForm({
         </div>
         <p className="mt-1.5 text-xs text-muted-foreground">
           The smallest amount a fundraiser can withdraw in a single request.
+        </p>
+      </div>
+
+      <div>
+        <label htmlFor="maxAutoTransferEtb" className="block text-sm font-medium">
+          Automatic transfer ceiling
+        </label>
+        <div className="mt-1 flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">ETB</span>
+          <input
+            id="maxAutoTransferEtb"
+            name="maxAutoTransferEtb"
+            type="number"
+            step="1"
+            min="1"
+            defaultValue={maxAutoTransferEtb}
+            required
+            className="h-10 w-40 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          />
+        </div>
+        <p className="mt-1.5 text-xs text-muted-foreground">
+          The largest payout the app will send to a bank by itself. Anything above
+          it must be transferred by hand and recorded, so a fault in the transfer
+          path can cost at most this much rather than a campaign&apos;s whole
+          balance. Lower is safer.
         </p>
       </div>
 

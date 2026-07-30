@@ -14,7 +14,8 @@ function envSet(name: string): boolean {
 
 export default async function AdminSettingsPage() {
   await requireSuperAdmin();
-  const { feeRate, autoApproveMaxEtb, minPayoutEtb } = await getPlatformSettings();
+  const { feeRate, autoApproveMaxEtb, minPayoutEtb, maxAutoTransferEtb } =
+    await getPlatformSettings();
   const feePercent = Math.round(feeRate * 100000) / 1000; // rate → %, tidy
 
   const env: { label: string; ok: boolean; note: string }[] = [
@@ -42,6 +43,7 @@ export default async function AdminSettingsPage() {
           feePercent={feePercent}
           autoApproveMaxEtb={autoApproveMaxEtb}
           minPayoutEtb={minPayoutEtb}
+          maxAutoTransferEtb={maxAutoTransferEtb}
         />
       </SectionCard>
 

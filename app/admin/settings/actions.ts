@@ -26,6 +26,13 @@ const schema = z.object({
     .int("Whole birr only")
     .min(1, "Must be at least 1")
     .max(1_000_000, "That minimum is unrealistically high"),
+  maxAutoTransferEtb: z.coerce
+    .number()
+    .int("Whole birr only")
+    .min(1, "Must be at least 1")
+    // Capped well below any plausible single payout, because this number is the
+    // blast radius of a fault in the transfer path.
+    .max(1_000_000, "That ceiling is unrealistically high"),
 });
 
 export async function updatePlatformSettingsAction(
@@ -38,6 +45,7 @@ export async function updatePlatformSettingsAction(
     feePercent: formData.get("feePercent"),
     autoApproveMaxEtb: formData.get("autoApproveMaxEtb"),
     minPayoutEtb: formData.get("minPayoutEtb"),
+    maxAutoTransferEtb: formData.get("maxAutoTransferEtb"),
   });
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the values" };
@@ -47,8 +55,15 @@ export async function updatePlatformSettingsAction(
   const feeRate = Math.round(parsed.data.feePercent * 1000) / 100000; // % → rate, 5dp
   const autoApproveMaxEtb = parsed.data.autoApproveMaxEtb;
   const minPayoutEtb = parsed.data.minPayoutEtb;
+  const maxAutoTransferEtb = parsed.data.maxAutoTransferEtb;
 
-  await updatePlatformSettings({ feeRate, autoApproveMaxEtb, minPayoutEtb, updatedById: admin.id });
+  await updatePlatformSettings({
+    feeRate,
+    autoApproveMaxEtb,
+    minPayoutEtb,
+    maxAutoTransferEtb,
+    updatedById: admin.id,
+  });
 
   await writeAudit({
     actorId: admin.id,
@@ -59,6 +74,10 @@ export async function updatePlatformSettingsAction(
       feeRate: { from: before.feeRate, to: feeRate },
       autoApproveMaxEtb: { from: before.autoApproveMaxEtb, to: autoApproveMaxEtb },
       minPayoutEtb: { from: before.minPayoutEtb, to: minPayoutEtb },
+      maxAutoTransferEtb: {
+        from: before.maxAutoTransferEtb,
+        to: maxAutoTransferEtb,
+      },
     },
   });
 

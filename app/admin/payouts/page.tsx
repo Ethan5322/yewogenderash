@@ -9,6 +9,7 @@ import { PageHeader, StatusChip } from "@/components/admin/ui";
 import { formatETB, formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { PermLink } from "@/components/admin/perm-link";
+import { chapaTransfersEnabled } from "@/lib/chapa";
 
 const PAGE_SIZE = 50;
 
@@ -30,6 +31,9 @@ export default async function AdminPayoutsPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   await requirePermission("payouts");
+  // Resolved on the server: whether the app may move money is not a decision the
+  // browser gets to influence.
+  const transfersEnabled = chapaTransfersEnabled();
   const sp = await searchParams;
   const raw = typeof sp.status === "string" ? sp.status : "REQUESTED";
   const status = (VALID.has(raw as PayoutStatus | "ALL") ? raw : "REQUESTED") as
@@ -52,6 +56,7 @@ export default async function AdminPayoutsPage({
       currency: true,
       status: true,
       payoutReference: true,
+      transferStatus: true,
       note: true,
       createdAt: true,
       approvedAt: true,
@@ -196,7 +201,12 @@ export default async function AdminPayoutsPage({
                       ) : null}
                     </td>
                     <td className="px-4 py-3">
-                      <PayoutDecisionPanel payoutId={p.id} status={p.status} />
+                      <PayoutDecisionPanel
+                        payoutId={p.id}
+                        status={p.status}
+                        transferStatus={p.transferStatus}
+                        transfersEnabled={transfersEnabled}
+                      />
                     </td>
                   </tr>
                 );
