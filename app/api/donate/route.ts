@@ -46,16 +46,9 @@ export async function POST(req: Request) {
       title: true,
       status: true,
       currency: true,
-      // The owner's active subaccount is the Chapa split target (their bank).
-      owner: {
-        select: {
-          payoutAccounts: {
-            where: { isDefault: true, isVerified: true, chapaSubaccountId: { not: null } },
-            select: { chapaSubaccountId: true },
-            take: 1,
-          },
-        },
-      },
+      // The owner is deliberately NOT loaded. This used to fetch their verified
+      // payout account to use as a Chapa split target; opening a donation no
+      // longer needs anyone's bank details.
     },
   });
   if (!campaign || campaign.status !== "ACTIVE") {
@@ -64,7 +57,21 @@ export async function POST(req: Request) {
       { status: 404 }
     );
   }
-  const subaccountId = campaign.owner?.payoutAccounts[0]?.chapaSubaccountId ?? undefined;
+  // NO Chapa split. Donations arrive whole into the platform account and are
+  // separated per campaign by our own ledger, so the money is still here when a
+  // withdrawal is approved.
+  //
+  // A split was passed here previously, and it is deliberately gone for two
+  // reasons. Chapa states that "when a split payment is made, the funds are sent
+  // to the bank account associated with the subaccount" — the fundraiser's share
+  // would reach their bank as each donation arrived, which destroys the approval
+  // gate, the campaign-must-close rule, the one-withdrawal rule and any hope of
+  // refunding. And the direction of split_value is not settled: their percentage
+  // documentation reads as though the SUBACCOUNT receives split_value, which with
+  // 0.03 would have sent the fundraiser 3% and kept 97%.
+  //
+  // Do not reinstate a split without confirming that direction against a real
+  // Chapa transaction. See docs/PHASE-5-CHAPA-PAYOUTS.md.
 
   const session = await auth();
   const txRef = newTxRef();
@@ -89,7 +96,6 @@ export async function POST(req: Request) {
     firstName: donorName ?? "Anonymous",
     txRef,
     returnUrl: `${appUrl()}/donate/thanks?tx_ref=${encodeURIComponent(txRef)}`,
-    subaccountId,
   });
 
   if (!init.ok) {

@@ -54,14 +54,29 @@ export async function initializeChapaPayment(params: {
   firstName: string;
   txRef: string;
   returnUrl: string;
-  /**
-   * When set, Chapa routes the fundraiser's share to this subaccount and keeps
-   * the platform fee. The percentage the PLATFORM retains is `feeRate` (0.03).
-   * Omitted for campaigns whose owner has no verified subaccount yet — the
-   * donation still works; the fee is reconciled from our own fee_ledger.
+  /*
+   * NO SPLIT PARAMETERS, deliberately.
+   *
+   * This used to accept `subaccountId` + `feeRate` and add
+   * subaccounts[0][split_value] to the payload. Removed rather than left unused,
+   * because an unused money-routing parameter is one someone re-enables without
+   * knowing either of the reasons it went:
+   *
+   * 1. Chapa states that "when a split payment is made, the funds are sent to the
+   *    bank account associated with the subaccount". A split share is NOT held
+   *    for later release — it reaches the fundraiser's bank as each donation
+   *    settles, which removes the approval gate, the campaign-must-close rule,
+   *    the one-withdrawal-per-campaign rule, and the ability to refund.
+   *
+   * 2. The direction of split_value was never confirmed. Chapa's percentage
+   *    documentation reads as though the SUBACCOUNT receives split_value, while
+   *    the old code here assumed the platform retained it. At 0.03 those two
+   *    readings differ by 94% of every donation.
+   *
+   * Donations therefore arrive whole and are separated per campaign by our own
+   * ledger. If a split is ever wanted, confirm (1) and (2) against a real Chapa
+   * transaction first — see docs/PHASE-5-CHAPA-PAYOUTS.md.
    */
-  subaccountId?: string;
-  feeRate?: number;
 }): Promise<{ ok: true; checkoutUrl: string } | { ok: false; error: string }> {
   const payload: Record<string, string> = {
     amount: String(params.amount),
@@ -73,13 +88,6 @@ export async function initializeChapaPayment(params: {
     "customization[title]": "Yewogen Derash",
     "customization[description]": "Donation",
   };
-  if (params.subaccountId) {
-    // Chapa split: the platform takes `feeRate` as a percentage; the remainder
-    // settles to the fundraiser's subaccount automatically at transaction time.
-    payload["subaccounts[0][id]"] = params.subaccountId;
-    payload["subaccounts[0][split_type]"] = "percentage";
-    payload["subaccounts[0][split_value]"] = String(params.feeRate ?? 0.03);
-  }
   const res = await fetch(`${CHAPA_BASE}/transaction/initialize`, {
     method: "POST",
     headers: {

@@ -38,6 +38,49 @@ The owner's answers to §6, recorded 30 Jul 2026:
    campaign's whole balance. Editable by the main admin in Fees/Settings.
 3. **The fundraiser is told automatically**, on both success and failure.
 
+## Why donations are NOT split at Chapa — decided 30 Jul 2026
+
+The owner proposed splitting every donation at Chapa: 10% to the platform, 90% to
+the fundraiser's side, with the 90% withdrawable only once the campaign closed.
+**That combination is not possible**, and the research is recorded here so it is
+not re-proposed.
+
+Chapa's split-payment documentation states: *"When a split payment is made, the
+funds are sent to the bank account associated with the subaccount."* A subaccount
+**requires** `bank_code` and `account_number`, and the share settles to that bank
+account at transaction time. It is not a balance the platform can release later.
+
+So a split would mean the fundraiser's 90% arrives in their bank as each donation
+lands — which removes, in one step: the approval gate before money moves, the
+rule that a campaign must close first, one-withdrawal-per-campaign, and any
+practical ability to refund a donation.
+
+**Second problem, unresolved:** the direction of `split_value`. Chapa's percentage
+documentation reads as though the SUBACCOUNT receives `split_value`, while the code
+that used to be in `initializeChapaPayment` assumed the platform retained it. At
+`0.03` those readings differ by 94% of every donation. Their own docs are
+inconsistent (the flat-fee example reads the other way), so this cannot be settled
+from documentation — it needs a real transaction or Chapa support. **Nothing was
+ever lost to it because Chapa was in test mode**, but the code path was armed.
+
+**Decision: no split.** Donations arrive whole into the platform account and are
+separated per campaign by the ledger. The split parameters were removed from
+`initializeChapaPayment` rather than left unused, and `lib/chapa-no-split.test.ts`
+asserts no outgoing payment request contains a subaccount or split field.
+
+The fee structure is unchanged and already produces what was asked for:
+
+| | |
+|---|---|
+| 3% at donation | fundraiser's balance shows **97%** |
+| 7% at withdrawal | fundraiser receives **90%** |
+| lifetime | platform keeps **10%** |
+
+Note it must stay two deductions, not one 10% at donation — a single 10% would
+make the balance read 90% and the "show 97" requirement would be lost.
+
+---
+
 This phase is not like phases 1–4. Those changed how the app reasons about money
 it already held. This one makes the app **move money out of the platform to
 someone's bank account**, on its own, with no undo.
