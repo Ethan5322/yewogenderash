@@ -5,27 +5,52 @@ import { usePathname } from "next/navigation";
 
 /**
  * The single "Are you a campaign owner?" entry point. Shown ONCE, only in the
- * footer, and only on general pages — never on the homepage and never inside
- * the registration/auth flow (where it confuses users and could interrupt an
- * in-progress registration).
+ * footer, and only to people it could possibly apply to.
+ *
+ * Hidden for anyone already SIGNED IN. A fundraiser inside their own account was
+ * being asked "Are you a campaign owner? Sign in to manage your campaigns" at the
+ * bottom of every screen — the site apparently not knowing who was reading it.
+ * That is the real condition, not the URL: it also covers a signed-in fundraiser
+ * browsing /campaigns, which a path list would have missed.
+ *
+ * Still hidden on the homepage and inside the auth flow, where it either
+ * duplicates a prominent call to action or interrupts a registration in progress.
  */
 const HIDDEN_PREFIXES = ["/start", "/register", "/login", "/admin-login"];
 
+/**
+ * The whole decision, as a pure function so it can be tested directly.
+ *
+ * Extracted deliberately. The e2e suite runs its dev server against the real
+ * Supabase database, so proving the signed-in case in a browser would mean
+ * creating a fundraiser account in production — not an acceptable price for one
+ * assertion. This keeps the logic verifiable without it.
+ */
+export function shouldHideOwnerCta(args: {
+  signedIn: boolean;
+  pathname: string;
+}): boolean {
+  if (args.signedIn) return true;
+  if (args.pathname === "/") return true;
+  return HIDDEN_PREFIXES.some((p) => args.pathname.startsWith(p));
+}
+
 export function FooterOwnerCta({
+  signedIn = false,
   heading = "Are you a campaign owner?",
   sub = "Sign in to manage your campaigns, or get verified to start raising funds.",
   signIn = "Sign in",
   register = "Register as a campaign owner",
 }: {
+  /** Resolved on the server. The browser does not decide this. */
+  signedIn?: boolean;
   heading?: string;
   sub?: string;
   signIn?: string;
   register?: string;
 } = {}) {
   const pathname = usePathname() ?? "";
-  const hidden =
-    pathname === "/" || HIDDEN_PREFIXES.some((p) => pathname.startsWith(p));
-  if (hidden) return null;
+  if (shouldHideOwnerCta({ signedIn, pathname })) return null;
 
   return (
     <div className="mt-10 flex flex-col items-center justify-between gap-4 rounded-xl border bg-background p-5 text-center sm:flex-row sm:text-left">

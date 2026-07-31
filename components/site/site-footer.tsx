@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { auth } from "@/auth";
 import { Logo } from "@/components/site/logo";
 import { FooterOwnerCta } from "@/components/site/footer-owner-cta";
 import type { Dict } from "@/lib/i18n";
@@ -24,8 +25,16 @@ const EN_FOOTER = {
   builtBy: "Designed & built by",
 };
 
-export function SiteFooter({ dict }: { dict?: Dict }) {
+/**
+ * Async so it can read the session. The footer's "Are you a campaign owner?"
+ * panel must not appear to someone who is already signed in — a fundraiser
+ * inside their own account was being invited to sign in at the bottom of every
+ * screen, which reads as though the site has forgotten who they are.
+ */
+export async function SiteFooter({ dict }: { dict?: Dict }) {
   const t = dict?.footer ?? EN_FOOTER;
+  const session = await auth();
+  const signedIn = Boolean(session?.user?.id);
   const groups = [
     {
       heading: t.platform,
@@ -82,8 +91,10 @@ export function SiteFooter({ dict }: { dict?: Dict }) {
           ))}
         </div>
 
-        {/* Single campaign-owner entry — hidden on homepage & registration. */}
+        {/* Single campaign-owner entry — hidden on the homepage, in the auth
+            flow, and for anyone already signed in. */}
         <FooterOwnerCta
+          signedIn={signedIn}
           heading={t.ownerQ}
           sub={t.ownerSub}
           signIn={dict?.nav.signIn ?? "Sign in"}

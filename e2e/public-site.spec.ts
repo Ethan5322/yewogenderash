@@ -143,3 +143,40 @@ test.describe("console health", () => {
     });
   }
 });
+
+test.describe("footer owner call-to-action", () => {
+  /**
+   * The half of the fix that could break quietly.
+   *
+   * The panel was being shown to signed-in fundraisers inside their own account,
+   * which reads as the site not knowing who they are. Hiding it is now driven by
+   * the session (see shouldHideOwnerCta), and the signed-in case is covered by
+   * unit tests — proving it in a browser would mean creating a fundraiser account
+   * in the real database this dev server talks to.
+   *
+   * What a browser CAN prove without an account is the opposite direction: an
+   * anonymous visitor must still be offered registration, because this panel is
+   * the footer's only route into it. Over-hiding it would remove the sign-up path
+   * for every new fundraiser and break nothing that any other test looks at.
+   */
+  test("an anonymous visitor is still invited to register", async ({ page }) => {
+    await page.goto("/campaigns", { waitUntil: "domcontentloaded" });
+    const body = await page.locator("body").innerText();
+    expect(body).toContain("Are you a campaign owner?");
+    await expect(
+      page.locator('footer a[href="/start"]').first()
+    ).toBeVisible();
+  });
+
+  test("the homepage does not repeat it — it has its own call to action", async ({ page }) => {
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    const body = await page.locator("body").innerText();
+    expect(body).not.toContain("Are you a campaign owner?");
+  });
+
+  test("the sign-in page does not ask you to sign in again", async ({ page }) => {
+    await page.goto("/login", { waitUntil: "domcontentloaded" });
+    const body = await page.locator("body").innerText();
+    expect(body).not.toContain("Are you a campaign owner?");
+  });
+});
