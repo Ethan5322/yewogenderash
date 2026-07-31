@@ -79,7 +79,8 @@ async function settle(amount: number, i: number) {
   });
   await db.campaign.update({
     where: { id: campaignId },
-    data: { currentAmount: { increment: amount } },
+    // Net, mirroring settleDonation since migration 0023.
+    data: { currentAmount: { increment: split.net } },
   });
   await db.feeLedger.create({
     data: {
@@ -153,15 +154,25 @@ describe.skipIf(!isLocal)("money from donor to bank", () => {
     await db.$disconnect();
   });
 
-  it("1. donations show as money on the public campaign", async () => {
-    // currentAmount is the "raised" figure donors see, and it tracks GROSS — what
-    // was given, not what survives the fee. A donor who gave 1,000 should see
-    // their 1,000 reflected, not 970.
+  it("1. donations show as money, net of the fee, with no breakdown", async () => {
+    // currentAmount is the "raised" figure, and since migration 0023 it holds NET
+    // — the money the campaign actually received. Three gifts totalling 3,000
+    // read as 2,910, and a single 100 gift would read as 97. The fee is not shown
+    // to the fundraiser anywhere; gross stays on the donation rows for the main
+    // admin and for the withholding calculation.
     const c = await db.campaign.findUniqueOrThrow({
       where: { id: campaignId },
       select: { currentAmount: true },
     });
-    expect(toNumber(c.currentAmount)).toBe(GROSS);
+    expect(toNumber(c.currentAmount)).toBe(2910);
+    expect(toNumber(c.currentAmount)).toBe(GROSS * 0.97);
+
+    // The per-donation figure a fundraiser sees on their statement.
+    const one = await db.donation.findFirstOrThrow({
+      where: { campaignId, amount: 1000 },
+      select: { netAmount: true },
+    });
+    expect(toNumber(one.netAmount!)).toBe(970);
   });
 
   it("2. the fee ledger accounts for every birr, with none invented or lost", async () => {

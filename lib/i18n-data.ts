@@ -89,6 +89,9 @@ const en = {
       title: "What happens to your donation",
       sub: "Our fees, stated plainly and before you give.",
       donationLabel: "Every ETB 100 donated",
+      // The PUBLIC fees page and the donate page still name the fee in full.
+      // Hiding the breakdown applies to the fundraiser's own account screens, not
+      // to the page whose whole purpose is stating the split before someone gives.
       transactionFee: "Transaction fee",
       transactionFeeDesc:
         "Taken from each donation when it is paid. Covers payment processing, identity verification and fraud checks.",
@@ -210,9 +213,6 @@ const en = {
       totalDonated: "Total donated by",
       donor: "donor",
       donors: "donors",
-      transactionFee: "Transaction fee",
-      ofEachDonation: "of each donation",
-      creditedTo: "Credited to your campaign",
       alreadyTaken: "Already withdrawn or reserved",
       availableNow: "Available to withdraw now",
       everyTransaction: "Every transaction",
@@ -221,8 +221,6 @@ const en = {
       colDate: "Date",
       colDonor: "Donor",
       colRef: "Reference",
-      colDonated: "Donated",
-      colFee: "Fee",
       colCredited: "Credited",
       colStatus: "Status",
       privacyNote:
@@ -232,7 +230,6 @@ const en = {
       title: "Your money",
       raised: "Raised",
       available: "Available to withdraw",
-      afterFee: "after the transaction fee",
       campaigns: "Campaigns",
       viewTransactions: "view every transaction",
       payoutsLink: "Payouts",
@@ -657,9 +654,6 @@ const am: Dict = {
       totalDonated: "በአጠቃላይ የተለገሰው በ",
       donor: "ለጋሽ",
       donors: "ለጋሾች",
-      transactionFee: "የግብይት ክፍያ",
-      ofEachDonation: "ከእያንዳንዱ ልገሳ",
-      creditedTo: "ለዘመቻዎ ገቢ የሆነ",
       alreadyTaken: "አስቀድሞ የወጣ ወይም የተያዘ",
       availableNow: "አሁን ለማውጣት ዝግጁ",
       everyTransaction: "እያንዳንዱ ግብይት",
@@ -668,8 +662,6 @@ const am: Dict = {
       colDate: "ቀን",
       colDonor: "ለጋሽ",
       colRef: "ማጣቀሻ",
-      colDonated: "የተለገሰ",
-      colFee: "ክፍያ",
       colCredited: "ገቢ የሆነ",
       colStatus: "ሁኔታ",
       privacyNote:
@@ -679,7 +671,6 @@ const am: Dict = {
       title: "ገንዘብዎ",
       raised: "የተሰበሰበ",
       available: "ለማውጣት ዝግጁ",
-      afterFee: "ከግብይት ክፍያ በኋላ",
       campaigns: "ዘመቻዎች",
       viewTransactions: "እያንዳንዱን ግብይት ይመልከቱ",
       payoutsLink: "ክፍያዎች",

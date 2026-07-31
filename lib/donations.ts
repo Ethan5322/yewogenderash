@@ -20,9 +20,10 @@ export function newTxRef(): string {
  *
  * The core money invariant lives here and nowhere else:
  *   - a donation flips PENDING → SUCCESS at most once (guarded update)
- *   - campaign.currentAmount increments in the SAME transaction
- *   - the amount credited is OUR stored amount, only if the gateway's
- *     confirmed amount+currency match it exactly
+ *   - campaign.currentAmount increments in the SAME transaction, by the NET
+ *     amount (see below) — gross stays on the donation row
+ *   - the amount verified against the gateway is OUR stored gross amount, and it
+ *     is credited only if the gateway's confirmed amount+currency match exactly
  */
 export async function settleDonation(
   txRef: string
@@ -113,10 +114,22 @@ export async function settleDonation(
     });
     if (flipped.count === 0) return false;
 
-    // Public "raised" figure tracks gross (what donors gave).
+    // currentAmount is NET — what the campaign actually receives, after the
+    // transaction fee. It used to track gross.
+    //
+    // This is the single place the meaning is decided, and it is deliberately
+    // stored rather than converted on read: currentAmount is read in 46 places
+    // (public campaign pages, goal progress, admin lists, analytics, SEO
+    // metadata, sort order). Netting it at each of those would mean every future
+    // read site has to remember, and one that forgets shows a different total
+    // from the rest — the same class of defect as the balance table dropped in
+    // migration 0022.
+    //
+    // Gross is not lost: it is yd_donations.amount, which is what the fee ledger
+    // and the 7% withholding are still calculated from.
     await tx.campaign.update({
       where: { id: donation.campaignId },
-      data: { currentAmount: { increment: donation.amount } },
+      data: { currentAmount: { increment: split.net } },
     });
 
     // Append-only fee record — one row per settled donation.

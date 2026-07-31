@@ -65,7 +65,9 @@ export async function BalanceSummary({ ownerId }: { ownerId: string }) {
           <p className="mt-1 font-display text-lg font-bold tabular-nums text-primary">
             {formatETB(totalAvailable, currency)}
           </p>
-          <p className="text-xs text-muted-foreground">{t.afterFee}</p>
+          {/* No "after the transaction fee" caption. Both figures on this card are
+              already net — currentAmount stores net since migration 0023 — so the
+              fee is not something the fundraiser has to reason about. */}
         </div>
         <div className="rounded-lg border bg-muted/30 p-4">
           <p className="flex items-center gap-1.5 text-xs text-muted-foreground">

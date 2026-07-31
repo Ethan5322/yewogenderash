@@ -31,9 +31,12 @@ export async function refundDonationAction(
       data: { status: "REFUNDED" },
     });
     if (flipped.count === 0) return;
+    // Mirror of the credit in settleDonation: currentAmount holds NET, so a
+    // refund takes back the net. Decrementing the gross here would quietly eat
+    // the fee out of the campaign's total on every refund.
     await tx.campaign.update({
       where: { id: d.campaignId },
-      data: { currentAmount: { decrement: d.amount } },
+      data: { currentAmount: { decrement: d.netAmount ?? d.amount } },
     });
     // The balance denorm that used to be adjusted here is gone (migration 0022).
     // A refund takes effect automatically now: the donation is no longer SUCCESS,

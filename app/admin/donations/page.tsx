@@ -29,7 +29,12 @@ export default async function AdminDonationsPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requirePermission("payouts");
+  const me = await requirePermission("payouts");
+  // The fee breakdown is main-admin only. A sub-admin sees the same net figures a
+  // fundraiser does — enough to review and release a payout, without the platform's
+  // margin on every row. requirePermission already returns the fresh DB record, so
+  // this is not read from a token.
+  const showFeeDetail = me.isSuperAdmin;
   const sp = await searchParams;
   const raw = typeof sp.status === "string" ? sp.status : "SUCCESS";
   const status = (VALID.has(raw as DonationStatus | "ALL") ? raw : "SUCCESS") as DonationStatus | "ALL";
@@ -80,7 +85,9 @@ export default async function AdminDonationsPage({
 
       <div className="grid gap-3 sm:grid-cols-3">
         <Tile label="Successful donations" value={String(totals._count)} />
-        <Tile label="Gross received" value={formatETB(Number(totals._sum.amount ?? 0))} />
+        {showFeeDetail ? (
+          <Tile label="Gross received" value={formatETB(Number(totals._sum.amount ?? 0))} />
+        ) : null}
         <Tile label="Net to campaigns" value={formatETB(Number(totals._sum.netAmount ?? 0))} />
       </div>
 
@@ -121,7 +128,7 @@ export default async function AdminDonationsPage({
               <th className="px-4 py-3 font-medium">Date</th>
               <th className="px-4 py-3 font-medium">Donor</th>
               <th className="px-4 py-3 font-medium">Campaign</th>
-              <th className="px-4 py-3 font-medium">Gross / fee / net</th>
+              <th className="px-4 py-3 font-medium">{showFeeDetail ? "Gross / fee / net" : "Amount"}</th>
               <th className="px-4 py-3 font-medium">Status</th>
               <th className="px-4 py-3 font-medium">Reference</th>
               <th className="px-4 py-3 font-medium">Action</th>
@@ -147,8 +154,16 @@ export default async function AdminDonationsPage({
                     </PermLink>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
-                    <span className="font-semibold">{formatETB(Number(d.amount), d.currency)}</span>
-                    <span className="text-xs text-muted-foreground"> · {formatETB(Number(d.platformFee), d.currency)} · {formatETB(Number(d.netAmount), d.currency)}</span>
+                    {showFeeDetail ? (
+                      <>
+                        <span className="font-semibold">{formatETB(Number(d.amount), d.currency)}</span>
+                        <span className="text-xs text-muted-foreground"> · {formatETB(Number(d.platformFee), d.currency)} · {formatETB(Number(d.netAmount), d.currency)}</span>
+                      </>
+                    ) : (
+                      <span className="font-semibold">
+                        {formatETB(Number(d.netAmount ?? d.amount), d.currency)}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3"><StatusChip status={d.status} /></td>
                   <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{d.txRef}</td>

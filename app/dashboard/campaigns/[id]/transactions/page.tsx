@@ -5,7 +5,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { StatusChip } from "@/components/admin/ui";
 import { campaignAvailableBalance, campaignWithholdingDue } from "@/lib/payouts";
-import { PLATFORM_FEE_RATE, WITHHOLDING_FEE_RATE } from "@/lib/fees";
+import { WITHHOLDING_FEE_RATE } from "@/lib/fees";
 import { maskDonorName, maskReference } from "@/lib/privacy";
 import { formatETB, formatDateTime, toNumber } from "@/lib/format";
 import { getDictionary } from "@/lib/i18n";
@@ -17,9 +17,11 @@ const pct = (rate: number) => `${Math.round(rate * 100)}%`;
 /**
  * The fundraiser's own transaction statement — what this balance is made of.
  *
- * Reached by clicking the balance on the payouts page. It accounts for every
- * birr: what each donor paid, the transaction fee taken from it, and what was
- * credited. Donor identities are masked at the point each row is built (see
+ * Reached by clicking the balance on the payouts page. Every figure is money
+ * CREDITED to the campaign — a 100 birr gift reads as 97. The transaction fee is
+ * not itemised here; the gross-and-fee breakdown lives on the main admin's
+ * screens, and the rates are stated on /support/fees and in the Terms.
+ * Donor identities are masked at the point each row is built (see
  * lib/privacy.ts) — a fundraiser sees that a gift arrived, never who to contact
  * about it.
  *
@@ -70,8 +72,6 @@ export default async function OwnerTransactionsPage({
   ]);
 
   const settled = campaign.donations.filter((d) => d.status === "SUCCESS");
-  const gross = settled.reduce((a, d) => a + toNumber(d.amount), 0);
-  const fees = settled.reduce((a, d) => a + toNumber(d.platformFee ?? 0), 0);
   const credited = settled.reduce((a, d) => a + toNumber(d.netAmount ?? d.amount), 0);
   const cur = campaign.currency;
 
@@ -95,22 +95,15 @@ export default async function OwnerTransactionsPage({
         {/* How the balance is built up */}
         <section className="mt-6 rounded-xl border bg-card p-6 shadow-sm">
           <h2 className="font-display text-base font-semibold">{t.howTitle}</h2>
+          {/* Net only. The 3% transaction fee is not itemised for the fundraiser:
+              every figure on this screen is money credited to the campaign, so
+              there is no gross-versus-net gap to explain. The full gross / fee /
+              net breakdown is still on the main admin's screens, and the rates are
+              stated on /support/fees and in the Terms. */}
           <dl className="mt-4 space-y-2 text-sm">
             <div className="flex items-center justify-between gap-4">
               <dt className="text-muted-foreground">
                 {t.totalDonated} {settled.length} {settled.length === 1 ? t.donor : t.donors}
-              </dt>
-              <dd className="font-medium tabular-nums">{formatETB(gross, cur)}</dd>
-            </div>
-            <div className="flex items-center justify-between gap-4">
-              <dt className="text-muted-foreground">
-                {t.transactionFee} ({pct(PLATFORM_FEE_RATE)} {t.ofEachDonation})
-              </dt>
-              <dd className="tabular-nums text-destructive">− {formatETB(fees, cur)}</dd>
-            </div>
-            <div className="flex items-center justify-between gap-4 border-t pt-2">
-              <dt className="font-medium">
-                {t.creditedTo} ({pct(1 - PLATFORM_FEE_RATE)})
               </dt>
               <dd className="font-semibold tabular-nums">{formatETB(credited, cur)}</dd>
             </div>
@@ -167,24 +160,23 @@ export default async function OwnerTransactionsPage({
             </p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[680px] text-sm">
+              <table className="w-full min-w-[520px] text-sm">
                 <thead>
                   <tr className="border-b bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
                     <th className="px-4 py-3 font-medium">{t.colDate}</th>
                     <th className="px-4 py-3 font-medium">{t.colDonor}</th>
                     <th className="px-4 py-3 font-medium">{t.colRef}</th>
-                    <th className="px-4 py-3 text-right font-medium">{t.colDonated}</th>
-                    <th className="px-4 py-3 text-right font-medium">
-                      {t.colFee} ({pct(PLATFORM_FEE_RATE)})
-                    </th>
+                    {/* One money column. The fundraiser's statement shows what
+                        each gift credited to the campaign — not the donor's gross
+                        and the fee taken off it. */}
                     <th className="px-4 py-3 text-right font-medium">{t.colCredited}</th>
                     <th className="px-4 py-3 font-medium">{t.colStatus}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {campaign.donations.map((d) => {
-                    const g = toNumber(d.amount);
-                    const f = toNumber(d.platformFee ?? 0);
+                    // Legacy donations predate the fee ledger and have no
+                    // netAmount; gross is the best figure available for those.
                     const n = toNumber(d.netAmount ?? d.amount);
                     return (
                       <tr key={d.id} className="border-b last:border-0">
@@ -199,12 +191,7 @@ export default async function OwnerTransactionsPage({
                         <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
                           {maskReference(d.txRef)}
                         </td>
-                        <td className="px-4 py-3 text-right tabular-nums">
-                          {formatETB(g, d.currency)}
-                        </td>
-                        <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
-                          − {formatETB(f, d.currency)}
-                        </td>
+
                         <td className="px-4 py-3 text-right font-medium tabular-nums">
                           {formatETB(n, d.currency)}
                         </td>
