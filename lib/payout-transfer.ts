@@ -7,6 +7,7 @@ import { writeAudit } from "@/lib/audit";
 import {
   initiateChapaTransfer,
   chapaTransfersEnabled,
+  chapaKeyMode,
   type TransferResult,
 } from "@/lib/chapa";
 
@@ -37,6 +38,8 @@ export const TRANSFER_BLOCKED: Record<string, string> = {
     "This payout is above the automatic transfer ceiling. Transfer it by hand and record the reference.",
   no_account: "This fundraiser has no verified payout account with a bank code.",
   no_amount: "This payout has no net amount to transfer.",
+  test_mode:
+    "Chapa is on TEST keys, so transfers are refused. A simulated transfer would mark this payout PAID, tell the fundraiser their money was sent, and use up the campaign's one withdrawal — with nothing actually moving. Transfer it by hand and record the reference, or switch to live keys.",
 };
 
 /**
@@ -65,6 +68,15 @@ export async function sendPayoutTransfer(
 ): Promise<SendResult> {
   if (!chapaTransfersEnabled()) {
     return { ok: false, error: TRANSFER_BLOCKED.disabled };
+  }
+
+  // Live keys only, and "unknown" is refused too. The danger of a test-key
+  // transfer is not that it fails — it is that it SUCCEEDS harmlessly at the bank
+  // while the ledger records a real payment, announces it to the fundraiser, and
+  // spends the campaign's single withdrawal. Checked before anything is claimed,
+  // so a refusal leaves the payout exactly as it was.
+  if (chapaKeyMode() !== "live") {
+    return { ok: false, error: TRANSFER_BLOCKED.test_mode };
   }
 
   const payout = await db.payout.findUnique({

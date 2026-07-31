@@ -1,5 +1,9 @@
-import { describe, it, expect } from "vitest";
-import { normaliseTransferStatus, type TransferOutcome } from "@/lib/chapa";
+import { describe, it, expect, afterEach } from "vitest";
+import {
+  normaliseTransferStatus,
+  chapaKeyMode,
+  type TransferOutcome,
+} from "@/lib/chapa";
 
 /**
  * The one function that decides whether a fundraiser has been paid.
@@ -76,5 +80,45 @@ describe("normaliseTransferStatus", () => {
     for (const s of ["not successful", "success_pending", "unsuccessful", "no success"]) {
       expect(normaliseTransferStatus(s)).not.toBe("SUCCESS");
     }
+  });
+});
+
+/**
+ * Which key is configured, which is what decides whether the app may transfer at
+ * all. The failure this guards against is subtle: a test-key transfer does not
+ * error, it succeeds harmlessly at the bank while the ledger records a real
+ * payment. So anything that is not demonstrably a live key must read as not-live.
+ */
+describe("chapaKeyMode", () => {
+  const original = process.env.CHAPA_SECRET_KEY;
+  afterEach(() => {
+    if (original === undefined) delete process.env.CHAPA_SECRET_KEY;
+    else process.env.CHAPA_SECRET_KEY = original;
+  });
+
+  it("recognises a test secret", () => {
+    process.env.CHAPA_SECRET_KEY = "CHASECK_TEST-abc123";
+    expect(chapaKeyMode()).toBe("test");
+  });
+
+  it("recognises a live secret", () => {
+    process.env.CHAPA_SECRET_KEY = "CHASECK-abc123";
+    expect(chapaKeyMode()).toBe("live");
+  });
+
+  it("says unknown rather than guessing, and unknown must never mean live", () => {
+    for (const key of ["", "sk_live_whatever", "PUBLIC-KEY", "chaseck-lowercase"]) {
+      process.env.CHAPA_SECRET_KEY = key;
+      expect(chapaKeyMode(), `${JSON.stringify(key)}`).not.toBe("live");
+    }
+    delete process.env.CHAPA_SECRET_KEY;
+    expect(chapaKeyMode()).toBe("unknown");
+  });
+
+  it("does not mistake a test key for live because it starts with CHASECK", () => {
+    // The live check is a bare CHASECK prefix, so the test branch must be tried
+    // first. Getting this order wrong would arm transfers in test mode.
+    process.env.CHAPA_SECRET_KEY = "CHASECK_TEST-xyz";
+    expect(chapaKeyMode()).not.toBe("live");
   });
 });

@@ -95,6 +95,10 @@ const load = () =>
 describe.skipIf(!isLocal)("payout transfers against a real database", () => {
   beforeAll(async () => {
     process.env.CHAPA_TRANSFERS_ENABLED = "true";
+    // A live-shaped key, because the send path refuses test keys outright. No
+    // request ever leaves — the transfer function is injected — so this only
+    // satisfies the gate.
+    process.env.CHAPA_SECRET_KEY = "CHASECK-integration-test";
     await db.user.create({
       data: {
         id: userId,
@@ -329,6 +333,32 @@ describe.skipIf(!isLocal)("payout transfers against a real database", () => {
     expect(res).toEqual({ ok: false, error: TRANSFER_BLOCKED.disabled });
     expect((await load()).transferStatus).toBeNull();
     process.env.CHAPA_TRANSFERS_ENABLED = "true";
+  });
+
+  it("12. a TEST key cannot send, even with everything else in place", async () => {
+    // The dangerous case, and the reason this gate exists. A simulated transfer
+    // would come back SUCCESS, mark the payout PAID, tell the fundraiser their
+    // money had been sent and consume the campaign's only withdrawal — with
+    // nothing having moved. The injected function below WOULD have returned
+    // success, so this test only passes if the key check refuses first.
+    process.env.CHAPA_SECRET_KEY = "CHASECK_TEST-pretend";
+    const res = await sendPayoutTransfer(payoutId, "admin-1", chapaReturning(SUCCESS));
+    expect(res).toEqual({ ok: false, error: TRANSFER_BLOCKED.test_mode });
+
+    const p = await load();
+    expect(p.status).toBe("APPROVED"); // not paid
+    expect(p.transferStatus).toBeNull(); // nothing even claimed
+    expect(p.transferReference).toBeNull();
+
+    process.env.CHAPA_SECRET_KEY = "CHASECK-integration-test";
+  });
+
+  it("13. an unrecognisable key is refused too — unknown is not live", async () => {
+    process.env.CHAPA_SECRET_KEY = "something-else-entirely";
+    const res = await sendPayoutTransfer(payoutId, "admin-1", chapaReturning(SUCCESS));
+    expect(res).toEqual({ ok: false, error: TRANSFER_BLOCKED.test_mode });
+    expect((await load()).transferStatus).toBeNull();
+    process.env.CHAPA_SECRET_KEY = "CHASECK-integration-test";
   });
 });
 

@@ -9,7 +9,7 @@ import { PageHeader, StatusChip } from "@/components/admin/ui";
 import { formatETB, formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { PermLink } from "@/components/admin/perm-link";
-import { chapaTransfersEnabled } from "@/lib/chapa";
+import { chapaTransfersEnabled, chapaKeyMode } from "@/lib/chapa";
 
 const PAGE_SIZE = 50;
 
@@ -33,7 +33,16 @@ export default async function AdminPayoutsPage({
   await requirePermission("payouts");
   // Resolved on the server: whether the app may move money is not a decision the
   // browser gets to influence.
-  const transfersEnabled = chapaTransfersEnabled();
+  //
+  // Both conditions, because either one alone is misleading. The flag being on
+  // with test keys would show a button that always refuses; live keys with the
+  // flag off would too. The panel only offers to send when a send could work.
+  const transfersEnabled = chapaTransfersEnabled() && chapaKeyMode() === "live";
+  const transfersBlockedReason = !chapaTransfersEnabled()
+    ? "Automatic transfers are switched off (CHAPA_TRANSFERS_ENABLED)."
+    : chapaKeyMode() !== "live"
+      ? "Chapa is on TEST keys — transfers are refused so a simulated payment can never be recorded as real. Transfer by hand and record the reference."
+      : null;
   const sp = await searchParams;
   const raw = typeof sp.status === "string" ? sp.status : "REQUESTED";
   const status = (VALID.has(raw as PayoutStatus | "ALL") ? raw : "REQUESTED") as
@@ -85,6 +94,15 @@ export default async function AdminPayoutsPage({
         title="Payouts"
         description="Every release requires approval here, then a recorded transfer reference. Owners can never self-release funds."
       />
+
+      {/* Say why the Send button is absent. An admin who expects it and finds
+          nothing assumes the feature is broken and starts looking for a bug. */}
+      {transfersBlockedReason ? (
+        <p className="mb-4 rounded-lg border border-amber-500/40 bg-amber-500/5 px-3 py-2 text-sm">
+          <strong className="font-medium">Manual transfers only.</strong>{" "}
+          {transfersBlockedReason}
+        </p>
+      ) : null}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-2">

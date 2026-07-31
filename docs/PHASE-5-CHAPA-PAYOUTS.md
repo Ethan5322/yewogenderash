@@ -1,13 +1,33 @@
 # Phase 5 — Automated Chapa transfers and reconciliation
 
-**Status: 5a, 5b and 5c BUILT and tested. Not switched on.**
+**Status: 5a, 5b and 5c BUILT, wired and tested. Live keys required to run.**
 
-Remaining before money can move: paste migration 0021 into Supabase, set
-`CRON_SECRET`, confirm the Chapa account can transfer with test keys, then set
-`CHAPA_TRANSFERS_ENABLED=true`. The last of those is the owner's call, on a real
-account, and I will not make it. Also unwired: the `maxAutoTransferEtb` field is
-editable through `updatePlatformSettings` but has no input on the Fees/Settings
-form yet, so it sits at its 25,000 ETB default.
+Done: migration 0021 applied to Supabase, `CRON_SECRET` set in Vercel, hourly cron
+registered in `vercel.json`, the "Send transfer" button wired into the payout
+panel, and `maxAutoTransferEtb` editable in Fees/Settings.
+
+**Remaining: live Chapa keys, then `CHAPA_TRANSFERS_ENABLED=true`.** Both are the
+owner's call on a real account, and I will not make either.
+
+### TEST KEYS CANNOT TRANSFER — decided 30 Jul 2026
+
+The owner asked for this to work only once Chapa is live, and the send path now
+refuses any key that is not demonstrably live (`chapaKeyMode() !== "live"`,
+so `unknown` is refused too).
+
+This is the one place where test mode is worse than useless. A donation against a
+test key wastes a click. A TRANSFER against one would have Chapa accept a
+simulated instruction and return success, whereupon the app would mark the payout
+`PAID`, tell the fundraiser their money had been sent, and consume the campaign's
+single withdrawal — with nothing having moved anywhere. The ledger would be wrong
+in the only direction nobody thinks to check.
+
+**The cost of that choice, stated plainly: the first live transfer is the first
+real test.** The mitigation is the ceiling. Set `maxAutoTransferEtb` low — a few
+hundred birr — for the first real payout, watch it land, confirm reconciliation
+settles cleanly, then raise it. That turns the first live run into a rehearsal
+with a capped downside, which is the nearest safe equivalent to a test-mode dry
+run.
 
 The owner's answers to §6, recorded 30 Jul 2026:
 1. **An admin clicks "Send transfer"** — a human stays between a request and money

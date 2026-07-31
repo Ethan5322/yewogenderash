@@ -425,3 +425,26 @@ export async function verifyChapaTransfer(reference: string): Promise<TransferRe
 export function chapaTransfersEnabled(): boolean {
   return process.env.CHAPA_TRANSFERS_ENABLED === "true";
 }
+
+/**
+ * Whether the configured secret key is a TEST key or a LIVE one. Chapa test
+ * secrets are prefixed `CHASECK_TEST-`; live ones are not.
+ *
+ * This gates transfers, because a payout is the one operation where test mode is
+ * actively dangerous rather than merely useless. A donation against a test key
+ * wastes a click. A TRANSFER against one would have Chapa accept a simulated
+ * instruction, the app mark the payout PAID, the fundraiser told their money was
+ * sent, and the campaign's single withdrawal consumed — with nothing having moved
+ * anywhere. The ledger would be wrong in the one direction nobody checks.
+ *
+ * "unknown" is returned rather than a guess when the key is missing or oddly
+ * shaped, and callers must refuse on it too: "I could not tell" is not evidence
+ * of a live key.
+ */
+export function chapaKeyMode(): "test" | "live" | "unknown" {
+  const key = process.env.CHAPA_SECRET_KEY ?? "";
+  if (!key) return "unknown";
+  if (key.startsWith("CHASECK_TEST-")) return "test";
+  if (key.startsWith("CHASECK")) return "live";
+  return "unknown";
+}
