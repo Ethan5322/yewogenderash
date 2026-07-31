@@ -323,7 +323,6 @@ model Campaign {
   updates       CampaignUpdate[]
   notifications Notification[]
   feeLedgers    FeeLedger[]
-  balance       CampaignBalance?
   documents     CampaignDocument[]
 
   @@index([status, category])
@@ -625,28 +624,24 @@ model FeeLedger {
   @@map("yd_fee_ledger")
 }
 
-/// Per-campaign money summary — the authoritative balance surface. Kept in
-/// sync inside the same transaction that settles a donation or pays out.
-/// Separate row per campaign: funds are NEVER pooled across campaigns.
-model CampaignBalance {
-  id              String   @id @default(cuid())
-  campaignId      String   @unique
-  campaign        Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  /// Sum of gross donor payments that reached SUCCESS.
-  grossRaised     Decimal  @default(0) @db.Decimal(12, 2)
-  /// Sum of platform fees taken on those donations.
-  totalFees       Decimal  @default(0) @db.Decimal(12, 2)
-  /// grossRaised − totalFees — the campaign's own money.
-  netRaised       Decimal  @default(0) @db.Decimal(12, 2)
-  /// Sum of payouts requested/approved/paid (reserved against net).
-  totalWithdrawn  Decimal  @default(0) @db.Decimal(12, 2)
-  /// netRaised − totalWithdrawn — what the owner can still request.
-  availableAmount Decimal  @default(0) @db.Decimal(12, 2)
-  currency        String   @default("ETB")
-  updatedAt       DateTime @updatedAt
-
-  @@map("yd_campaign_balances")
-}
+// CampaignBalance / yd_campaign_balances was REMOVED in migration 0022.
+//
+// Its doc comment called it "the authoritative balance surface, kept in sync
+// inside the same transaction that settles a donation or pays out". The first
+// half was true; the second never was. Donations incremented it and refunds
+// decremented it, but no payout ever touched it and totalWithdrawn was never
+// written at all, so after a withdrawal it reported the full net as still
+// available. Three separate comments elsewhere in this codebase already said
+// "computed from the ledger, not the CampaignBalance denorm, so it stays correct
+// even if it drifts" — it had been superseded and routed around, but not deleted.
+//
+// Balances now have ONE source: campaignAvailableBalance() in lib/payouts.ts,
+// which computes successful donations minus reserved payouts. Slightly more work
+// per read, and it cannot be wrong.
+//
+// Do not reintroduce a balance table without also handling payout creation,
+// rejection, cancellation and transfer failure — forgetting one of those is
+// exactly how the last one started lying.
 
 /// A fundraiser's verified payout destination. Promoted from the old
 /// CampaignOwner.payoutAccount JSON to a first-class table so each account

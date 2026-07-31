@@ -22,9 +22,15 @@ import type { TransferResult } from "@/lib/chapa";
  * of the join is individually correct.
  *
  * So this walks the whole thing once and checks the money is conserved at every
- * step: donors give 3,000, the platform keeps 300 (3%), the fundraiser sees 2,700,
- * withdraws a ceiling of 2,700 - 210 = 2,490... and the numbers must add up to the
- * last birr with nothing invented or lost.
+ * step:
+ *
+ *   donors give        3,000
+ *   fee 3%               −90   →  fundraiser sees 2,910
+ *   withholding 7%      −210   →  ceiling 2,700, which is 90% of gross
+ *   transferred        2,700
+ *   platform keeps       300   =  90 + 210
+ *
+ * and 2,700 + 300 must equal 3,000 exactly, with nothing invented or lost.
  */
 const url = process.env.DATABASE_URL ?? "";
 const isLocal =
@@ -53,8 +59,8 @@ const SUCCESS: TransferResult = {
  *
  * Mirrored rather than called because settleDonation() verifies with Chapa over
  * the network first. The point here is the LEDGER writes, and they are copied
- * field for field — including the CampaignBalance denorm, so the drift this test
- * asserts on is the real behaviour and not an artefact of the fixture.
+ * field for field, so what this test measures is the real behaviour rather than an
+ * artefact of the fixture.
  */
 async function settle(amount: number, i: number) {
   const split = computeFeeSplit(amount);
@@ -86,23 +92,8 @@ async function settle(amount: number, i: number) {
       currency: "ETB",
     },
   });
-  await db.campaignBalance.upsert({
-    where: { campaignId },
-    create: {
-      campaignId,
-      grossRaised: split.gross,
-      totalFees: split.fee,
-      netRaised: split.net,
-      availableAmount: split.net,
-      currency: "ETB",
-    },
-    update: {
-      grossRaised: { increment: split.gross },
-      totalFees: { increment: split.fee },
-      netRaised: { increment: split.net },
-      availableAmount: { increment: split.net },
-    },
-  });
+  // No balance denorm to keep in step — yd_campaign_balances was dropped in
+  // migration 0022 precisely because nothing maintained it on payout.
   return split;
 }
 
@@ -154,7 +145,6 @@ describe.skipIf(!isLocal)("money from donor to bank", () => {
     await db.notification.deleteMany({ where: { ownerId } });
     await db.payout.deleteMany({ where: { campaignId } });
     await db.feeLedger.deleteMany({ where: { campaignId } });
-    await db.campaignBalance.deleteMany({ where: { campaignId } });
     await db.donation.deleteMany({ where: { campaignId } });
     await db.payoutAccount.deleteMany({ where: { ownerId } });
     await db.campaign.deleteMany({ where: { id: campaignId } });
@@ -298,31 +288,22 @@ describe.skipIf(!isLocal)("money from donor to bank", () => {
     );
   });
 
-  it("10. KNOWN DRIFT: the CampaignBalance denorm is not decremented on payout", async () => {
-    // Documenting a real defect rather than pretending it is not there.
-    //
-    // CampaignBalance.availableAmount is incremented per donation and decremented
-    // on refund, but NOTHING touches it when a payout is made, and totalWithdrawn
-    // is never written at all. So after a full withdrawal the denorm still claims
-    // the whole net is available.
-    //
-    // It is not visible to anyone TODAY: every balance shown to a fundraiser or an
-    // admin comes from campaignAvailableBalance(), which computes from donations
-    // minus payouts. The denorm has no readers. That is precisely why it is
-    // dangerous — it is a loaded number waiting for someone to trust it.
-    const denorm = await db.campaignBalance.findUniqueOrThrow({
-      where: { campaignId },
-      select: { availableAmount: true, totalWithdrawn: true },
-    });
+  it("10. there is exactly ONE source of truth for a balance", async () => {
+    // This test used to assert the opposite: it documented yd_campaign_balances
+    // reporting 2,910 available when the true figure was 0, because donations
+    // incremented that table and payouts never decremented it. The table is gone
+    // (migration 0022) and campaignAvailableBalance is now the only answer, so
+    // there is no second number left to disagree.
     const computed = await campaignAvailableBalance(campaignId);
+    expect(computed).toBe(0);
 
-    expect(computed).toBe(0); // the truth
-    expect(toNumber(denorm.availableAmount)).toBe(2910); // the stale copy
-    expect(toNumber(denorm.totalWithdrawn)).toBe(0); // never written
-
-    // When this is fixed — by maintaining it in the payout path or deleting the
-    // table — this test should fail and be replaced by an equality assertion.
-    expect(toNumber(denorm.availableAmount)).not.toBe(computed);
+    // A second copy of a balance cannot drift if it does not exist. Asserting the
+    // absence, so reintroducing the table without maintaining it fails here.
+    const stillThere = await db.$queryRawUnsafe<{ n: bigint }[]>(
+      `SELECT COUNT(*)::bigint AS n FROM information_schema.tables
+        WHERE table_name = 'yd_campaign_balances'`
+    );
+    expect(Number(stillThere[0].n)).toBe(0);
   });
 });
 

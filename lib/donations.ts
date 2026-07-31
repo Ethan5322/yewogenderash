@@ -133,24 +133,11 @@ export async function settleDonation(
       },
     });
 
-    // Per-campaign balance denorm — net is the withdrawable money.
-    await tx.campaignBalance.upsert({
-      where: { campaignId: donation.campaignId },
-      create: {
-        campaignId: donation.campaignId,
-        grossRaised: split.gross,
-        totalFees: split.fee,
-        netRaised: split.net,
-        availableAmount: split.net,
-        currency: donation.currency,
-      },
-      update: {
-        grossRaised: { increment: split.gross },
-        totalFees: { increment: split.fee },
-        netRaised: { increment: split.net },
-        availableAmount: { increment: split.net },
-      },
-    });
+    // No balance denorm here any more. yd_campaign_balances used to be updated
+    // at this point; it was removed in migration 0022 because nothing read it and
+    // nothing decremented it on payout, so it drifted the moment money left.
+    // Balances come from campaignAvailableBalance(), which computes from this
+    // ledger minus payouts — one source of truth rather than two that disagree.
 
     // Owner alert — delivery happens in the notification worker (phase 11).
     await tx.notification.create({

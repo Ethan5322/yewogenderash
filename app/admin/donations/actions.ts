@@ -35,15 +35,9 @@ export async function refundDonationAction(
       where: { id: d.campaignId },
       data: { currentAmount: { decrement: d.amount } },
     });
-    await tx.campaignBalance.updateMany({
-      where: { campaignId: d.campaignId },
-      data: {
-        grossRaised: { decrement: d.amount },
-        totalFees: { decrement: d.platformFee },
-        netRaised: { decrement: d.netAmount },
-        availableAmount: { decrement: d.netAmount },
-      },
-    });
+    // The balance denorm that used to be adjusted here is gone (migration 0022).
+    // A refund takes effect automatically now: the donation is no longer SUCCESS,
+    // so campaignAvailableBalance stops counting it. Nothing to keep in step.
   });
 
   await writeAudit({
