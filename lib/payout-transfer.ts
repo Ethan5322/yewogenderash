@@ -38,6 +38,8 @@ export const TRANSFER_BLOCKED: Record<string, string> = {
     "This payout is above the automatic transfer ceiling. Transfer it by hand and record the reference.",
   no_account: "This fundraiser has no verified payout account with a bank code.",
   no_amount: "This payout has no net amount to transfer.",
+  inconsistent:
+    "This payout's figures do not add up — the amount to transfer does not match what was reserved minus the withholding. Nothing has been sent. Check it against the campaign's transactions before transferring anything by hand.",
   test_mode:
     "Chapa is on TEST keys, so transfers are refused. A simulated transfer would mark this payout PAID, tell the fundraiser their money was sent, and use up the campaign's one withdrawal — with nothing actually moving. Transfer it by hand and record the reference, or switch to live keys.",
 };
@@ -87,6 +89,9 @@ export async function sendPayoutTransfer(
       currency: true,
       netPaidAmount: true,
       amount: true,
+      // Needed for the consistency check below: reserved − withheld must equal
+      // the figure actually sent to the bank.
+      withholdingFee: true,
       transferStatus: true,
       ownerId: true,
       campaign: { select: { title: true } },
@@ -121,6 +126,31 @@ export async function sendPayoutTransfer(
   // and includes the withholding the platform keeps.
   const net = toNumber(payout.netPaidAmount ?? 0);
   if (net <= 0) return { ok: false, error: TRANSFER_BLOCKED.no_amount };
+
+  // ── The figure sent to the bank must be the one every deduction has already
+  //    come out of. Checked here rather than trusted, because this is the last
+  //    point before real money leaves and the row could have been written by an
+  //    older code path, edited by hand, or corrupted.
+  //
+  //    Two independent conditions:
+  //      net ≤ reserved            never send more than was taken off the balance
+  //      reserved − withheld = net the row's own arithmetic must close
+  //
+  //    A row failing either is not something to interpret. Refusing costs a manual
+  //    transfer; guessing costs money that was never authorised.
+  const reserved = toNumber(payout.amount);
+  const withheld = toNumber(payout.withholdingFee ?? 0);
+  const closes = Math.abs(reserved - withheld - net) < 0.01; // birr cents
+
+  if (net > reserved || !closes) {
+    console.error("payout transfer: refusing an inconsistent payout row", {
+      payoutId: payout.id,
+      reserved,
+      withheld,
+      net,
+    });
+    return { ok: false, error: TRANSFER_BLOCKED.inconsistent };
+  }
 
   const { maxAutoTransferEtb } = await getPlatformSettings();
   if (net > maxAutoTransferEtb) {

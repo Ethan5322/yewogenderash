@@ -353,6 +353,46 @@ describe.skipIf(!isLocal)("payout transfers against a real database", () => {
     process.env.CHAPA_SECRET_KEY = "CHASECK-integration-test";
   });
 
+  it("14. never sends more than was reserved off the balance", async () => {
+    // The guard against a corrupted row. netPaidAmount is what goes to the bank
+    // and it must be reserved minus withholding — here it claims MORE than was
+    // taken off the campaign's balance, which would send money nobody authorised.
+    // The injected Chapa would happily accept it, so this only passes because the
+    // invariant refuses first.
+    await db.payout.update({
+      where: { id: payoutId },
+      data: { amount: 1697.5, withholdingFee: 122.5, netPaidAmount: 9999 },
+    });
+    const res = await sendPayoutTransfer(payoutId, "admin-1", chapaReturning(SUCCESS));
+    expect(res).toEqual({ ok: false, error: TRANSFER_BLOCKED.inconsistent });
+
+    const p = await load();
+    expect(p.transferStatus).toBeNull(); // nothing claimed
+    expect(p.status).toBe("APPROVED");
+  });
+
+  it("15. refuses a row whose own arithmetic does not close", async () => {
+    // reserved − withheld ≠ net. Less than reserved, so the "too much" check
+    // passes, but the row still disagrees with itself: somewhere a deduction was
+    // applied twice or not at all, and which is unknowable from here.
+    await db.payout.update({
+      where: { id: payoutId },
+      data: { amount: 1697.5, withholdingFee: 122.5, netPaidAmount: 1000 },
+    });
+    const res = await sendPayoutTransfer(payoutId, "admin-1", chapaReturning(SUCCESS));
+    expect(res).toEqual({ ok: false, error: TRANSFER_BLOCKED.inconsistent });
+    expect((await load()).transferStatus).toBeNull();
+  });
+
+  it("16. accepts the correct figure — the guard is not simply blocking", async () => {
+    // Same shape as freshPayout: 1697.50 reserved, 122.50 withheld, 1575 sent.
+    // Without this, tests 14 and 15 would pass even if the guard rejected
+    // everything.
+    const res = await sendPayoutTransfer(payoutId, "admin-1", chapaReturning(SUCCESS));
+    expect(res).toEqual({ ok: true, outcome: "SUCCESS" });
+    expect((await load()).transferStatus).toBe("SUCCESS");
+  });
+
   it("13. an unrecognisable key is refused too — unknown is not live", async () => {
     process.env.CHAPA_SECRET_KEY = "something-else-entirely";
     const res = await sendPayoutTransfer(payoutId, "admin-1", chapaReturning(SUCCESS));
