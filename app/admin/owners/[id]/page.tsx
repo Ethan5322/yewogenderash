@@ -86,8 +86,8 @@ export default async function AdminOwnerDetailPage({
       const kind = docKind(ext);
       const filename = `${safeName}-${d.documentType.toLowerCase()}.${ext}`;
       const [signedUrl, downloadUrl] = await Promise.all([
-        signedKycUrl(d.fileUrl, 600),
-        signedKycUrl(d.fileUrl, 600, filename),
+        signedKycUrl(d.fileUrl, 120),
+        signedKycUrl(d.fileUrl, 120, filename),
       ]);
       return { ...d, signedUrl, downloadUrl, kind };
     })
@@ -443,7 +443,7 @@ export default async function AdminOwnerDetailPage({
               Documents ({docs.length})
             </h2>
             <p className="mt-1 text-xs text-muted-foreground">
-              Signed links expire in 10 minutes.
+              Signed links expire in 2 minutes.
             </p>
             {docs.length === 0 ? (
               <p className="mt-4 text-sm text-muted-foreground">No documents.</p>

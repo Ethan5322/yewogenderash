@@ -99,20 +99,35 @@ export default async function AdminCampaignDetailPage({
   };
   const kindOf = (fileUrl: string) =>
     docKind((fileUrl.split(".").pop()?.split("?")[0] || "file").toLowerCase());
-  const docs = await Promise.all(
-    owner.documents.map(async (d) => {
-      const [signedUrl, downloadUrl] = await Promise.all([
-        signedKycUrl(d.fileUrl, 600),
-        signedKycUrl(d.fileUrl, 600, nameFor(owner.user.name, d.documentType, d.fileUrl)),
-      ]);
-      return { ...d, signedUrl, downloadUrl, kind: kindOf(d.fileUrl) };
-    })
-  );
+  // Owner IDENTITY documents — ID photos and biometric selfies — require the
+  // `kyc` capability, not merely `campaigns`.
+  //
+  // This page is guarded by requirePermission("campaigns"), and it was handing
+  // out signed URLs to owner identity documents to anyone who held that. `kyc`
+  // exists precisely to gate identity data: an admin granted campaign review
+  // alone (the capability map allows any mix) could read the ID document and
+  // biometric selfie of every fundraiser whose campaign they reviewed. No signed
+  // URL is generated at all now unless the reader holds `kyc`.
+  const canSeeIdentityDocs = hasPermission(me, "kyc");
+  const docs = canSeeIdentityDocs
+    ? await Promise.all(
+        owner.documents.map(async (d) => {
+          const [signedUrl, downloadUrl] = await Promise.all([
+            // 120s, not 600s. A signed URL carries its own authorisation: once
+            // issued, anyone holding the link can fetch the file with no session,
+            // so its lifetime IS the exposure window for an identity document.
+            signedKycUrl(d.fileUrl, 120),
+            signedKycUrl(d.fileUrl, 120, nameFor(owner.user.name, d.documentType, d.fileUrl)),
+          ]);
+          return { ...d, signedUrl, downloadUrl, kind: kindOf(d.fileUrl) };
+        })
+      )
+    : [];
   const campaignDocs = await Promise.all(
     campaign.documents.map(async (d) => {
       const [signedUrl, downloadUrl] = await Promise.all([
-        signedKycUrl(d.fileUrl, 600),
-        signedKycUrl(d.fileUrl, 600, nameFor(campaign.title, d.documentType, d.fileUrl)),
+        signedKycUrl(d.fileUrl, 120),
+        signedKycUrl(d.fileUrl, 120, nameFor(campaign.title, d.documentType, d.fileUrl)),
       ]);
       return { ...d, signedUrl, downloadUrl, kind: kindOf(d.fileUrl) };
     })
@@ -204,7 +219,7 @@ export default async function AdminCampaignDetailPage({
             </h2>
             <p className="mt-1 text-xs text-muted-foreground">
               Evidence attached to this specific campaign. Verify it matches the
-              category and story before approving. Links expire in 10 minutes.
+              category and story before approving. Links expire in 2 minutes.
             </p>
             {campaignDocs.length === 0 ? (
               <p className="mt-4 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm text-warning">
@@ -230,12 +245,23 @@ export default async function AdminCampaignDetailPage({
 
           <section className="rounded-xl border bg-card p-6 shadow-sm">
             <h2 className="font-display text-base font-semibold">
-              Owner documents ({docs.length})
+              Owner documents{canSeeIdentityDocs ? ` (${docs.length})` : ""}
             </h2>
             <p className="mt-1 text-xs text-muted-foreground">
-              Links are signed and expire in 10 minutes. Access is logged.
+              {canSeeIdentityDocs
+                ? "Links are signed and expire in 2 minutes. Access is logged."
+                : "Identity documents need the KYC capability."}
             </p>
-            {docs.length === 0 ? (
+            {!canSeeIdentityDocs ? (
+              // Say why rather than show an empty list — an empty list reads as
+              // "this fundraiser uploaded nothing", which would send a reviewer
+              // chasing a document that is actually on file.
+              <p className="mt-4 text-sm text-muted-foreground">
+                Hidden. Reviewing a campaign does not include reading the
+                fundraiser&apos;s identity documents — that needs the KYC
+                capability, granted separately by the main admin.
+              </p>
+            ) : docs.length === 0 ? (
               <p className="mt-4 text-sm text-muted-foreground">
                 No documents on file.
               </p>
