@@ -4,6 +4,7 @@ import { authConfig } from "@/auth.config";
 import { db } from "@/lib/db";
 import { verifyPassword } from "@/lib/auth/password";
 import { verifyOtp } from "@/lib/auth/otp";
+import { lockState, recordFailedLogin, clearFailedLogins } from "@/lib/auth/lockout";
 import { loginSchema } from "@/lib/validators/auth";
 import { writeAudit } from "@/lib/audit";
 import { faceDistance, parseDescriptor, MATCH_THRESHOLD } from "@/lib/face/distance";
@@ -29,8 +30,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const user = await db.user.findUnique({ where: { email } });
         if (!user || user.isBanned) return null;
 
+        // Brute-force gate. Sign-in was the one public write path in this app
+        // with no limit of any kind: unlimited password guesses, no counter, no
+        // delay. Returning null (not a distinct error) keeps the response
+        // identical to a wrong password, so a lockout cannot be used to discover
+        // which email addresses exist.
+        if (lockState(user).locked) return null;
+
         const valid = await verifyPassword(parsed.data.password, user.passwordHash);
-        if (!valid) return null;
+        if (!valid) {
+          await recordFailedLogin(user);
+          return null;
+        }
 
         // Second factor is MANDATORY for admins — they can only sign in through
         // the /admin-login flow, which supplies a valid one-time code. Password
@@ -38,8 +49,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (user.role === "ADMIN") {
           const code = typeof credentials?.code === "string" ? credentials.code : "";
           const otp = await verifyOtp(user.id, "LOGIN_2FA", code);
-          if (!otp.ok) return null;
+          if (!otp.ok) {
+            // A wrong second factor counts as a failed sign-in too. Otherwise an
+            // attacker who already has the password can grind the 6-digit code
+            // without ever tripping the password counter.
+            await recordFailedLogin(user);
+            return null;
+          }
         }
+
+        // Correct password (and second factor, for admins) — forget the failures.
+        // A user who mistypes twice and then succeeds must not carry that toward a
+        // lock next week.
+        await clearFailedLogins(user);
 
         // Shape consumed by the jwt callback in auth.config.ts
         return {

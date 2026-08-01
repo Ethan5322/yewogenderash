@@ -107,12 +107,17 @@ export const currentAdmin = cache(async function currentAdmin(): Promise<Current
       name: true,
       email: true,
       role: true,
+      isBanned: true,
       adminCode: true,
       isSuperAdmin: true,
       adminPermissions: true,
     },
   });
-  if (!user || user.role !== "ADMIN") redirect("/");
+  // isBanned is checked here as well as the role. Sign-in refuses a banned user,
+  // but only for NEW sessions — a session issued before the ban was untouched by
+  // that check, so a suspended admin kept every /admin/* surface until their
+  // 7-day token expired.
+  if (!user || user.role !== "ADMIN" || user.isBanned) redirect("/");
   return {
     id: user.id,
     name: user.name,

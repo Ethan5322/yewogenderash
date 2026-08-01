@@ -122,10 +122,79 @@ function actualTables() {
   return tables;
 }
 
+/**
+ * schema.prisma → { enumType: Set(values) }, honouring @@map.
+ *
+ * Added after a third drift got through: OtpPurpose declared LOGIN_2FA, which
+ * auth.ts requires for admin 2FA, and NO migration added it — 0001 created the
+ * type with three values. The live database had it by hand; a rebuilt one failed
+ * at runtime with "invalid input value for enum yd_otp_purpose". Comparing tables
+ * and columns was never going to catch that.
+ */
+function expectedEnums() {
+  const out = {};
+  const re = /^enum\s+(\w+)\s*\{([\s\S]*?)^\}/gm;
+  let m;
+  while ((m = re.exec(schema))) {
+    const [, name, body] = m;
+    const mapped = /@@map\("([^"]+)"\)/.exec(body);
+    const type = mapped ? mapped[1] : name;
+    const values = new Set();
+    for (const raw of body.split("\n")) {
+      const line = raw.trim();
+      if (!line || line.startsWith("//") || line.startsWith("@@")) continue;
+      if (/^[A-Z][A-Z0-9_]*$/.test(line)) values.add(line);
+    }
+    out[type] = values;
+  }
+  return out;
+}
+
+/** Migrations → { enumType: Set(values) }, from CREATE TYPE and ALTER TYPE. */
+function actualEnums() {
+  const dir = join(root, "supabase", "migrations");
+  const files = readdirSync(dir).filter((f) => /^\d{4}_yd_.*\.sql$/.test(f)).sort();
+  const out = {};
+
+  for (const file of files) {
+    const sql = readFileSync(join(dir, file), "utf8")
+      .replace(/--[^\n]*/g, "")
+      .replace(/\/\*[\s\S]*?\*\//g, "");
+
+    for (const t of sql.matchAll(
+      /CREATE TYPE\s+"?([A-Za-z_]\w*)"?\s+AS ENUM\s*\(([\s\S]*?)\)\s*;/gi
+    )) {
+      const [, type, body] = t;
+      out[type] ??= new Set();
+      for (const v of body.matchAll(/'([^']+)'/g)) out[type].add(v[1]);
+    }
+    for (const a of sql.matchAll(
+      /ALTER TYPE\s+"?([A-Za-z_]\w*)"?\s+ADD VALUE(?:\s+IF NOT EXISTS)?\s+'([^']+)'/gi
+    )) {
+      out[a[1]] ??= new Set();
+      out[a[1]].add(a[2]);
+    }
+  }
+  return out;
+}
+
 const expected = expectedTables();
 const actual = actualTables();
+const expectedEnumValues = expectedEnums();
+const actualEnumValues = actualEnums();
 
 const problems = [];
+
+for (const [type, values] of Object.entries(expectedEnumValues)) {
+  if (!actualEnumValues[type]) {
+    problems.push(`enum "${type}" is declared in schema.prisma but no migration creates it`);
+    continue;
+  }
+  const missing = [...values].filter((v) => !actualEnumValues[type].has(v));
+  if (missing.length) {
+    problems.push(`enum "${type}" is missing value(s) in migrations: ${missing.join(", ")}`);
+  }
+}
 for (const [table, cols] of Object.entries(expected)) {
   if (!actual[table]) {
     problems.push(`table "${table}" is declared in schema.prisma but no migration creates it`);
@@ -150,4 +219,9 @@ if (problems.length) {
 
 const tableCount = Object.keys(expected).length;
 const colCount = Object.values(expected).reduce((n, s) => n + s.size, 0);
-console.log(`Schema and migrations agree — ${tableCount} tables, ${colCount} columns.`);
+const enumCount = Object.keys(expectedEnumValues).length;
+const valueCount = Object.values(expectedEnumValues).reduce((n, s) => n + s.size, 0);
+console.log(
+  `Schema and migrations agree — ${tableCount} tables, ${colCount} columns, ` +
+    `${enumCount} enums, ${valueCount} enum values.`
+);

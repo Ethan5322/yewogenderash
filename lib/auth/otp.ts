@@ -4,6 +4,12 @@ import { db } from "@/lib/db";
 import { sendEmail, emailConfigured } from "@/lib/email";
 
 const OTP_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+/**
+ * Wrong guesses allowed against one code before it is burned. Five is enough for
+ * a person fat-fingering a digit and far too few to search a six-digit space.
+ */
+export const MAX_VERIFY_ATTEMPTS = 5;
 export const RESEND_COOLDOWN_SECONDS = 30;
 const RESEND_COOLDOWN_MS = RESEND_COOLDOWN_SECONDS * 1000; // 30s between requests
 
@@ -59,7 +65,25 @@ export async function verifyOtp(
     orderBy: { createdAt: "desc" },
   });
 
-  if (!record || record.codeHash !== hashCode(code.trim())) {
+  if (!record) return { ok: false as const };
+
+  // Attempt cap. Without one, a 6-digit code is 1,000,000 guesses over a
+  // 10-minute life and a wrong answer cost the attacker nothing — enough for
+  // somebody holding an admin's password to grind the second factor. Counted on
+  // the row, because an in-memory counter is per-instance and resets on a cold
+  // start. The code is burned at the cap, not merely refused, so an attacker
+  // cannot keep hammering the same one.
+  if (record.attempts >= MAX_VERIFY_ATTEMPTS) {
+    await db.otpCode
+      .update({ where: { id: record.id }, data: { usedAt: new Date() } })
+      .catch(() => {});
+    return { ok: false as const };
+  }
+
+  if (record.codeHash !== hashCode(code.trim())) {
+    await db.otpCode
+      .update({ where: { id: record.id }, data: { attempts: { increment: 1 } } })
+      .catch(() => {});
     return { ok: false as const };
   }
 

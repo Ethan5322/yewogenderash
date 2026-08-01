@@ -166,6 +166,16 @@ model User {
   role               Role               @default(DONOR)
   verificationStatus VerificationStatus @default(UNVERIFIED)
   isBanned           Boolean            @default(false)
+  /// Brute-force defence on sign-in. Counted in the DATABASE, not in memory: an
+  /// in-memory counter is per serverless instance, so spreading attempts across
+  /// warm instances multiplies the real limit, and a cold start resets it.
+  ///
+  /// `lockedUntil` is a SHORT lock, deliberately. A long one turns a guessing
+  /// attack into a denial of service against a fundraiser who needs to reach
+  /// their money. Cleared on any successful sign-in.
+  failedLoginAttempts Int               @default(0)
+  lastFailedLoginAt  DateTime?
+  lockedUntil        DateTime?
   // Delegated administration. A super admin ("main admin") implicitly holds
   // every permission and can manage other admins; sub-admins (role ADMIN,
   // isSuperAdmin false) hold only the capabilities toggled on in
@@ -203,6 +213,11 @@ model OtpCode {
   codeHash  String
   expiresAt DateTime
   usedAt    DateTime?
+  /// Wrong guesses against THIS code. A 6-digit code is a million possibilities
+  /// and lives for 10 minutes; without a cap, an attacker holding an admin's
+  /// password can grind the second factor. Counted in the database because an
+  /// in-memory counter resets on every cold start and is per-instance.
+  attempts  Int        @default(0)
   createdAt DateTime   @default(now())
 
   @@index([userId, purpose])

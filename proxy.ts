@@ -1,6 +1,7 @@
 import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
 import { authConfig } from "@/auth.config";
+import { rateLimit, ipKey, tooManyResponse } from "@/lib/rate-limit";
 
 /**
  * Route protection (Next 16 `proxy` convention — replaces the deprecated
@@ -89,6 +90,23 @@ function buildCsp(nonce: string): string {
 const { auth } = NextAuth(authConfig);
 
 export default auth(async (request) => {
+  // ── 0. Cheap first line against sign-in flooding ─────────────────────────
+  // Every other public write path in this app is rate-limited; the credential
+  // callback was not. This is per-instance and therefore best-effort — an
+  // attacker spreading requests across warm instances gets more than 10 — so it
+  // is only the outer layer. The lock that actually holds is counted in the
+  // database, on the account (lib/auth/lockout.ts).
+  //
+  // Placed before authorization because the credential callback is a public
+  // route: `authorized` would let it straight through.
+  if (
+    request.method === "POST" &&
+    request.nextUrl.pathname.startsWith("/api/auth/callback")
+  ) {
+    const flood = rateLimit(ipKey(request, "signin"), 10, 15 * 60_000);
+    if (!flood.ok) return tooManyResponse(flood);
+  }
+
   // ── 1. Authorization, using the project's own rules ──────────────────────
   const decide = authConfig.callbacks.authorized;
   const verdict = await decide({
