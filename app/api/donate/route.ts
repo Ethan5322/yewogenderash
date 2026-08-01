@@ -26,7 +26,7 @@ const donateSchema = z.object({
  */
 export async function POST(req: Request) {
   // A single source shouldn't be able to open dozens of checkout sessions.
-  const limit = rateLimit(ipKey(req, "donate"), 8, 5 * 60_000);
+  const limit = await rateLimit(ipKey(req, "donate"), 8, 5 * 60_000);
   if (!limit.ok) return tooManyResponse(limit);
 
   const parsed = donateSchema.safeParse(await req.json().catch(() => null));

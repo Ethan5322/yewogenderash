@@ -26,7 +26,7 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ token: string }> }
 ) {
-  const limit = rateLimit(ipKey(req, "capture"), 12, 10 * 60_000);
+  const limit = await rateLimit(ipKey(req, "capture"), 12, 10 * 60_000);
   if (!limit.ok) return tooManyResponse(limit);
 
   const { token } = await params;

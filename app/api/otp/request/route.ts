@@ -17,9 +17,9 @@ export async function POST(req: Request) {
 
   // Per-user resend cooldown is DB-backed (see createOtp); this caps burst
   // volume from one source/session on top of it.
-  const byUser = rateLimit(`otp-req:${session.user.id}`, 6, 10 * 60_000);
+  const byUser = await rateLimit(`otp-req:${session.user.id}`, 6, 10 * 60_000);
   if (!byUser.ok) return tooManyResponse(byUser);
-  const byIp = rateLimit(ipKey(req, "otp-req"), 12, 10 * 60_000);
+  const byIp = await rateLimit(ipKey(req, "otp-req"), 12, 10 * 60_000);
   if (!byIp.ok) return tooManyResponse(byIp);
 
   const parsed = requestSchema.safeParse(await req.json().catch(() => null));

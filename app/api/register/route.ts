@@ -8,7 +8,7 @@ import { rateLimit, ipKey, tooManyResponse } from "@/lib/rate-limit";
 
 export async function POST(req: Request) {
   // Throttle account creation from one source to blunt signup spam.
-  const limit = rateLimit(ipKey(req, "register"), 5, 15 * 60_000);
+  const limit = await rateLimit(ipKey(req, "register"), 5, 15 * 60_000);
   if (!limit.ok) return tooManyResponse(limit);
 
   let body: unknown;

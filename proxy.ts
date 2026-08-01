@@ -103,7 +103,7 @@ export default auth(async (request) => {
     request.method === "POST" &&
     request.nextUrl.pathname.startsWith("/api/auth/callback")
   ) {
-    const flood = rateLimit(ipKey(request, "signin"), 10, 15 * 60_000);
+    const flood = await rateLimit(ipKey(request, "signin"), 10, 15 * 60_000);
     if (!flood.ok) return tooManyResponse(flood);
   }
 
