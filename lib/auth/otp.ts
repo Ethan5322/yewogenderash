@@ -96,9 +96,16 @@ export async function deliverOtp(params: {
   phone?: string | null;
   code: string;
 }): Promise<{ emailConfigured: boolean; emailSent: boolean; error?: string }> {
-  console.log(
-    `[otp] ${params.purpose} code for ${params.email ?? params.phone}: ${params.code}`
-  );
+  // DEV ONLY. This used to log unconditionally, so every verification code in
+  // production was written to the Vercel runtime log in plain text — readable by
+  // anyone with log access, and enough on its own to complete a login as somebody
+  // else. The doc comment above already claimed this was a dev fallback; now it
+  // is one.
+  if (process.env.NODE_ENV !== "production") {
+    console.log(
+      `[otp] ${params.purpose} code for ${params.email ?? params.phone}: ${params.code}`
+    );
+  }
 
   if (!params.email || !emailConfigured()) {
     return { emailConfigured: emailConfigured(), emailSent: false };

@@ -43,8 +43,14 @@ export async function requestAdminLoginCode(
   const apiKey = process.env.ADMIN_CALLMEBOT_APIKEY || "";
   const message = `Yewogen Derash — your admin login code is ${otp.code}. It expires in 10 minutes. If you didn't request this, ignore it.`;
 
-  // Server log so the code is retrievable during setup/testing.
-  console.log(`[admin-2fa] LOGIN_2FA code for ${user.email}: ${otp.code}`);
+  // DEV ONLY. "Retrievable during setup/testing" was the intent, but there was no
+  // guard, so in production every admin's second factor was printed to the
+  // runtime log. Anyone who could read logs could read a live 2FA code — which
+  // defeats the entire point of having a second factor, and does so for the
+  // accounts that can approve payouts.
+  if (process.env.NODE_ENV !== "production") {
+    console.log(`[admin-2fa] LOGIN_2FA code for ${user.email}: ${otp.code}`);
+  }
 
   if (phone && apiKey) {
     await sendWhatsApp(phone, apiKey, message).catch(() => {});

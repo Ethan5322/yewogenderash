@@ -93,8 +93,24 @@ export async function sendPasswordResetEmail(params: {
   name: string;
   link: string;
 }): Promise<{ sent: boolean; error?: string }> {
-  console.log(`[password-reset] link for ${params.to}: ${params.link}`);
-  if (!emailConfigured()) return { sent: false };
+  // DEV ONLY. Logged unconditionally before, which put a working password-reset
+  // link for any account into the production log. That link IS the credential —
+  // whoever reads it first can take the account over, without needing the
+  // password or the email inbox.
+  if (process.env.NODE_ENV !== "production") {
+    console.log(`[password-reset] link for ${params.to}: ${params.link}`);
+  }
+  if (!emailConfigured()) {
+    // In production this is the dangerous case: no email configured means the
+    // link cannot reach the user, and it must NOT be written to a log instead.
+    // Say that a delivery failed and nothing more.
+    if (process.env.NODE_ENV === "production") {
+      console.error(
+        "[password-reset] email is not configured — reset link could not be delivered"
+      );
+    }
+    return { sent: false };
+  }
 
   const res = await sendEmail({
     to: params.to,
