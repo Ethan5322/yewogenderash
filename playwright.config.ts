@@ -57,5 +57,23 @@ export default defineConfig({
     timeout: 300_000,
     stdout: "ignore",
     stderr: "pipe",
+    /**
+     * E2E_DATABASE_URL lets the suite run against a LOCAL, seeded database.
+     *
+     * Without it the dev server uses whatever DATABASE_URL is in .env — the real
+     * Supabase — which is why every existing spec only covers anonymous visitors:
+     * signing in would have meant creating accounts in production. Nothing tested
+     * the dashboard or the admin panel in a browser as a result.
+     *
+     *   node scripts/local-db.mjs 5480
+     *   DATABASE_URL=<that url> node scripts/seed-e2e.mjs
+     *   E2E_DATABASE_URL=<that url> npm run test:e2e
+     *
+     * Specs that need a session skip themselves when it is unset, so the default
+     * run is unchanged and still safe against production.
+     */
+    env: process.env.E2E_DATABASE_URL
+      ? { DATABASE_URL: process.env.E2E_DATABASE_URL }
+      : undefined,
   },
 });
