@@ -8,6 +8,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { auth } from "@/auth";
+import { isActiveAdmin } from "@/lib/admin/active-admin";
 import { getAuthorProfile } from "@/lib/authors";
 import { signedKycUrl } from "@/lib/supabase/server";
 import { StatusBadge } from "@/components/campaigns/status-badge";
@@ -32,10 +33,20 @@ export default async function AuthorProfilePage({ params }: Params) {
   if (!owner || !owner.mulesooVerified) notFound();
 
   // Admins who scan the code see the private biometric capture + status.
+  //
+  // The admin check is a FRESH DATABASE READ, not the JWT's role claim. Sessions
+  // last 7 days (auth.config.ts), so a demoted or suspended admin's token still
+  // asserted ADMIN and bought a signed URL to this fundraiser's biometric selfie
+  // — on a PUBLIC page, with no admin guard in front of it. isActiveAdmin also
+  // rejects a banned account, which sign-in cannot do for a session that already
+  // exists.
   const session = await auth();
-  const isAdmin = session?.user?.role === "ADMIN";
+  const isAdmin = await isActiveAdmin(session?.user?.id);
   const selfie = owner.documents[0];
-  const selfieUrl = isAdmin && selfie ? await signedKycUrl(selfie.fileUrl, 600) : null;
+  // 120s, matching app/admin/actions.ts. A signed URL carries its own
+  // authorisation: once issued, anyone holding the link can fetch the image with
+  // no session at all, so its lifetime IS the exposure window.
+  const selfieUrl = isAdmin && selfie ? await signedKycUrl(selfie.fileUrl, 120) : null;
   const totalRaised = owner.campaigns.reduce((sum, c) => sum + Number(c.currentAmount), 0);
 
   return (
@@ -130,8 +141,9 @@ export default async function AuthorProfilePage({ params }: Params) {
                   <dd>{selfie ? formatDate(selfie.createdAt) : "—"}</dd>
                 </div>
                 <p className="mt-1 max-w-xs text-xs text-muted-foreground">
-                  The signed link expires in 10 minutes. This panel is only shown
-                  to signed-in administrators.
+                  The signed link expires in 2 minutes. This panel is only shown
+                  to administrators whose account is confirmed active at the
+                  moment the page loads.
                 </p>
               </dl>
             </div>

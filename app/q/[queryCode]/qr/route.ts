@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import QRCode from "qrcode";
 import { auth } from "@/auth";
+import { isActiveAdmin } from "@/lib/admin/active-admin";
 import { db } from "@/lib/db";
 import { appUrl } from "@/lib/env";
 import { PUBLIC_STATUSES } from "@/lib/campaigns";
@@ -38,7 +39,11 @@ export async function GET(
     // the QR (e.g. to print/download it) — it must not circulate publicly.
     const session = await auth();
     const isOwner = session?.user?.id === campaign.owner.userId;
-    const isAdmin = session?.user?.role === "ADMIN";
+    // Fresh DB read rather than the JWT's role claim — a demoted admin's 7-day
+    // token must not keep rendering QR codes for suspended or unreviewed
+    // campaigns. Ownership is safe to take from the session id: that identifies
+    // the account, it does not assert a privilege.
+    const isAdmin = await isActiveAdmin(session?.user?.id);
     if (!isOwner && !isAdmin) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
