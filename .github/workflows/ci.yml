@@ -42,3 +42,63 @@ jobs:
       # so nothing but this step stops the two drifting apart again.
       - name: Schema and migrations agree
         run: node scripts/check-migration-parity.mjs
+
+  # ───────────────────────────────────────────────────────────────────────────
+  #  Integration tests against a real Postgres.
+  #
+  #  These are the tests that guard money and access: the 90% withdrawal ceiling,
+  #  the one-live-payout constraint, an unconfirmed transfer never reading as paid,
+  #  the sign-in lockout, the 2FA attempt cap, a demoted admin losing biometric
+  #  access. All of them need a database, so none of them ran on a push — they only
+  #  ran when somebody remembered to boot a local database by hand.
+  #
+  #  A separate job because it needs a service container and takes longer; the
+  #  cheap checks above should fail fast without waiting for Postgres.
+  # ───────────────────────────────────────────────────────────────────────────
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: yewogen_ci
+          # C collation + UTF8, matching scripts/local-db.mjs. The migrations carry
+          # box-drawing characters and Amharic in their comments, and a non-UTF8
+          # database rejects 0001 outright on the first "═" it meets.
+          POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
+        ports:
+          - 5432:5432
+        # Without this the job races the container and connects to nothing.
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://postgres:ci@127.0.0.1:5432/yewogen_ci
+      # The integration suites refuse to run unless this is set AND the host is
+      # local — belt and braces against ever pointing them at Supabase.
+      INTEGRATION_DB: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Apply migrations
+        # Same files, same order, as a real deploy — so this also proves the
+        # migrations can build a database from nothing, which is what caught
+        # LOGIN_2FA missing from every migration.
+        run: node scripts/apply-migrations.mjs
+
+      - name: Integration tests
+        run: npm run test:integration
