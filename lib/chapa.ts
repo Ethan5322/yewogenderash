@@ -135,7 +135,23 @@ export function verifyChapaWebhookSignature(
   rawBody: string,
   headers: Headers
 ): boolean {
-  const secret = requiredEnv("CHAPA_WEBHOOK_SECRET");
+  // Read directly rather than through requiredEnv, which THROWS on a missing
+  // value. Throwing here is not a security hole — nothing is accepted either way
+  // — but it escapes before the caller can record the rejection, so a
+  // misconfigured secret produced a 500, no yd_webhook_events row, no audit
+  // trail, and Chapa retrying into silence. That is how a broken secret goes
+  // unnoticed for days while donations quietly stop settling.
+  //
+  // Returning false keeps the fail-closed behaviour AND lets the route write its
+  // "rejected_signature" event, which is the thing ops actually sees.
+  const secret = process.env.CHAPA_WEBHOOK_SECRET;
+  if (!secret) {
+    console.error(
+      "[chapa] CHAPA_WEBHOOK_SECRET is not set — every webhook will be rejected " +
+        "and no donation can settle. This is a configuration emergency."
+    );
+    return false;
+  }
   const expected = createHmac("sha256", secret).update(rawBody).digest("hex");
   const candidates = [
     headers.get("chapa-signature"),
