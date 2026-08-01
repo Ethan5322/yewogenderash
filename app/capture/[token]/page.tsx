@@ -13,15 +13,20 @@ export default async function CapturePage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-  const ownerId = verifyCaptureToken(token);
-  const owner = ownerId
+  const claim = verifyCaptureToken(token);
+  const owner = claim
     ? await db.campaignOwner.findUnique({
-        where: { id: ownerId },
+        where: { id: claim.ownerId },
         select: { authorCode: true, user: { select: { name: true } } },
       })
     : null;
 
-  if (!ownerId || !owner) {
+  // Deliberately NOT checking the single-use fingerprint here. This page only
+  // renders the camera UI and shows whose capture it is; the upload endpoint is
+  // where the token is spent and where the check belongs. Rejecting here as well
+  // would mean a phone that lost its connection mid-upload could not retry, and it
+  // would put a second copy of the rule somewhere it could drift out of step.
+  if (!claim || !owner) {
     return (
       <div className="mx-auto flex min-h-screen max-w-sm flex-col items-center justify-center p-8 text-center">
         <h1 className="text-lg font-semibold">Link expired</h1>

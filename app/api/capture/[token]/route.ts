@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { verifyCaptureToken } from "@/lib/capture-token";
+import { verifyCaptureToken, biometricFingerprint } from "@/lib/capture-token";
 import { uploadKycFile, MAX_UPLOAD_BYTES } from "@/lib/supabase/server";
 import { parseDescriptor, faceDistance } from "@/lib/face/distance";
 import { writeAudit } from "@/lib/audit";
@@ -30,16 +30,41 @@ export async function POST(
   if (!limit.ok) return tooManyResponse(limit);
 
   const { token } = await params;
-  const ownerId = verifyCaptureToken(token);
-  if (!ownerId) {
+  const claim = verifyCaptureToken(token);
+  if (!claim) {
     return NextResponse.json({ error: "This capture link is invalid or expired." }, { status: 401 });
   }
 
   const owner = await db.campaignOwner.findUnique({
-    where: { id: ownerId },
-    select: { id: true, userId: true, idPhotoDescriptor: true, biometricStatus: true },
+    where: { id: claim.ownerId },
+    select: {
+      id: true,
+      userId: true,
+      idPhotoDescriptor: true,
+      biometricStatus: true,
+      // Needed to confirm the token has not already been spent.
+      faceDescriptor: true,
+      livenessPassed: true,
+    },
   });
   if (!owner) return NextResponse.json({ error: "Not found." }, { status: 404 });
+
+  // SINGLE-USE CHECK. The token was minted against this owner's biometric state;
+  // a successful capture changes that state, so a replayed link no longer matches.
+  //
+  // Without this, anyone who obtained the URL — a screenshot, a shoulder-surfed QR,
+  // history on a shared phone — could overwrite the owner's face and liveness
+  // result repeatedly for the token's whole lifetime, and on an owner still
+  // awaiting review an attacker's face could replace theirs before an admin looked.
+  if (biometricFingerprint(owner) !== claim.fingerprint) {
+    return NextResponse.json(
+      {
+        error:
+          "This capture link has already been used. Reload the page on your computer to get a new one.",
+      },
+      { status: 409 }
+    );
+  }
   // Same lock as the desktop capture: a verified fundraiser's face is frozen.
   if (owner.biometricStatus === "VERIFIED") {
     return NextResponse.json(

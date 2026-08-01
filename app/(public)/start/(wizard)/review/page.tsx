@@ -111,7 +111,7 @@ export default async function ReviewStep() {
           ) : (
             <SelfieCapture
               captureToken={
-                ctx.ownerProfile ? createCaptureToken(ctx.ownerProfile.id) : undefined
+                ctx.ownerProfile ? createCaptureToken(ctx.ownerProfile) : undefined
               }
               personName={ctx.name}
               personCode={ctx.ownerProfile?.authorCode ?? null}
